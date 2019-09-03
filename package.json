@@ -1,0 +1,34 @@
+{
+	"name": "shrewd",
+	"version": "0.0.0-beta.0",
+	"description": "Reactive framework that is both rigid and programmer-friendly.",
+	"main": "dist/shrewd.js",
+	"scripts": {
+		"test": "node test/test.js"
+	},
+	"keywords": [
+		"react",
+		"observable"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/MuTsunTsai/shrewd.git"
+	},
+	"author": "Mu-Tsun Tsai",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^12.7.2",
+		"gulp": "^4.0.2",
+		"gulp-header-comment": "^0.6.1",
+		"gulp-plumber": "^1.2.1",
+		"gulp-rename": "^1.4.0",
+		"gulp-terser": "^1.2.0",
+		"gulp-typescript": "^5.0.1",
+		"gulp-umd": "^2.0.0",
+		"typescript": "^3.5.3"
+	},
+	"dependencies": {},
+	"files": [
+		"dist"
+	]
+}

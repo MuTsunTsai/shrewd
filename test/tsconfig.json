@@ -1,0 +1,18 @@
+{
+	"compileOnSave": true,
+	"compilerOptions": {
+		"target": "es2019",
+		"module": "commonjs",
+		"removeComments": true,
+		"strict": true,
+		"noImplicitReturns": true,
+		"noImplicitAny": true,
+		"preserveConstEnums": true,
+		"experimentalDecorators": true,
+		"watch": true,
+	},
+	"include": [
+		"*.ts",
+		"../dist/shrewd.d.ts"
+	]
+}

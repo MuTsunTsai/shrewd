@@ -1,0 +1,14 @@
+{
+	"compileOnSave": true,
+	"compilerOptions": {
+		"target": "es2019",
+		"module": "none",
+		"removeComments": true,
+		"strict": true,
+		"noImplicitReturns": true,
+		"noImplicitAny": true,
+		"preserveConstEnums": true,
+		"experimentalDecorators": true,
+		"outFile": "shrewd.js"
+	}
+}
