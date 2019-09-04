@@ -10,6 +10,9 @@ class Core {
 	/** 目前是否處於認可階段 */
 	private static _commiting: boolean = false;
 
+	/** 在當前堆疊中是否已經設置了自動認可 */
+	private static _promised: boolean = false;
+
 	public static $commit() {
 		Core._tick++;
 		Core._commiting = true;
@@ -29,9 +32,22 @@ class Core {
 
 	public static get $committing() { return Core._commiting; }
 
+	/** 自動認可會在堆疊清空時立刻執行（比任何 setTimeout 都更早） */
+	private static _autoCommit() {
+		Core.$commit();
+		Core._promised = false;
+	}
+
 	public static $queue(observer: Observer) {
 		let level = observer[$dependencyLevel];
 		Core._queue[level] = Core._queue[level] || new Set();
 		Core._queue[level].add(observer);
+
+		// 設置自動認可
+		if(!Core._promised) {
+			let promise = Promise.resolve();
+			promise.then(Core._autoCommit);
+			Core._promised = true;
+		}
 	}
 }

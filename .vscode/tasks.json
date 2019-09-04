@@ -8,9 +8,9 @@
 			"type": "gulp",
 			"task": "default",
 			"isBackground": true,
-			"runOptions": {
-				"runOn": "folderOpen"
-			},
+			// "runOptions": {
+			// 	"runOn": "folderOpen"
+			// },
 			"presentation": {
 				"echo": true,
 				"reveal": "never",

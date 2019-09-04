@@ -22,10 +22,12 @@ gulp.task('clear', cb => {
 	cb();
 });
 
+let project = ts.createProject('src/tsconfig.json');
+
 gulp.task('build', () =>
-	gulp.src('src/**/*.ts')
+	project.src()
 		.pipe(plumber())
-		.pipe(ts.createProject('src/tsconfig.json')())
+		.pipe(project())
 		.pipe(umd({ exports: () => "Shrewd" }))
 		.pipe(headerComment(`
 			<%= pkg.name %> v<%= pkg.version %>
@@ -38,10 +40,12 @@ gulp.task('build', () =>
 		.pipe(gulp.dest('dist/'))
 );
 
+var testProject = ts.createProject('test/tsconfig.json');
+
 gulp.task('buildTest', () =>
-	gulp.src('test/*.ts')
+	testProject.src()
 		.pipe(plumber())
-		.pipe(ts.createProject('test/tsconfig.json')())
+		.pipe(testProject())
 		.pipe(gulp.dest('test/'))
 );
 
@@ -53,10 +57,7 @@ gulp.task('watchTest', () => {
 	gulp.watch('test/*.ts', gulp.series('clear', 'buildTest')); // [1]
 });
 
-gulp.task('default', gulp.parallel(
-	gulp.series('build', 'watch'),
-	gulp.series('buildTest', 'watchTest')
-));
+gulp.task('default', gulp.series('build'));
 
 /**
  * [1] 重新建製的時候先清空輸出以清除掉上次建製時可能有輸出的錯誤，以免 VS Code 的主控台關不掉

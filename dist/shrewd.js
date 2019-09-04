@@ -36,15 +36,25 @@ class Core {
     }
     static get $tick() { return Core._commiting ? Core._tick : -1; }
     static get $committing() { return Core._commiting; }
+    static _autoCommit() {
+        Core.$commit();
+        Core._promised = false;
+    }
     static $queue(observer) {
         let level = observer[$dependencyLevel];
         Core._queue[level] = Core._queue[level] || new Set();
         Core._queue[level].add(observer);
+        if (!Core._promised) {
+            let promise = Promise.resolve();
+            promise.then(Core._autoCommit);
+            Core._promised = true;
+        }
     }
 }
 Core._tick = 0;
 Core._queue = [];
 Core._commiting = false;
+Core._promised = false;
 const $shrewdDecorators = Symbol("Shrewd Decorators");
 class Decorators {
     static get(proto) {
