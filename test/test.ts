@@ -1,5 +1,5 @@
 
-import { computed, observable, SetupError, commit } from "../dist/shrewd";
+import { computed, observable, reactive, SetupError, commit } from "../dist/shrewd";
 
 /**
  * 使用說明：
@@ -127,6 +127,72 @@ const Tests: { [test: string]: () => void } = {
 		console.assert(error instanceof SetupError && error.class == "B" && error.prop == "value",
 			"類別 B 的 value 屬性是不能裝飾為 observable 的");
 	},
+
+	ReactiveMethod() {
+		class A {
+			constructor() {
+				this.log(); // 自我啟動
+			}
+
+			public n = 0;
+
+			@observable public value = 0;
+
+			@computed public get middle() {
+				return this.value % 2;
+			}
+
+			@reactive public log() {
+				this.middle; // 純粹讀取來使得 log 參照之
+				this.n++;
+			}
+		}
+
+		var a = new A();
+		console.assert(a.n === 1, "初次執行");
+
+		a.value = 1;
+		commit();
+		console.assert(a.middle === 1, "中間值改變");
+		console.assert(a.n === 2, "參照值改變導致 log 再次執行", a.n);
+		commit();
+		console.assert(a.n === 2, "如果沒有任何改變，再次認可並不會再次執行 log");
+
+		a.value = 3;
+		commit();
+		console.assert(a.n === 2, "因為中間值沒改變，log 不重新執行");
+
+		a.value = 2;
+		commit();
+		console.assert(a.n === 3, "再次執行 log");
+	},
+
+	ReactiveOverride() {
+		class A {
+			public n = 1;
+			@observable public value = 1;
+			@reactive log() {
+				this.value;
+				this.n *= 2;
+			}
+		}
+
+		class B extends A {
+			@reactive log() {
+				// 下層方法唯一參照到的就是上層方法；只要上層方法被執行，就會通知下層方法去執行
+				super.log();
+				this.n *= 3;
+			}
+		}
+
+		var b = new B();
+		b.log();
+		console.assert(b.n == 6, "兩個層次的 log 都有被執行");
+
+		b.value = 2;
+		commit();
+		console.assert(b.n == 36, "兩個層次的 log 都恰再次被執行一次", b.n);
+	}
 
 };
 

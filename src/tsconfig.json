@@ -5,8 +5,6 @@
 		"module": "none",
 		"removeComments": true,
 		"strict": true,
-		"noImplicitReturns": true,
-		"noImplicitAny": true,
 		"preserveConstEnums": true,
 		"experimentalDecorators": true,
 		"outFile": "shrewd.js"

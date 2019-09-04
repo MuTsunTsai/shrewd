@@ -137,6 +137,78 @@ const Tests = {
         }
         console.assert(error instanceof shrewd_1.SetupError && error.class == "B" && error.prop == "value", "類別 B 的 value 屬性是不能裝飾為 observable 的");
     },
+    ReactiveMethod() {
+        class A {
+            constructor() {
+                this.n = 0;
+                this.value = 0;
+                this.log();
+            }
+            get middle() {
+                return this.value % 2;
+            }
+            log() {
+                this.middle;
+                this.n++;
+            }
+        }
+        __decorate([
+            shrewd_1.observable
+        ], A.prototype, "value", void 0);
+        __decorate([
+            shrewd_1.computed
+        ], A.prototype, "middle", null);
+        __decorate([
+            shrewd_1.reactive
+        ], A.prototype, "log", null);
+        var a = new A();
+        console.assert(a.n === 1, "初次執行");
+        a.value = 1;
+        shrewd_1.commit();
+        console.assert(a.middle === 1, "中間值改變");
+        console.assert(a.n === 2, "參照值改變導致 log 再次執行", a.n);
+        shrewd_1.commit();
+        console.assert(a.n === 2, "如果沒有任何改變，再次認可並不會再次執行 log");
+        a.value = 3;
+        shrewd_1.commit();
+        console.assert(a.n === 2, "因為中間值沒改變，log 不重新執行");
+        a.value = 2;
+        shrewd_1.commit();
+        console.assert(a.n === 3, "再次執行 log");
+    },
+    ReactiveOverride() {
+        class A {
+            constructor() {
+                this.n = 1;
+                this.value = 1;
+            }
+            log() {
+                this.value;
+                this.n *= 2;
+            }
+        }
+        __decorate([
+            shrewd_1.observable
+        ], A.prototype, "value", void 0);
+        __decorate([
+            shrewd_1.reactive
+        ], A.prototype, "log", null);
+        class B extends A {
+            log() {
+                super.log();
+                this.n *= 3;
+            }
+        }
+        __decorate([
+            shrewd_1.reactive
+        ], B.prototype, "log", null);
+        var b = new B();
+        b.log();
+        console.assert(b.n == 6, "兩個層次的 log 都有被執行");
+        b.value = 2;
+        shrewd_1.commit();
+        console.assert(b.n == 36, "兩個層次的 log 都恰再次被執行一次", b.n);
+    }
 };
 let assert = console.assert;
 let pass = true;

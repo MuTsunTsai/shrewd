@@ -18,12 +18,17 @@ class SetupError extends Error {
 }
 class Core {
     static $commit() {
+        Core._tick++;
         Core._commiting = true;
-        for (let i in Core._queue)
-            for (let observer of Core._queue[i])
-                Observer.$render(observer);
+        for (let i = 0; i < Core._queue.length; i++)
+            if (Core._queue[i]) {
+                for (let observer of Core._queue[i])
+                    Observer.$render(observer);
+            }
+        Core._queue = [];
         Core._commiting = false;
     }
+    static get $tick() { return Core._tick; }
     static get $committing() { return Core._commiting; }
     static $queue(observer) {
         let level = observer[$dependencyLevel];
@@ -31,6 +36,7 @@ class Core {
         Core._queue[level].add(observer);
     }
 }
+Core._tick = 0;
 Core._queue = [];
 Core._commiting = false;
 const $shrewdDecorators = Symbol("Shrewd Decorators");
@@ -58,6 +64,7 @@ class Decorators {
             throw new SetupError(proto, prop, "Decorated property is not a field.");
         Decorators.get(proto).push({
             key: prop,
+            name: proto.constructor.name + "." + prop.toString(),
             type: ObservableProperty,
             validator: validator
         });
@@ -80,6 +87,7 @@ class Decorators {
         let symbol = Symbol(prop.toString());
         Decorators.get(proto).push({
             key: symbol,
+            name: proto.constructor.name + "." + prop.toString(),
             type: ComputedProperty,
             method: descriptor.get
         });
@@ -97,10 +105,12 @@ class Decorators {
         let symbol = Symbol(prop.toString());
         Decorators.get(proto).push({
             key: symbol,
+            name: proto.constructor.name + "." + prop.toString(),
             type: ReactiveMethod,
             method: descriptor.value
         });
         delete descriptor.value;
+        delete descriptor.writable;
         descriptor.get = function () {
             let shrewd = ShrewdObject.get(this);
             shrewd.$initialize();
@@ -201,7 +211,7 @@ class Observer extends Observable {
             observable.$unsubscribe(observer);
         observer._reference.clear();
         observer[$dependencyLevel] = 0;
-        observer.$render();
+        let result = observer.$render();
         for (let observable of observer._reference) {
             observable.$subscribe(observer);
             if (observable[$dependencyLevel] >= observer[$dependencyLevel]) {
@@ -209,6 +219,7 @@ class Observer extends Observable {
             }
         }
         Observer._currentTarget = lastTarget;
+        return result;
     }
 }
 Observer._currentTarget = null;
@@ -216,7 +227,7 @@ class DecoratedMemeber extends Observer {
     constructor(parent, descriptor) {
         super();
         this._parent = parent;
-        this._name = parent.constructor.name + "." + descriptor.key.toString();
+        this._name = descriptor.name;
     }
     get [Symbol.toStringTag]() { return this._name; }
 }
@@ -234,6 +245,7 @@ class ComputedProperty extends DecoratedMemeber {
         }
     }
     $getter() {
+        Observer.$refer(this);
         if (!this._initialized) {
             Observer.$render(this);
             this._initialized = true;
@@ -286,11 +298,20 @@ ObservableProperty._defaultValidator = (value) => value;
 class ReactiveMethod extends DecoratedMemeber {
     constructor(parent, descriptor) {
         super(parent, descriptor);
+        this._tick = 0;
         this._method = descriptor.method;
     }
-    $getter() { return this._method; }
+    $getter() {
+        Observer.$refer(this);
+        return () => Observer.$render(this);
+    }
     $render() {
-        this._method();
+        if (!Core.$committing || this._tick != Core.$tick) {
+            this._result = this._method.apply(this._parent);
+            this._tick = Core.$tick;
+        }
+        this.$notify();
+        return this._result;
     }
 }
 const Shrewd = {

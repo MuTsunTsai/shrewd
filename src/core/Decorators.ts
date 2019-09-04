@@ -20,21 +20,6 @@
  *    我們一定無法立刻監控繼承類別中的方法的執行，所以為了建立相依性，
  *    整個方法至少還要再執行一次；雖然這只有在第一次呼叫的時候有這樣的問題，
  *    但是我總之覺得這很不清爽。
- * 
- * 因此，在反應方法和計算屬性的情況中，每一個層次的方法都會產生獨立的 DecoratedMember 實體物件，
- * 而且都會獨立進行反應。所以在計算屬性的情況中，實際上各層的計算屬性都是獨立不相干的計算屬性，
- * 只是下層的計算屬性會去參照上層的計算屬性、且對外而言只有最下層的計算屬性是公開的而已。
- * 這樣的一個額外好處就是在父類別和繼承類別的同名計算屬性之間會存在一個停止點。
- * 
- * 反應方法的情況也是類似：各層的反應方法都是獨立的，
- * 但是我們允許下層的反應方法在執行的過程中去呼叫上層的反應方法。
- * 在這種場合中，下層方法也會被視為是參照上層方法（無論它是否使用了上層方法的傳回值），
- * 所以在認可階段中上層方法會先被執行，並且暫存回傳值（如果有的話）。
- * 不同的地方在於，反應方法即使回傳值一樣，只要它自己被通知執行了，
- * 它永遠會通知任何參照自己的反應方法或計算屬性也去執行。
- * 此外，在同一個認可階段中，同一個反應方法只會真正執行一次，
- * 之後如果再次呼叫，它只會立刻回傳暫存的回傳值，不會真正執行。
- * 
  */
 //////////////////////////////////////////////////////////////////
 
@@ -53,8 +38,16 @@ interface IDecoratorDescriptor {
 	 */
 	key: PropertyKey;
 
+	/** 可閱讀的成員名稱，其格式均為「類別.成員名稱」 */
+	name: string;
+
+	/** 成員類別 */
 	type: IDecoratedMemberConstructor;
+
+	/** 稽核函數 */
 	validator?: IValidator<any>;
+
+	/** 原本定義在原型上的方法 */
 	method?: Function;
 }
 
@@ -87,6 +80,7 @@ class Decorators {
 
 		Decorators.get(proto).push({
 			key: prop,
+			name: proto.constructor.name + "." + prop.toString(),
 			type: ObservableProperty,
 			validator: validator
 		});
@@ -106,12 +100,15 @@ class Decorators {
 	public static $computed(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor) {
 		if(!descriptor || !descriptor.get) throw new SetupError(proto, prop, "Decorated property has no getter.");
 		if(descriptor.set) throw new SetupError(proto, prop, "Decorated property is not readonly.");
+
 		let symbol = Symbol(prop.toString());
 		Decorators.get(proto).push({
 			key: symbol,
+			name: proto.constructor.name + "." + prop.toString(),
 			type: ComputedProperty,
 			method: descriptor.get!
 		});
+
 		descriptor.get = function(this: IShrewdObject) {
 			let shrewd = ShrewdObject.get(this);
 			shrewd.$initialize();
@@ -124,13 +121,17 @@ class Decorators {
 		if(!descriptor || typeof (descriptor.value) != "function") {
 			throw new SetupError(proto, prop, "Decorated member is not a method.");
 		}
+
 		let symbol = Symbol(prop.toString());
 		Decorators.get(proto).push({
 			key: symbol,
+			name: proto.constructor.name + "." + prop.toString(),
 			type: ReactiveMethod,
 			method: descriptor.value!
 		});
+
 		delete descriptor.value;
+		delete descriptor.writable;
 		descriptor.get = function(this: IShrewdObject) {
 			let shrewd = ShrewdObject.get(this);
 			shrewd.$initialize();

@@ -9,7 +9,7 @@ abstract class Observer extends Observable {
 		if(Observer._currentTarget) Observer._currentTarget._reference.add(observable);
 	}
 
-	public static $render(observer: Observer) {
+	public static $render(observer: Observer): any {
 		// 登錄為目前的側錄執行者
 		let lastTarget = Observer._currentTarget;
 		Observer._currentTarget = observer;
@@ -20,7 +20,7 @@ abstract class Observer extends Observable {
 		observer[$dependencyLevel] = 0;
 
 		// 執行主體動作
-		observer.$render();
+		let result = observer.$render();
 
 		// 整理側錄到的參照
 		for(let observable of observer._reference) {
@@ -32,9 +32,12 @@ abstract class Observer extends Observable {
 
 		// 恢復側錄執行者
 		Observer._currentTarget = lastTarget;
+
+		// 回傳可能有的方法執行結果
+		return result;
 	}
 
 	private _reference: Set<Observable> = new Set();
 
-	protected abstract $render(): void;
+	protected abstract $render(): any;
 }
