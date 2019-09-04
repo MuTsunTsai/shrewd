@@ -10,12 +10,12 @@
 /// <reference path="class/Observer.ts" />
 
 // Level 2
-/// <reference path="decorator/DecoratedMember.ts" />
+/// <reference path="components/DecoratedMember.ts" />
 
 // Level 3
-/// <reference path="decorator/ComputedProperty.ts" />
-/// <reference path="decorator/ObservableProperty.ts" />
-/// <reference path="decorator/ReactiveMethod.ts" />
+/// <reference path="components/ComputedProperty.ts" />
+/// <reference path="components/ObservableProperty.ts" />
+/// <reference path="components/ReactiveMethod.ts" />
 
 const Shrewd = {
 	SetupError,

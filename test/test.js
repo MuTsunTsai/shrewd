@@ -179,12 +179,12 @@ const Tests = {
     ReactiveOverride() {
         class A {
             constructor() {
-                this.n = 1;
+                this.n = "";
                 this.value = 1;
             }
             log() {
-                this.value;
-                this.n *= 2;
+                this.n += "1";
+                return this.value != 3;
             }
         }
         __decorate([
@@ -195,8 +195,10 @@ const Tests = {
         ], A.prototype, "log", null);
         class B extends A {
             log() {
-                super.log();
-                this.n *= 3;
+                this.n += "2";
+                if (!super.log())
+                    return;
+                this.n += "3";
             }
         }
         __decorate([
@@ -204,10 +206,15 @@ const Tests = {
         ], B.prototype, "log", null);
         var b = new B();
         b.log();
-        console.assert(b.n == 6, "兩個層次的 log 都有被執行");
+        console.assert(b.n == "213", "兩個層次的 log 都有被執行，且因為是獨立呼叫，下層優先", b.n);
+        b.n = "";
         b.value = 2;
         shrewd_1.commit();
-        console.assert(b.n == 36, "兩個層次的 log 都恰再次被執行一次", b.n);
+        console.assert(b.n == "123", "兩個層次的 log 都恰再次被執行一次", b.n);
+        b.n = "";
+        b.value = 3;
+        shrewd_1.commit();
+        console.assert(b.n == "12", "回傳值中斷", b.n);
     }
 };
 let assert = console.assert;

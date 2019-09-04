@@ -14,7 +14,7 @@ abstract class Observer extends Observable {
 		let lastTarget = Observer._currentTarget;
 		Observer._currentTarget = observer;
 
-		// 把參照完全清楚
+		// 把參照完全清除
 		for(let observable of observer._reference) observable.$unsubscribe(observer);
 		observer._reference.clear();
 		observer[$dependencyLevel] = 0;

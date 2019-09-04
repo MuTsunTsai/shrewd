@@ -31,8 +31,5 @@
 	"dependencies": {},
 	"files": [
 		"dist"
-	],
-	"np": {
-		"cleanup": false
-	}
+	]
 }

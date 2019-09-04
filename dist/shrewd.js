@@ -1,3 +1,9 @@
+/**
+ * shrewd v0.0.0-beta.6
+ * (c) 2019 Mu-Tsun Tsai
+ * Released under the MIT License.
+ */
+
 ;(function(root, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory);
@@ -28,7 +34,7 @@ class Core {
         Core._queue = [];
         Core._commiting = false;
     }
-    static get $tick() { return Core._tick; }
+    static get $tick() { return Core._commiting ? Core._tick : -1; }
     static get $committing() { return Core._commiting; }
     static $queue(observer) {
         let level = observer[$dependencyLevel];
@@ -303,13 +309,14 @@ class ReactiveMethod extends DecoratedMemeber {
     }
     $getter() {
         Observer.$refer(this);
-        return () => Observer.$render(this);
+        if (this._tick == Core.$tick)
+            return () => this._result;
+        else
+            return () => Observer.$render(this);
     }
     $render() {
-        if (!Core.$committing || this._tick != Core.$tick) {
-            this._result = this._method.apply(this._parent);
-            this._tick = Core.$tick;
-        }
+        this._result = this._method.apply(this._parent);
+        this._tick = Core.$tick;
         this.$notify();
         return this._result;
     }

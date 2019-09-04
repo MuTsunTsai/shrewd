@@ -11,6 +11,9 @@ var terserOption = {
 		"properties": {
 			"regex": /^[$_]/
 		}
+	},
+	"output": {
+		"comments": true
 	}
 };
 
@@ -24,13 +27,13 @@ gulp.task('build', () =>
 		.pipe(plumber())
 		.pipe(ts.createProject('src/tsconfig.json')())
 		.pipe(umd({ exports: () => "Shrewd" }))
-		.pipe(gulp.dest('dist/'))
-		.pipe(terser(terserOption))
 		.pipe(headerComment(`
 			<%= pkg.name %> v<%= pkg.version %>
 			(c) <%= moment().format('YYYY') %> Mu-Tsun Tsai
 			Released under the MIT License.
 		`))
+		.pipe(gulp.dest('dist/'))
+		.pipe(terser(terserOption))
 		.pipe(rename({ suffix: '.min' }))
 		.pipe(gulp.dest('dist/'))
 );
