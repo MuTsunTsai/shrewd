@@ -4,7 +4,7 @@
 	"description": "Reactive framework that is both rigid and programmer-friendly.",
 	"main": "dist/shrewd.js",
 	"scripts": {
-		"version": "gulp build && git add",
+		"version": "gulp build && git add -A",
 		"test": "node test/test.js"
 	},
 	"keywords": [
