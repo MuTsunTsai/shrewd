@@ -10,27 +10,50 @@ const $dependencyLevel = Symbol("Dependency Level");
 
 class Observable {
 
-	public static get $writable() {
-		if(Core.$committing) {
-			console.warn("Writing into Observables during committing is forbidden; use computed property instead.");
+	private static _validationTarget: Observable | null = null;
+
+	protected static $validate<T>(value: T, validator: IValidator<T>, thisArg: object) {
+		if(typeof value == "object" && HiddenProperty.$has(value as any, $observableHelper))
+			Observable._validationTarget = (value as any)[$observableHelper];
+		let result = validator.apply(thisArg, [value]);
+		Observable._validationTarget = null;
+		return result;
+	}
+
+	public static $isWritable(observable: Observable) {
+		if(Core.$committing && Observable._validationTarget != observable) {
+			if(Observable._validationTarget != null) {
+				console.warn("For safety reasons, during validation only the value itself can be modified, not including descendant Observables.");
+			} else {
+				console.warn("Writing into Observables during committing is forbidden; use computed property instead.");
+			}
 			return false;
 		}
 		return true;
 	}
 
+	/**
+	 * 通知所有訂閱對象
+	 * 
+	 * 之所以這個方法寫成靜態方法是為了方便繼承類別中的靜態方法也能呼叫。
+	 */
+	public static $publish(observable: Observable) {
+		for(let observer of observable._subscribers) observer.$notified();
+	}
+
 	public $subscribe(observer: Observer) {
-		this._observers.add(observer);
+		this._subscribers.add(observer);
 	}
 
 	public $unsubscribe(observer: Observer) {
-		this._observers.delete(observer);
+		this._subscribers.delete(observer);
 	}
 
-	protected $notify() {
-		for(let observer of this._observers) Core.$queue(observer);
+	protected get $hasSubscriber() {
+		return this._subscribers.size > 0;
 	}
 
 	public [$dependencyLevel]: number = 0;
 
-	private _observers: Set<Observer> = new Set();
+	private _subscribers: Set<Observer> = new Set();
 }

@@ -57,7 +57,7 @@ gulp.task('watchTest', () => {
 	gulp.watch('test/*.ts', gulp.series('clear', 'buildTest')); // [1]
 });
 
-gulp.task('default', gulp.series('build'));
+gulp.task('default', gulp.series('build', 'buildTest'));
 
 /**
  * [1] 重新建製的時候先清空輸出以清除掉上次建製時可能有輸出的錯誤，以免 VS Code 的主控台關不掉

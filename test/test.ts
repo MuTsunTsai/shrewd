@@ -26,47 +26,82 @@ const Tests: { [test: string]: () => void } = {
 				this.a = a;
 			}
 			@computed public get b() {
-				n *= 2;
+				n++;
 				return this.a.a;
 			}
 		}
 
-		var n = 1;
+		class C {
+			private b: B;
+			constructor(b: B) {
+				this.b = b;
+			}
+
+			@reactive public log() {
+				this.b.b;
+				this.b.b;
+				m++;
+			}
+		}
+
+		var n = 0, m = 0;
 		var a = new A(0);
 		var b = new B(a);
 
-		console.assert(b.b === 0, "第一次呼叫 b.b 會使計算屬性初始化並且開始監視", b.b);
-		console.assert(b.b === 0 && n === 2, "再次存取 b.b 不應該重新執行計算", n);
+		console.assert(b.b == 0 && n == 1, "第一次呼叫 b.b 會使計算屬性初始化並且開始監視");
+		console.assert(b.b === 0 && n == 2, "手動再次存取 b.b 會再次執行計算", n);
 
 		a.a = 12;
-		console.assert(b.b === 0 && n === 2, "在認可之前，b.b 的值不會改變", n);
 		commit();
-		console.assert(b.b === 12 && n === 4, "認可動作應該自動執行 b.b 的計算並更新", b.b, n);
+		console.assert(n == 2, "因為 b.b 沒有訂閱者，即使認可也不會自動更新 b.b");
+		console.assert(b.b == 12 && n == 3, "不過手動讀取 b.b 仍然是可以的", n);
+
+		var c = new C(b); // 增加一個 b.b 的訂閱者
+		c.log();
+		console.assert(m == 1 && n == 5, "c.log 的初始化會讀取 b.b 兩次，因為此時仍算是手動階段");
+
+		a.a = 10;
+		commit();
+		console.assert(m == 2, "c.log 有自動執行");
+		console.assert(n == 6, "有了訂閱者之後 b.b 會自動更新，但在認可階段裡面只會被執行一次");
 	},
 
 	ComputedOverride() {
 		class A {
 			@observable public num: number = 0;
 			@computed public get value() {
-				n *= 2;
+				n += "1";
 				return this.num % 2;
 			}
 		}
 
 		class B extends A {
 			@computed public get value() {
-				n *= 3;
+				n += "2";
 				return super.value;
+			}
+
+			@reactive public log() {
+				n += "3";
+				this.value;
+				n += "4";
 			}
 		}
 
-		var b = new B(), n = 1;
-		b.num = 1;
-		console.assert(b.value == 1 && n == 6, "兩個層級的 value 都會被呼叫", b.value, n);
+		var b = new B(), n = "";
+		b.log();
+		console.assert(n == "3214", "手動階段執行是 top-down 的", n);
 
+		n = "";
+		b.num = 1;
+		console.assert(n == "", "認可前還沒執行重新計算", n);
+		commit();
+		console.assert(n == "1234", "認可階段是 bottom-up 執行", n);
+
+		n = "";
 		b.num = 3;
 		commit();
-		console.assert(b.value == 1 && n == 12, "執行會在 A 的層次停住", b.value, n);
+		console.assert(n == "1", "資料流在 A.log 處中斷了");
 	},
 
 	ObservableValidation() {
@@ -92,9 +127,9 @@ const Tests: { [test: string]: () => void } = {
 		console.assert(n === 2, "輸入同樣的數字不會重新稽核");
 
 		a.max = 8;
-		console.assert(a.value === 10 && n === 2, "認可之前不會重新稽核", a.value);
+		console.assert(a.value === 8 && n === 3, "手動執行也會執行稽核", a.value, n);
 		commit();
-		console.assert(a.value === 8 && n === 3, "認可之後執行稽核", a.value);
+		console.assert(a.value === 8 && n === 3, "因為已經執行過，所以不會再次稽核", a.value, n);
 
 		a.max = 12;
 		commit();
@@ -199,6 +234,120 @@ const Tests: { [test: string]: () => void } = {
 		b.value = 3;
 		commit();
 		console.assert(b.n == "12", "回傳值中斷", b.n);
+	},
+
+	ObservableArray() {
+		class A {
+			@observable(function(this: A, arr: number[]) {
+				let j = 0;
+				for(let i = 0; i < arr.length; i++) {
+					if(arr[i] != 1) arr[j++] = arr[i];
+				}
+				arr.length = j;
+				return arr;
+			}) public arr: number[] = [];
+
+			@computed public get total() {
+				n++;
+				return this.arr.reduce((t, v) => t + v, 0);
+			}
+
+			@reactive public log() {
+				t = this.total; // 用個反應方法讀取以便觸發自動更新
+			}
+		}
+
+		var n = 0, t;
+		var a = new A();
+		a.log();
+
+		a.arr.push(1, 2, 3);
+		commit();
+		console.assert(a.arr.length == 2, "稽核會殺掉元素 1");
+		console.assert(n == 2, "會紀錄到陣列的變更", n);
+		console.assert(t == 5, "計算出結果");
+
+		a.arr.push(1);
+		commit();
+		console.assert(a.arr.length == 2, "錯誤的元素加不進去", a.arr.length);
+		console.assert(n == 3, "雖然稽核把陣列修正了回來，但是仍然視為是曾經變更過", n);
+
+		a.arr[1] = 2;
+		commit();
+		console.assert(n == 4, "陣列元素變更會偵測到");
+		console.assert(t == 4, "更新計算結果");
+
+		a.arr[1] = 2;
+		commit();
+		console.assert(n == 4, "指定同樣的內容並不會觸發通知");
+	},
+
+	ObservableArraySet() {
+		class A {
+
+			// 稽核條件：不可以有偶數
+			@observable(function(this: A, v: Set<number>) {
+				for(let n of v) if(n % 2 == 0) v.delete(n);
+				return v;
+			}) public set: Set<number> = new Set();
+
+			@reactive public log() {
+				count = this.set.size;
+				n++;
+			}
+		}
+
+		var count = 0, n = 0;
+		var a = new A();
+		a.set.add(1);
+		a.set.add(2);
+		a.set.add(3);
+		a.log();
+		console.assert(count == 2 && n == 1, "初始計數", count, n);
+
+		a.set.add(5);
+		commit();
+		console.assert(count == 3 && n == 2, "自動更新");
+
+		a.set.add(5);
+		commit();
+		console.assert(count == 3 && n == 2, "沒有實際上的變更發生");
+
+		a.set.clear();
+		commit();
+		console.assert(count == 0 && n == 3, "自動更新");
+	},
+
+	ObservableObject() {
+		class A {
+			@observable public value: { [key: string]: any } = {
+				prop: 1
+			};
+
+			@reactive public log() {
+				m = this.value.prop;
+				if("new" in this.value) m += this.value.new.value;
+				n++;
+			}
+		}
+
+		var n = 0, m = 0;
+		var a = new A();
+		a.log();
+		console.assert(n == 1 && m == 1, "初始紀錄", n, m);
+
+		a.value.prop = 2;
+		a.value.prop = 3;
+		commit();
+		console.assert(n == 2 && m == 3, "自動更新", n, m);
+
+		a.value.new = { value: 1 };
+		commit();
+		console.assert(n == 3 && m == 4, "加入新的屬性為純粹物件", n, m);
+
+		a.value.new.value = 2;
+		commit();
+		console.assert(n == 4 && m == 5, "新加的屬性物件之屬性也具有反應能力", n, m);
 	}
 
 };

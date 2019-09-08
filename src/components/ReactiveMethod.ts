@@ -16,7 +16,6 @@ class ReactiveMethod extends DecoratedMemeber {
 
 	private _method: Function;
 	private _result: any;
-	private _tick: number = 0;
 
 	constructor(parent: object, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
@@ -26,15 +25,14 @@ class ReactiveMethod extends DecoratedMemeber {
 	public $getter() {
 		Observer.$refer(this);
 		// 如果在當前的認可階段已經執行過，直接把暫存的結果傳回
-		if(this._tick == Core.$tick) return () => this._result;
+		if(Core.$committing && this.$updated) return () => this._result;
 		// 否則就執行一次
 		else return () => Observer.$render(this);
 	}
 
 	protected $render() {
 		this._result = this._method.apply(this._parent);
-		this._tick = Core.$tick; // 更新執行階段計數
-		this.$notify();
+		Observable.$publish(this);
 		return this._result;
 	}
 }

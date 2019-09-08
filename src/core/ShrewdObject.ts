@@ -31,6 +31,7 @@ class ShrewdObject {
 	/** 是否已經初始化 */
 	private _initialized: boolean = false;
 
+	/** 目前的 ShrewdObject 所具有的裝飾成員 */
 	private _members: Map<PropertyKey, DecoratedMemeber> = new Map();
 
 	/**

@@ -6,8 +6,7 @@
 		"removeComments": true,
 		"strict": true,
 		"preserveConstEnums": true,
-		"experimentalDecorators": true,
-		"watch": true,
+		"experimentalDecorators": true
 	},
 	"include": [
 		"*.ts",

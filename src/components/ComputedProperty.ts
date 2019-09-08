@@ -16,27 +16,39 @@ class ComputedProperty extends DecoratedMemeber {
 
 	private _getter: Function;
 	private _value: any;
-	private _initialized: boolean = false;
 
 	constructor(parent: IShrewdObject, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
 		this._getter = descriptor.method!;
 	}
 
+	protected $refer(observable: Observable) {
+		// 計算屬性中，只有當有訂閱者存在的時候才會加入參照
+		if(this.$hasSubscriber) super.$refer(observable);
+	}
+
+	protected get $shouldRender() {
+		// 只有在手動階段或者當目前有訂閱者的時候才真的執行計算
+		return !Core.$committing || this.$hasSubscriber;
+	}
+
 	protected $render() {
 		let value = this._getter.apply(this._parent);
 		if(value != this._value) {
 			this._value = value;
-			this.$notify();
+			Observable.$publish(this);
 		}
 	}
 
 	public $getter() {
+		// 如果呼叫的是一個觀測者，那麼此時觀測者就會訂閱這個計算屬性，
+		// 於是這個計算屬性至少會有一個訂閱者
 		Observer.$refer(this);
-		if(!this._initialized) {
-			Observer.$render(this);
-			this._initialized = true;
-		}
+
+		// 如果處於未更新狀態或者處於手動階段，試圖重新計算
+		if(!this.$updated || !Core.$committing) Observer.$render(this);
+
+		// 傳回暫存值
 		return this._value;
 	}
 }

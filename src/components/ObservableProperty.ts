@@ -18,7 +18,6 @@ class ObservableProperty extends DecoratedMemeber {
 	private _validator: IValidator<any>;
 	private _inputValue: any;
 	private _outputValue: any;
-	private _initialized: boolean = false;
 
 	constructor(parent: object, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
@@ -26,30 +25,24 @@ class ObservableProperty extends DecoratedMemeber {
 		Object.defineProperty(parent, descriptor.key, ObservableProperty.interceptor(descriptor.key));
 	}
 
-	private $initialize() {
-		Observer.$render(this);
-		this._initialized = true;
-	}
-
 	public $getter() {
-		if(!this._initialized) this.$initialize();
 		Observer.$refer(this);
+		if(!this.$updated) Observer.$render(this);
 		return this._outputValue;
 	}
 
 	public $setter(value: any) {
-		if(Observable.$writable && value != this._inputValue) {
-			this._inputValue = value;
-			if(this._initialized) this.$render();
-			else this.$initialize();
+		if(Observable.$isWritable(this) && value != this._inputValue) {
+			this._inputValue = Helper.$wrap(value);
+			Observer.$render(this);
 		}
 	}
 
 	public $render() {
-		let value = this._validator.apply(this._parent, [this._inputValue]);
+		let value = Observable.$validate(this._inputValue, this._validator, this._parent);
 		if(value !== this._outputValue) {
-			this._outputValue = value;
-			this.$notify();
+			this._outputValue = Helper.$wrap(value);
+			Observable.$publish(this);
 		}
 	}
 }

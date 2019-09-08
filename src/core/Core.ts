@@ -1,9 +1,6 @@
 
 class Core {
 
-	/** 一個從 0 起算的數值，表示目前是第幾次的認可階段 */
-	private static _tick: number = 0;
-
 	/** 已接到通知、等待被執行的 Observer */
 	private static _queue: Set<Observer>[] = [];
 
@@ -14,7 +11,6 @@ class Core {
 	private static _promised: boolean = false;
 
 	public static $commit() {
-		Core._tick++;
 		Core._commiting = true;
 
 		// 開始執行認可；這邊的外層迴圈不能用 for in 的寫法，
@@ -28,8 +24,6 @@ class Core {
 		Core._commiting = false;
 	}
 
-	public static get $tick() { return Core._commiting ? Core._tick : -1; }
-
 	public static get $committing() { return Core._commiting; }
 
 	/** 自動認可會在堆疊清空時立刻執行（比任何 setTimeout 都更早） */
@@ -38,10 +32,18 @@ class Core {
 		Core._promised = false;
 	}
 
+	public static $unqueue(observer: Observer) {
+		let set = Core._queue[observer[$dependencyLevel]];
+		if(set) set.delete(observer);
+	}
+
 	public static $queue(observer: Observer) {
-		let level = observer[$dependencyLevel];
-		Core._queue[level] = Core._queue[level] || new Set();
-		Core._queue[level].add(observer);
+		// 正在執行中的觀測者就不用重新加入了
+		if(!observer.$rendering) {
+			let level = observer[$dependencyLevel];
+			Core._queue[level] = Core._queue[level] || new Set();
+			Core._queue[level].add(observer);
+		}
 
 		// 設置自動認可
 		if(!Core._promised) {
