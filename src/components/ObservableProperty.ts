@@ -1,6 +1,6 @@
 
 interface IValidator<T> {
-	(value: T): T;
+	(newValue: T, oldValue: T): T;
 }
 
 class ObservableProperty extends DecoratedMemeber {
@@ -39,7 +39,7 @@ class ObservableProperty extends DecoratedMemeber {
 	}
 
 	public $render() {
-		let value = Observable.$validate(this._inputValue, this._validator, this._parent);
+		let value = Observable.$validate(this._inputValue, this._outputValue, this._validator, this._parent);
 		if(value !== this._outputValue) {
 			this._outputValue = Helper.$wrap(value);
 			Observable.$publish(this);

@@ -110,9 +110,10 @@ const Tests: { [test: string]: () => void } = {
 			@observable public max = 10;
 
 			// 這是一個具有稽核的可觀測屬性，而且其稽核規則引用了另一個可觀測值。
-			@observable(function(this: A, v: number) {
+			@observable(function(this: A, v: number, o: number) {
 				n++;
-				return v > this.max ? this.max : v;
+				v = v > this.max ? this.max : v;
+				return v < 0 ? o : v;
 			})
 			public value: number = 0;
 		}
@@ -134,6 +135,9 @@ const Tests: { [test: string]: () => void } = {
 		a.max = 12;
 		commit();
 		console.assert(a.value === 12 && n === 4, "會記得未稽核的值，以隨著新的稽核條件作出恢復");
+
+		a.value = -3;
+		console.assert(a.value === 12 && n === 5, "規則說如果指定複數，則完全不改變");
 	},
 
 	DecoratorRequirement() {

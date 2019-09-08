@@ -183,10 +183,10 @@ class Observable {
         this[_a] = 0;
         this._subscribers = new Set();
     }
-    static $validate(value, validator, thisArg) {
-        if (typeof value == "object" && HiddenProperty.$has(value, $observableHelper))
-            Observable._validationTarget = value[$observableHelper];
-        let result = validator.apply(thisArg, [value]);
+    static $validate(newValue, oldValue, validator, thisArg) {
+        if (typeof newValue == "object" && HiddenProperty.$has(newValue, $observableHelper))
+            Observable._validationTarget = newValue[$observableHelper];
+        let result = validator.apply(thisArg, [newValue, oldValue]);
         Observable._validationTarget = null;
         return result;
     }
@@ -492,7 +492,7 @@ class ObservableProperty extends DecoratedMemeber {
         }
     }
     $render() {
-        let value = Observable.$validate(this._inputValue, this._validator, this._parent);
+        let value = Observable.$validate(this._inputValue, this._outputValue, this._validator, this._parent);
         if (value !== this._outputValue) {
             this._outputValue = Helper.$wrap(value);
             Observable.$publish(this);

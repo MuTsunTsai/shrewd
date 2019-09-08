@@ -12,10 +12,10 @@ class Observable {
 
 	private static _validationTarget: Observable | null = null;
 
-	protected static $validate<T>(value: T, validator: IValidator<T>, thisArg: object) {
-		if(typeof value == "object" && HiddenProperty.$has(value as any, $observableHelper))
-			Observable._validationTarget = (value as any)[$observableHelper];
-		let result = validator.apply(thisArg, [value]);
+	protected static $validate<T>(newValue: T, oldValue: T, validator: IValidator<T>, thisArg: object) {
+		if(typeof newValue == "object" && HiddenProperty.$has(newValue as any, $observableHelper))
+			Observable._validationTarget = (newValue as any)[$observableHelper];
+		let result = validator.apply(thisArg, [newValue, oldValue]);
 		Observable._validationTarget = null;
 		return result;
 	}

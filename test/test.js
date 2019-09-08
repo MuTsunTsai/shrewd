@@ -116,9 +116,10 @@ const Tests = {
             shrewd_1.observable
         ], A.prototype, "max", void 0);
         __decorate([
-            shrewd_1.observable(function (v) {
+            shrewd_1.observable(function (v, o) {
                 n++;
-                return v > this.max ? this.max : v;
+                v = v > this.max ? this.max : v;
+                return v < 0 ? o : v;
             })
         ], A.prototype, "value", void 0);
         var a = new A(), n = 0;
@@ -135,6 +136,8 @@ const Tests = {
         a.max = 12;
         shrewd_1.commit();
         console.assert(a.value === 12 && n === 4, "會記得未稽核的值，以隨著新的稽核條件作出恢復");
+        a.value = -3;
+        console.assert(a.value === 12 && n === 5, "規則說如果指定複數，則完全不改變");
     },
     DecoratorRequirement() {
         var error;

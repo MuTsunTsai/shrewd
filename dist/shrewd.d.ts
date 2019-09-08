@@ -3,7 +3,7 @@
  * Enable strict mode in TypeScript to allow type checking for this interface.
  */
 interface IValidator<T> {
-	(value: T): T;
+	(newValue: T, oldValue: T): T;
 }
 
 /**
