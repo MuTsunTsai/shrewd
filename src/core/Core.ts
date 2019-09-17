@@ -4,14 +4,11 @@ class Core {
 	/** 已接到通知、等待被執行的 Observer */
 	private static _queue: Set<Observer>[] = [];
 
-	/** 目前是否處於認可階段 */
-	private static _commiting: boolean = false;
-
 	/** 在當前堆疊中是否已經設置了自動認可 */
 	private static _promised: boolean = false;
 
 	public static $commit() {
-		Core._commiting = true;
+		let oldState = Global.$pushState({ $committing: true });
 
 		// 開始執行認可；這邊的外層迴圈不能用 for in 的寫法，
 		// 因為 Core._queue 在迴圈執行的同時還是有可能會繼續新增
@@ -21,10 +18,8 @@ class Core {
 
 		// 結束認可
 		Core._queue = [];
-		Core._commiting = false;
+		Global.$restore(oldState);
 	}
-
-	public static get $committing() { return Core._commiting; }
 
 	/** 自動認可會在堆疊清空時立刻執行（比任何 setTimeout 都更早） */
 	private static _autoCommit() {
@@ -51,5 +46,17 @@ class Core {
 			promise.then(Core._autoCommit);
 			Core._promised = true;
 		}
+	}
+
+	public static $construct<T, A extends any[]>(constructor: new (...args: A) => T, ...args: A): T {
+		let oldState = Global.$pushState({
+			$constructing: true,
+			$committing: false,
+			$active: false,
+			$target: null
+		});
+		let result = new constructor(...args);
+		Global.$restore(oldState);
+		return result;
 	}
 }

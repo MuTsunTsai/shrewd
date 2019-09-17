@@ -58,12 +58,12 @@ const Tests: { [test: string]: () => void } = {
 
 		var c = new C(b); // 增加一個 b.b 的訂閱者
 		c.log();
-		console.assert(m == 1 && n == 5, "c.log 的初始化會讀取 b.b 兩次，因為此時仍算是手動階段");
+		console.assert(m == 1 && n == 4, "c.log 的初始化只會執行 b.b 一次", n);
 
 		a.a = 10;
 		commit();
 		console.assert(m == 2, "c.log 有自動執行");
-		console.assert(n == 6, "有了訂閱者之後 b.b 會自動更新，但在認可階段裡面只會被執行一次");
+		console.assert(n == 5, "b.b 執行一次");
 	},
 
 	ComputedOverride() {
@@ -110,34 +110,39 @@ const Tests: { [test: string]: () => void } = {
 			@observable public max = 10;
 
 			// 這是一個具有稽核的可觀測屬性，而且其稽核規則引用了另一個可觀測值。
-			@observable(function(this: A, v: number, o: number) {
-				n++;
-				v = v > this.max ? this.max : v;
-				return v < 0 ? o : v;
+			@observable({
+				validator(v: number) { return v >= 0; },
+				renderer(this: A, v: number) {
+					n++;
+					return v > this.max ? this.max : v;
+				}
 			})
 			public value: number = 0;
+
+			@reactive log() { o = this.value; }
 		}
 
-		var a = new A(), n = 0;
+		var a = new A(), n = 0, o;
 		a.value = 5;
-		console.assert(a.value === 5 && n === 1, "輸入可接受的值無妨");
+		a.log();
+		console.assert(o === 5 && n === 2, "輸入可接受的值無妨", n);
 
 		a.value = 20;
-		console.assert(a.value === 10 && n === 2, "超過範圍的值會被修正", a.value);
+		console.assert((o = a.value) === 10 && n === 3, "超過範圍的值會被修正", o, n);
 		a.value = 20;
-		console.assert(n === 2, "輸入同樣的數字不會重新稽核");
+		console.assert(n === 3, "輸入同樣的數字不會重新稽核", n);
 
 		a.max = 8;
-		console.assert(a.value === 8 && n === 3, "手動執行也會執行稽核", a.value, n);
+		console.assert((o = a.value) === 8 && n === 4, "手動執行也會執行稽核", o, n);
 		commit();
-		console.assert(a.value === 8 && n === 3, "因為已經執行過，所以不會再次稽核", a.value, n);
+		console.assert(o === 8 && n === 4, "因為已經執行過，所以不會再次稽核", o, n);
 
 		a.max = 12;
 		commit();
-		console.assert(a.value === 12 && n === 4, "會記得未稽核的值，以隨著新的稽核條件作出恢復");
+		console.assert(o === 12 && n === 5, "會記得未稽核的值，以隨著新的稽核條件作出恢復");
 
 		a.value = -3;
-		console.assert(a.value === 12 && n === 5, "規則說如果指定複數，則完全不改變");
+		console.assert(o === 12 && n === 5, "規則說如果指定負數，則完全不改變", o, n);
 	},
 
 	DecoratorRequirement() {
@@ -242,13 +247,19 @@ const Tests: { [test: string]: () => void } = {
 
 	ObservableArray() {
 		class A {
-			@observable(function(this: A, arr: number[]) {
-				let j = 0;
-				for(let i = 0; i < arr.length; i++) {
-					if(arr[i] != 1) arr[j++] = arr[i];
+			@observable private prop = 0;
+
+			@observable({
+				renderer(this: A, arr: number[]) {
+					// 如果開啟下面這一行，程式將會發出警告
+					// this.prop = 1;
+					let j = 0;
+					for(let i = 0; i < arr.length; i++) {
+						if(arr[i] != 1) arr[j++] = arr[i];
+					}
+					arr.length = j;
+					return arr;
 				}
-				arr.length = j;
-				return arr;
 			}) public arr: number[] = [];
 
 			@computed public get total() {
@@ -267,7 +278,7 @@ const Tests: { [test: string]: () => void } = {
 
 		a.arr.push(1, 2, 3);
 		commit();
-		console.assert(a.arr.length == 2, "稽核會殺掉元素 1");
+		console.assert(a.arr.length == 2, "稽核會殺掉元素 1", a.arr.toString());
 		console.assert(n == 2, "會紀錄到陣列的變更", n);
 		console.assert(t == 5, "計算出結果");
 
@@ -286,13 +297,15 @@ const Tests: { [test: string]: () => void } = {
 		console.assert(n == 4, "指定同樣的內容並不會觸發通知");
 	},
 
-	ObservableArraySet() {
+	ObservableSet() {
 		class A {
 
 			// 稽核條件：不可以有偶數
-			@observable(function(this: A, v: Set<number>) {
-				for(let n of v) if(n % 2 == 0) v.delete(n);
-				return v;
+			@observable({
+				renderer(this: A, v: Set<number>) {
+					for(let n of v) if(n % 2 == 0) v.delete(n);
+					return v;
+				}
 			}) public set: Set<number> = new Set();
 
 			@reactive public log() {
@@ -352,8 +365,77 @@ const Tests: { [test: string]: () => void } = {
 		a.value.new.value = 2;
 		commit();
 		console.assert(n == 4 && m == 5, "新加的屬性物件之屬性也具有反應能力", n, m);
-	}
+	},
 
+	Independent() {
+		class A {
+			@observable public value = 1;
+			@observable public lookAtValue = true;
+
+			@computed public get c1() {
+				t += "1";
+				return this.value;
+			}
+
+			@computed public get c2() {
+				t += "2";
+				return this.c1;
+			}
+
+			@reactive log() {
+				t += "3";
+				if(this.lookAtValue) this.c2;
+			}
+		}
+
+		var t = "";
+		var a = new A();
+		a.log();
+		console.assert(t == "321", "初始執行", t);
+
+		t = "";
+		a.value = 2;
+		commit();
+		console.assert(t == "123", "認可", t);
+
+		t = "";
+		a.value = 1;
+		a.lookAtValue = false;
+		commit();
+		console.assert(t == "123", "在這一回合，所有的東西都還是會執行", t);
+
+		t = "";
+		a.value = 2;
+		commit();
+		console.assert(t == "", "因為 a.value 不再有反應方法相依於它，相依的東西都不會在認可階段執行", t);
+
+		t = "";
+		a.lookAtValue = true;
+		commit();
+		console.assert(t == "321", "重新建立了參照關係", t);
+	},
+
+	CircularDependency() {
+		class A {
+			@observable public switch = true;
+			@computed public get a(): number {
+				return this.switch ? 1 : this.b;
+			}
+
+			@computed public get b(): number {
+				return this.a + 1;
+			}
+
+			@reactive log() { this.b; }
+		}
+
+		let a = new A();
+		a.log();
+		console.assert(a.b == 2, "初始值", a.b);
+
+		a.switch = false;
+		commit();
+	}
 };
 
 let assert = console.assert;

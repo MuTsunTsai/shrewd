@@ -1,13 +1,16 @@
 
 const $observableHelper = Symbol("Observable Helper");
 
-type WrappedObservable<T extends object> = T & IObservableHelper<T>;
+type WrappedObservable<T extends object> = T & IHelperParent<T>;
 
-interface IObservableHelper<T extends object> {
+interface IHelperParent<T extends object> {
 	[$observableHelper]: Helper<T>;
 }
 
-class Helper<T extends object> extends Observable {
+abstract class Helper<T extends object> extends Observable {
+
+	/** 快取已經包裝過的物件 */
+	public static _proxyMap: WeakMap<object, object> = new WeakMap();
 
 	/**
 	 * 把原生的 Array, Set, Map, Object 物件包裝成反應式物件。
@@ -16,7 +19,9 @@ class Helper<T extends object> extends Observable {
 	 * 而不能夠是任何繼承的類別，因為繼承類別的行為是 Shrewd 框架所沒辦法預測的。
 	 */
 	public static $wrap(value: any) {
-		if(typeof value == "object" && !HiddenProperty.$has(value, $observableHelper)) {
+		if(typeof value != "object") return value;
+		if(Helper._proxyMap.has(value)) return Helper._proxyMap.get(value);
+		if(!Helper.$hasHelper(value)) {
 			switch(Object.getPrototypeOf(value)) {
 				case Array.prototype: value = new ArrayHelper(value).$proxy; break;
 				case Set.prototype: value = new SetHelper(value).$proxy; break;
@@ -27,13 +32,22 @@ class Helper<T extends object> extends Observable {
 		return value;
 	}
 
+	public static $hasHelper(value: any): value is IHelperParent<any> {
+		return typeof value == "object" && HiddenProperty.$has(value, $observableHelper);
+	}
+
 	private readonly _proxy: T;
+
+	protected _target: WrappedObservable<T>;
 
 	constructor(target: T, handler: ProxyHandler<T>) {
 		super();
-		HiddenProperty.$add(target, $observableHelper, this);
+		this._target = HiddenProperty.$add(target, $observableHelper, this);
 		this._proxy = new Proxy(target, handler);
+		Helper._proxyMap.set(target, this._proxy);
 	}
 
 	public get $proxy() { return this._proxy; }
+
+	public abstract get $child(): any[];
 }

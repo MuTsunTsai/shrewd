@@ -26,7 +26,7 @@
 const $shrewdDecorators = Symbol("Shrewd Decorators");
 
 interface IShrewdPrototype {
-	[$shrewdDecorators]?: IDecoratorDescriptor[];
+	[$shrewdDecorators]: IDecoratorDescriptor[];
 }
 
 interface IDecoratorDescriptor {
@@ -34,32 +34,32 @@ interface IDecoratorDescriptor {
 	 * 識別 DecoratedMemeber 的 PropertyKey。
 	 * 在 ObservableProperty 的情況中，這個直接就是屬性的名稱，
 	 * 而在 ComputedProperty 或 ReactiveMethod 的情況中，因為要區分不同層次原型中的方法，
-	 * 會產生一個獨一無二的 symbol 來作為 key。
+	 * key 會跟 name 一樣。
 	 */
-	key: PropertyKey;
+	$key: PropertyKey;
 
 	/** 可閱讀的成員名稱，其格式均為「類別.成員名稱」 */
-	name: string;
+	$name: string;
 
-	/** 成員類別 */
-	type: IDecoratedMemberConstructor;
+	/** 成員要使用的建構子 */
+	$constructor: IDecoratedMemberConstructor;
 
-	/** 稽核函數 */
-	validator?: IValidator<any>;
+	/** 選項 */
+	$option?: IObservablePropertyOptions<any>;
 
 	/** 原本定義在原型上的方法 */
-	method?: Function;
+	$method?: Function;
 }
 
 interface IDecoratedMemberConstructor {
-	new(target: Object, descriptor: IDecoratorDescriptor): DecoratedMemeber;
+	new(target: IShrewdObjectParent, descriptor: IDecoratorDescriptor): DecoratedMemeber;
 }
 
 class Decorators {
 
-	public static get(proto: IShrewdPrototype) {
+	public static get(proto: object) {
 		if(HiddenProperty.$has(proto, $shrewdDecorators)) {
-			return proto[$shrewdDecorators]!;
+			return proto[$shrewdDecorators];
 		} else {
 			let decorators: IDecoratorDescriptor[] = [];
 			HiddenProperty.$add(proto, $shrewdDecorators, decorators);
@@ -67,31 +67,31 @@ class Decorators {
 		};
 	}
 
-	public static $observable<T>(validator: IValidator<T>): PropertyDecorator;
+	public static $observable<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
 	public static $observable(proto: object, prop: PropertyKey): void;
 	public static $observable(a: any, b?: PropertyKey): any {
 		if(typeof b == "string") Decorators.$observableFactory(a, b);
 		else return (proto: object, prop: PropertyKey) => Decorators.$observableFactory(proto, prop, a);
 	}
 
-	private static $observableFactory(proto: object, prop: PropertyKey, validator?: IValidator<any>) {
+	private static $observableFactory(proto: object, prop: PropertyKey, option?: IObservablePropertyOptions<any>) {
 		let descriptor = Object.getOwnPropertyDescriptor(proto, prop);
 		if(descriptor) throw new SetupError(proto, prop, "Decorated property is not a field.");
 
 		Decorators.get(proto).push({
-			key: prop,
-			name: proto.constructor.name + "." + prop.toString(),
-			type: ObservableProperty,
-			validator: validator
+			$key: prop,
+			$name: proto.constructor.name + "." + prop.toString(),
+			$constructor: ObservableProperty,
+			$option: option
 		});
 
 		Object.defineProperty(proto, prop, {
 			get() {
-				ShrewdObject.get(this).$initialize();
+				ShrewdObject.get(this);
 				return this[prop];
 			},
 			set(value: any) {
-				ShrewdObject.get(this).$initialize();
+				ShrewdObject.get(this);
 				this[prop] = value;
 			}
 		});
@@ -101,18 +101,16 @@ class Decorators {
 		if(!descriptor || !descriptor.get) throw new SetupError(proto, prop, "Decorated property has no getter.");
 		if(descriptor.set) throw new SetupError(proto, prop, "Decorated property is not readonly.");
 
-		let symbol = Symbol(prop.toString());
+		let name = proto.constructor.name + "." + prop.toString();
 		Decorators.get(proto).push({
-			key: symbol,
-			name: proto.constructor.name + "." + prop.toString(),
-			type: ComputedProperty,
-			method: descriptor.get!
+			$key: name,
+			$name: name,
+			$constructor: ComputedProperty,
+			$method: descriptor.get
 		});
 
-		descriptor.get = function(this: IShrewdObject) {
-			let shrewd = ShrewdObject.get(this);
-			shrewd.$initialize();
-			return shrewd.$getMember(symbol).$getter();
+		descriptor.get = function(this: IShrewdObjectParent) {
+			return ShrewdObject.get(this).$getMember(name).$getter();
 		}
 		return descriptor;
 	}
@@ -122,20 +120,18 @@ class Decorators {
 			throw new SetupError(proto, prop, "Decorated member is not a method.");
 		}
 
-		let symbol = Symbol(prop.toString());
+		let name = proto.constructor.name + "." + prop.toString();
 		Decorators.get(proto).push({
-			key: symbol,
-			name: proto.constructor.name + "." + prop.toString(),
-			type: ReactiveMethod,
-			method: descriptor.value!
+			$key: name,
+			$name: name,
+			$constructor: ReactiveMethod,
+			$method: descriptor.value
 		});
 
 		delete descriptor.value;
 		delete descriptor.writable;
-		descriptor.get = function(this: IShrewdObject) {
-			let shrewd = ShrewdObject.get(this);
-			shrewd.$initialize();
-			return shrewd.$getMember(symbol).$getter();
+		descriptor.get = function(this: IShrewdObjectParent) {
+			return ShrewdObject.get(this).$getMember(name).$getter();
 		}
 		return descriptor;
 	}

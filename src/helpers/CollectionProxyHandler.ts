@@ -2,11 +2,11 @@
 type Collection = Set<any> | Map<any, any>;
 
 interface IMethodDescriptor<T extends Collection> {
-	prop: keyof T;
-	method: Function;
-	target: T;
-	helper: Helper<T>;
-	receiver: T;
+	$prop: keyof T;
+	$method: Function;
+	$target: T;
+	$helper: Helper<T>;
+	$receiver: T;
 }
 
 class CollectionProxyHandler<T extends Collection> extends BaseProxyHandler<T> {
@@ -16,11 +16,11 @@ class CollectionProxyHandler<T extends Collection> extends BaseProxyHandler<T> {
 		let result = Reflect.get(target, prop);
 		if(typeof result == "function") {
 			result = this._method.bind({
-				prop: prop,
-				target: target,
-				method: result.bind(target),
-				helper: ob,
-				receiver: receiver
+				$prop: prop,
+				$target: target,
+				$method: result.bind(target),
+				$helper: ob,
+				$receiver: receiver
 			});
 		}
 		if(prop == "size") Observer.$refer(target[$observableHelper]);
@@ -28,17 +28,17 @@ class CollectionProxyHandler<T extends Collection> extends BaseProxyHandler<T> {
 	}
 
 	protected _method(this: IMethodDescriptor<T>, ...args: any[]) {
-		switch(this.prop) {
+		switch(this.$prop) {
 			case "clear":
-				if(Observer.$isWritable(this.helper) && this.target.size > 0) {
-					this.target.clear();
-					Observable.$publish(this.helper);
+				if(Observer.$isWritable(this.$helper) && this.$target.size > 0) {
+					this.$target.clear();
+					Observable.$publish(this.$helper);
 				}
 				return;
 			case "delete":
-				if(Observer.$isWritable(this.helper) && this.target.has(args[0])) {
-					this.target.delete(args[0]);
-					Observable.$publish(this.helper);
+				if(Observer.$isWritable(this.$helper) && this.$target.has(args[0])) {
+					this.$target.delete(args[0]);
+					Observable.$publish(this.$helper);
 				}
 				return;
 			case Symbol.iterator:
@@ -47,9 +47,9 @@ class CollectionProxyHandler<T extends Collection> extends BaseProxyHandler<T> {
 			case "has":
 			case "keys":
 			case "values":
-				Observer.$refer(this.helper);
+				Observer.$refer(this.$helper);
 			default:
-				return this.method(...args);
+				return this.$method(...args);
 		}
 	}
 }

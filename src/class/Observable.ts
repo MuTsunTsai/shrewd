@@ -10,23 +10,14 @@ const $dependencyLevel = Symbol("Dependency Level");
 
 class Observable {
 
-	private static _validationTarget: Observable | null = null;
-
-	protected static $validate<T>(newValue: T, oldValue: T, validator: IValidator<T>, thisArg: object) {
-		if(typeof newValue == "object" && HiddenProperty.$has(newValue as any, $observableHelper))
-			Observable._validationTarget = (newValue as any)[$observableHelper];
-		let result = validator.apply(thisArg, [newValue, oldValue]);
-		Observable._validationTarget = null;
-		return result;
-	}
-
 	public static $isWritable(observable: Observable) {
-		if(Core.$committing && Observable._validationTarget != observable) {
-			if(Observable._validationTarget != null) {
-				console.warn("For safety reasons, during validation only the value itself can be modified, not including descendant Observables.");
-			} else {
-				console.warn("Writing into Observables during committing is forbidden; use computed property instead.");
-			}
+		if(Global.$constructing || !observable.$hasSubscriber) return true;
+		if(ObservableProperty.$rendering && !ObservableProperty.$accessible(observable)) {
+			console.warn("Inside a renderer function, only the objects owned by the ObservableProperty can be written.");
+			return false;
+		}
+		if(!ObservableProperty.$rendering && Global.$committing) {
+			console.warn("Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.");
 			return false;
 		}
 		return true;
@@ -34,8 +25,6 @@ class Observable {
 
 	/**
 	 * 通知所有訂閱對象
-	 * 
-	 * 之所以這個方法寫成靜態方法是為了方便繼承類別中的靜態方法也能呼叫。
 	 */
 	public static $publish(observable: Observable) {
 		for(let observer of observable._subscribers) observer.$notified();
@@ -43,6 +32,9 @@ class Observable {
 
 	public $subscribe(observer: Observer) {
 		this._subscribers.add(observer);
+		if(observer[$dependencyLevel] <= this[$dependencyLevel]) {
+			observer[$dependencyLevel] = this[$dependencyLevel] + 1;
+		}
 	}
 
 	public $unsubscribe(observer: Observer) {

@@ -53,11 +53,11 @@ const Tests = {
         console.assert(b.b == 12 && n == 3, "不過手動讀取 b.b 仍然是可以的", n);
         var c = new C(b);
         c.log();
-        console.assert(m == 1 && n == 5, "c.log 的初始化會讀取 b.b 兩次，因為此時仍算是手動階段");
+        console.assert(m == 1 && n == 4, "c.log 的初始化只會執行 b.b 一次", n);
         a.a = 10;
         shrewd_1.commit();
         console.assert(m == 2, "c.log 有自動執行");
-        console.assert(n == 6, "有了訂閱者之後 b.b 會自動更新，但在認可階段裡面只會被執行一次");
+        console.assert(n == 5, "b.b 執行一次");
     },
     ComputedOverride() {
         class A {
@@ -111,33 +111,40 @@ const Tests = {
                 this.max = 10;
                 this.value = 0;
             }
+            log() { o = this.value; }
         }
         __decorate([
             shrewd_1.observable
         ], A.prototype, "max", void 0);
         __decorate([
-            shrewd_1.observable(function (v, o) {
-                n++;
-                v = v > this.max ? this.max : v;
-                return v < 0 ? o : v;
+            shrewd_1.observable({
+                validator(v) { return v >= 0; },
+                renderer(v) {
+                    n++;
+                    return v > this.max ? this.max : v;
+                }
             })
         ], A.prototype, "value", void 0);
-        var a = new A(), n = 0;
+        __decorate([
+            shrewd_1.reactive
+        ], A.prototype, "log", null);
+        var a = new A(), n = 0, o;
         a.value = 5;
-        console.assert(a.value === 5 && n === 1, "輸入可接受的值無妨");
+        a.log();
+        console.assert(o === 5 && n === 2, "輸入可接受的值無妨", n);
         a.value = 20;
-        console.assert(a.value === 10 && n === 2, "超過範圍的值會被修正", a.value);
+        console.assert((o = a.value) === 10 && n === 3, "超過範圍的值會被修正", o, n);
         a.value = 20;
-        console.assert(n === 2, "輸入同樣的數字不會重新稽核");
+        console.assert(n === 3, "輸入同樣的數字不會重新稽核", n);
         a.max = 8;
-        console.assert(a.value === 8 && n === 3, "手動執行也會執行稽核", a.value, n);
+        console.assert((o = a.value) === 8 && n === 4, "手動執行也會執行稽核", o, n);
         shrewd_1.commit();
-        console.assert(a.value === 8 && n === 3, "因為已經執行過，所以不會再次稽核", a.value, n);
+        console.assert(o === 8 && n === 4, "因為已經執行過，所以不會再次稽核", o, n);
         a.max = 12;
         shrewd_1.commit();
-        console.assert(a.value === 12 && n === 4, "會記得未稽核的值，以隨著新的稽核條件作出恢復");
+        console.assert(o === 12 && n === 5, "會記得未稽核的值，以隨著新的稽核條件作出恢復");
         a.value = -3;
-        console.assert(a.value === 12 && n === 5, "規則說如果指定複數，則完全不改變");
+        console.assert(o === 12 && n === 5, "規則說如果指定負數，則完全不改變", o, n);
     },
     DecoratorRequirement() {
         var error;
@@ -256,6 +263,7 @@ const Tests = {
     ObservableArray() {
         class A {
             constructor() {
+                this.prop = 0;
                 this.arr = [];
             }
             get total() {
@@ -267,14 +275,19 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable(function (arr) {
-                let j = 0;
-                for (let i = 0; i < arr.length; i++) {
-                    if (arr[i] != 1)
-                        arr[j++] = arr[i];
+            shrewd_1.observable
+        ], A.prototype, "prop", void 0);
+        __decorate([
+            shrewd_1.observable({
+                renderer(arr) {
+                    let j = 0;
+                    for (let i = 0; i < arr.length; i++) {
+                        if (arr[i] != 1)
+                            arr[j++] = arr[i];
+                    }
+                    arr.length = j;
+                    return arr;
                 }
-                arr.length = j;
-                return arr;
             })
         ], A.prototype, "arr", void 0);
         __decorate([
@@ -288,7 +301,7 @@ const Tests = {
         a.log();
         a.arr.push(1, 2, 3);
         shrewd_1.commit();
-        console.assert(a.arr.length == 2, "稽核會殺掉元素 1");
+        console.assert(a.arr.length == 2, "稽核會殺掉元素 1", a.arr.toString());
         console.assert(n == 2, "會紀錄到陣列的變更", n);
         console.assert(t == 5, "計算出結果");
         a.arr.push(1);
@@ -303,7 +316,7 @@ const Tests = {
         shrewd_1.commit();
         console.assert(n == 4, "指定同樣的內容並不會觸發通知");
     },
-    ObservableArraySet() {
+    ObservableSet() {
         class A {
             constructor() {
                 this.set = new Set();
@@ -314,11 +327,13 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable(function (v) {
-                for (let n of v)
-                    if (n % 2 == 0)
-                        v.delete(n);
-                return v;
+            shrewd_1.observable({
+                renderer(v) {
+                    for (let n of v)
+                        if (n % 2 == 0)
+                            v.delete(n);
+                    return v;
+                }
             })
         ], A.prototype, "set", void 0);
         __decorate([
@@ -375,6 +390,94 @@ const Tests = {
         a.value.new.value = 2;
         shrewd_1.commit();
         console.assert(n == 4 && m == 5, "新加的屬性物件之屬性也具有反應能力", n, m);
+    },
+    Independent() {
+        class A {
+            constructor() {
+                this.value = 1;
+                this.lookAtValue = true;
+            }
+            get c1() {
+                t += "1";
+                return this.value;
+            }
+            get c2() {
+                t += "2";
+                return this.c1;
+            }
+            log() {
+                t += "3";
+                if (this.lookAtValue)
+                    this.c2;
+            }
+        }
+        __decorate([
+            shrewd_1.observable
+        ], A.prototype, "value", void 0);
+        __decorate([
+            shrewd_1.observable
+        ], A.prototype, "lookAtValue", void 0);
+        __decorate([
+            shrewd_1.computed
+        ], A.prototype, "c1", null);
+        __decorate([
+            shrewd_1.computed
+        ], A.prototype, "c2", null);
+        __decorate([
+            shrewd_1.reactive
+        ], A.prototype, "log", null);
+        var t = "";
+        var a = new A();
+        a.log();
+        console.assert(t == "321", "初始執行", t);
+        t = "";
+        a.value = 2;
+        shrewd_1.commit();
+        console.assert(t == "123", "認可", t);
+        t = "";
+        a.value = 1;
+        a.lookAtValue = false;
+        shrewd_1.commit();
+        console.assert(t == "123", "在這一回合，所有的東西都還是會執行", t);
+        t = "";
+        a.value = 2;
+        shrewd_1.commit();
+        console.assert(t == "", "因為 a.value 不再有反應方法相依於它，相依的東西都不會在認可階段執行", t);
+        t = "";
+        a.lookAtValue = true;
+        shrewd_1.commit();
+        console.assert(t == "321", "重新建立了參照關係", t);
+    },
+    CircularDependency() {
+        class A {
+            constructor() {
+                this.switch = true;
+            }
+            get a() {
+                return this.switch ? 1 : this.b;
+            }
+            get b() {
+                return this.a + 1;
+            }
+            log() { this.b; }
+        }
+        __decorate([
+            shrewd_1.observable
+        ], A.prototype, "switch", void 0);
+        __decorate([
+            shrewd_1.computed
+        ], A.prototype, "a", null);
+        __decorate([
+            shrewd_1.computed
+        ], A.prototype, "b", null);
+        __decorate([
+            shrewd_1.reactive
+        ], A.prototype, "log", null);
+        let a = new A();
+        a.log();
+        console.assert(a.b == 2, "初始值", a.b);
+        a.switch = false;
+        shrewd_1.commit();
     }
 };
 let assert = console.assert;

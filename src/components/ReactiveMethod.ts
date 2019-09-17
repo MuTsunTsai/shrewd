@@ -17,17 +17,18 @@ class ReactiveMethod extends DecoratedMemeber {
 	private _method: Function;
 	private _result: any;
 
-	constructor(parent: object, descriptor: IDecoratorDescriptor) {
+	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
-		this._method = descriptor.method!;
+		this._method = descriptor.$method!;
 	}
 
 	public $getter() {
-		Observer.$refer(this);
-		// 如果在當前的認可階段已經執行過，直接把暫存的結果傳回
-		if(Core.$committing && this.$updated) return () => this._result;
-		// 否則就執行一次
-		else return () => Observer.$render(this);
+		if(!this.$terminated) {
+			Observer.$refer(this);
+			// 如果在手動階段、或者在當前認可階段還沒執行過，則執行一次
+			if(!Global.$committing || !this.$updated) return () => Observer.$render(this);
+		}
+		return () => this._result;
 	}
 
 	protected $render() {

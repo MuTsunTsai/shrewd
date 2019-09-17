@@ -7,13 +7,13 @@
 
 abstract class DecoratedMemeber extends Observer {
 
-	constructor(parent: IShrewdObject, descriptor: IDecoratorDescriptor) {
+	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super();
 		this._parent = parent;
-		this._name = descriptor.name;
+		this._name = descriptor.$name;
 	}
 
-	protected _parent: IShrewdObject;
+	protected _parent: IShrewdObjectParent;
 
 	/** 這個成員的識別名稱； */
 	protected _name: string;

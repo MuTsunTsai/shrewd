@@ -31,5 +31,13 @@ const Shrewd = {
 	computed: Decorators.$computed,
 	reactive: Decorators.$reactive,
 
-	commit: Core.$commit
+	commit: Core.$commit,
+
+	construct: Core.$construct,
+
+	terminate: function(target: IShrewdObjectParent) {
+		if(HiddenProperty.$has(target, $shrewdObject)) target[$shrewdObject].$terminate();
+	},
+
+	Observer
 };

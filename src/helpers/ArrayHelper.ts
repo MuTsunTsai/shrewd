@@ -19,6 +19,15 @@ class ArrayHelper extends Helper<any[]> {
 	private static _handler = new ArrayProxyHandler();
 
 	constructor(arr: any[]) {
+		for(let i in arr) arr[i] = Helper.$wrap(arr[i]);
 		super(arr, ArrayHelper._handler);
+	}
+
+	public get $child() {
+		let result = [];
+		for(let value of this._target) {
+			if(typeof value == "object") result.push(value);
+		}
+		return this._target;
 	}
 }
