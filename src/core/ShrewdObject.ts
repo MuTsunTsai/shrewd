@@ -29,15 +29,16 @@ class ShrewdObject {
 	/** 這個 ShrewdObject 對應的物件 */
 	private _parent: IShrewdObjectParent;
 
-	private _terminated: boolean = false;
+	/** 是否已經終結 */
+	private _isTerminated: boolean = false;
 
 	/** 目前的 ShrewdObject 所具有的裝飾成員 */
 	private _members: Map<PropertyKey, DecoratedMemeber> = new Map();
 
 	public $terminate() {
-		if(this._terminated) return;
+		if(this._isTerminated) return;
 		for(let memeber of this._members.values()) memeber.$terminate();
-		this._terminated = true;
+		this._isTerminated = true;
 	}
 
 	public $getMember<T extends DecoratedMemeber>(key: PropertyKey) {

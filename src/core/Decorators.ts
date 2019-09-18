@@ -67,14 +67,39 @@ class Decorators {
 		};
 	}
 
-	public static $observable<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
-	public static $observable(proto: object, prop: PropertyKey): void;
-	public static $observable(a: any, b?: PropertyKey): any {
-		if(typeof b == "string") Decorators.$observableFactory(a, b);
-		else return (proto: object, prop: PropertyKey) => Decorators.$observableFactory(proto, prop, a);
+	public static $shrewd<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
+	public static $shrewd(proto: object, prop: PropertyKey): void;
+	public static $shrewd(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
+	public static $shrewd(a: object, b?: PropertyKey, c?: PropertyDescriptor) {
+		if(typeof b == "undefined") {
+			let decorator: PropertyDecorator =
+				(proto: object, prop: PropertyKey) => Decorators.$observable(proto, prop, a);
+			return decorator;
+		} else if(typeof b != "string") throw new Error("Incorrect call of decorator.");
+
+		let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
+		if(!descriptor) {
+			// ObservableProperty
+			Decorators.$observable(a, b);
+		} else if(descriptor.get && !descriptor.set) {
+			// ComputedProperty
+			return Decorators.$computed(a, b, descriptor);
+		} else if(typeof (descriptor.value) == "function") {
+			// ReactiveMethod
+			return Decorators.$reactive(a, b, descriptor);
+		} else {
+			throw new SetupError(a, b, "Incorrect call of decorator.");
+		}
 	}
 
-	private static $observableFactory(proto: object, prop: PropertyKey, option?: IObservablePropertyOptions<any>) {
+	// public static $observable<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
+	// public static $observable(proto: object, prop: PropertyKey): void;
+	// public static $observable(a: any, b?: PropertyKey): any {
+	// 	if(typeof b == "string") Decorators.$observableFactory(a, b);
+	// 	else return (proto: object, prop: PropertyKey) => Decorators.$observableFactory(proto, prop, a);
+	// }
+
+	private static $observable(proto: object, prop: PropertyKey, option?: IObservablePropertyOptions<any>) {
 		let descriptor = Object.getOwnPropertyDescriptor(proto, prop);
 		if(descriptor) throw new SetupError(proto, prop, "Decorated property is not a field.");
 

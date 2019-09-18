@@ -1,40 +1,41 @@
 
 interface IState {
-	$committing: boolean;
-	$constructing: boolean;
+	$isCommitting: boolean;
+	$isConstructing: boolean;
 	$target: Observer | null;
-	$active: boolean;
+	$isActive: boolean;
 }
 
 class Global {
 
 	private static _state: IState = {
-		$committing: false,
-		$constructing: false,
-		$active: false,
+		$isCommitting: false,
+		$isConstructing: false,
+		$isActive: false,
 		$target: null
 	};
 
-	public static $pushState(state: Partial<IState>): IState {
-		let old = Global._state;
+	private static _history: IState[] = [];
+
+	public static $pushState(state: Partial<IState>) {
+		Global._history.push(Global._state);
 		Global._state = Object.assign({}, Global._state, state);
-		return old;
 	}
 
-	public static $restore(state: IState) {
-		Global._state = state;
+	public static $restore() {
+		Global._state = Global._history.pop()!;
 	}
 
 	/** 目前是否處於認可階段 */
-	public static get $committing() { return Global._state.$committing; }
+	public static get $isCommitting() { return Global._state.$isCommitting; }
 
 	/** 目前是否正在建構新物件 */
-	public static get $constructing() { return Global._state.$constructing; }
+	public static get $isConstructing() { return Global._state.$isConstructing; }
 
 	/** 目前的側錄執行者是否為活躍 */
-	public static get $active() { return Global._state.$active; }
+	public static get $isActive() { return Global._state.$isActive; }
 
 	/** 目前的側錄執行者 */
 	public static get $target() { return Global._state.$target; }
-	
+
 }

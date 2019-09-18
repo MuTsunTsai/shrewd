@@ -31,13 +31,11 @@ class ComputedProperty extends DecoratedMemeber {
 	}
 
 	public $getter() {
-		if(!this.$terminated) {
+		if(!this.$isTerminated) {
 			// 如果呼叫的是一個觀測者，那麼此時觀測者就會訂閱這個計算屬性，
 			// 於是這個計算屬性至少會有一個訂閱者
 			Observer.$refer(this);
-
-			// 如果處於未更新狀態，重新計算
-			if(!this.$updated) Observer.$render(this);
+			this._determineState();
 		}
 
 		// 傳回暫存值

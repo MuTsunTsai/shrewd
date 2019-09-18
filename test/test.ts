@@ -1,5 +1,5 @@
 
-import { computed, observable, reactive, SetupError, commit } from "../dist/shrewd";
+import { shrewd, commit } from "../dist/shrewd";
 
 /**
  * 使用說明：
@@ -14,7 +14,7 @@ const Tests: { [test: string]: () => void } = {
 
 	Basic() {
 		class A {
-			@observable public a: number;
+			@shrewd public a: number;
 			constructor(a: number) {
 				this.a = a;
 			}
@@ -25,7 +25,7 @@ const Tests: { [test: string]: () => void } = {
 			constructor(a: A) {
 				this.a = a;
 			}
-			@computed public get b() {
+			@shrewd public get b() {
 				n++;
 				return this.a.a;
 			}
@@ -37,7 +37,7 @@ const Tests: { [test: string]: () => void } = {
 				this.b = b;
 			}
 
-			@reactive public log() {
+			@shrewd public log() {
 				this.b.b;
 				this.b.b;
 				m++;
@@ -68,20 +68,20 @@ const Tests: { [test: string]: () => void } = {
 
 	ComputedOverride() {
 		class A {
-			@observable public num: number = 0;
-			@computed public get value() {
+			@shrewd public num: number = 0;
+			@shrewd public get value() {
 				n += "1";
 				return this.num % 2;
 			}
 		}
 
 		class B extends A {
-			@computed public get value() {
+			@shrewd public get value() {
 				n += "2";
 				return super.value;
 			}
 
-			@reactive public log() {
+			@shrewd public log() {
 				n += "3";
 				this.value;
 				n += "4";
@@ -90,16 +90,21 @@ const Tests: { [test: string]: () => void } = {
 
 		var b = new B(), n = "";
 		b.log();
-		console.assert(n == "3214", "手動階段執行是 top-down 的", n);
+		console.assert(n == "3214", "第一次執行因為還沒有建立參照關係，是 top-down 的", n);
 
 		n = "";
 		b.num = 1;
 		console.assert(n == "", "認可前還沒執行重新計算", n);
 		commit();
-		console.assert(n == "1234", "認可階段是 bottom-up 執行", n);
+		console.assert(n == "1234", "有了參照關係就會 bottom-up 執行", n);
 
 		n = "";
-		b.num = 3;
+		b.num = 0;
+		b.log();
+		console.assert(n == "1234", "有參照關係之後手動階段執行也會是 bottom-up", n);
+
+		n = "";
+		b.num = 2;
 		commit();
 		console.assert(n == "1", "資料流在 A.log 處中斷了");
 	},
@@ -107,10 +112,10 @@ const Tests: { [test: string]: () => void } = {
 	ObservableValidation() {
 		class A {
 
-			@observable public max = 10;
+			@shrewd public max = 10;
 
 			// 這是一個具有稽核的可觀測屬性，而且其稽核規則引用了另一個可觀測值。
-			@observable({
+			@shrewd({
 				validator(v: number) { return v >= 0; },
 				renderer(this: A, v: number) {
 					n++;
@@ -119,7 +124,7 @@ const Tests: { [test: string]: () => void } = {
 			})
 			public value: number = 0;
 
-			@reactive log() { o = this.value; }
+			@shrewd log() { o = this.value; }
 		}
 
 		var a = new A(), n = 0, o;
@@ -146,30 +151,17 @@ const Tests: { [test: string]: () => void } = {
 	},
 
 	DecoratorRequirement() {
-		var error: Error | undefined;
+		var error: any;
 		try {
 			class A {
-				@computed public get value() { return 1; }
+				@shrewd public get value() { return 1; }
 				public set value(v) { }
 			}
 		} catch(e) {
-			if(e instanceof SetupError) error = e;
-			else throw e;
+			error = e;
 		}
-		console.assert(error instanceof SetupError && error.class == "A" && error.prop == "value",
+		console.assert(error.class == "A" && error.prop == "value",
 			"類別 A 的 value 屬性設置了 setter 是不能裝飾為 computed 的");
-
-		error = undefined;
-		try {
-			class B {
-				@observable public get value() { return 1; }
-			}
-		} catch(e) {
-			if(e instanceof SetupError) error = e;
-			else throw e;
-		}
-		console.assert(error instanceof SetupError && error.class == "B" && error.prop == "value",
-			"類別 B 的 value 屬性是不能裝飾為 observable 的");
 	},
 
 	ReactiveMethod() {
@@ -180,13 +172,13 @@ const Tests: { [test: string]: () => void } = {
 
 			public n = 0;
 
-			@observable public value = 0;
+			@shrewd public value = 0;
 
-			@computed public get middle() {
+			@shrewd public get middle() {
 				return this.value % 2;
 			}
 
-			@reactive public log() {
+			@shrewd public log() {
 				this.middle; // 純粹讀取來使得 log 參照之
 				this.n++;
 			}
@@ -214,15 +206,15 @@ const Tests: { [test: string]: () => void } = {
 	ReactiveOverride() {
 		class A {
 			public n = "";
-			@observable public value = 1;
-			@reactive log(): any {
+			@shrewd public value = 1;
+			@shrewd log(): any {
 				this.n += "1";
 				return this.value != 3;
 			}
 		}
 
 		class B extends A {
-			@reactive log() {
+			@shrewd log() {
 				// 下層方法唯一參照到的就是上層方法；只要上層方法被執行，就會通知下層方法去執行
 				this.n += "2"
 				if(!super.log()) return;
@@ -247,9 +239,9 @@ const Tests: { [test: string]: () => void } = {
 
 	ObservableArray() {
 		class A {
-			@observable private prop = 0;
+			@shrewd private prop = 0;
 
-			@observable({
+			@shrewd({
 				renderer(this: A, arr: number[]) {
 					// 如果開啟下面這一行，程式將會發出警告
 					// this.prop = 1;
@@ -262,12 +254,12 @@ const Tests: { [test: string]: () => void } = {
 				}
 			}) public arr: number[] = [];
 
-			@computed public get total() {
+			@shrewd public get total() {
 				n++;
 				return this.arr.reduce((t, v) => t + v, 0);
 			}
 
-			@reactive public log() {
+			@shrewd public log() {
 				t = this.total; // 用個反應方法讀取以便觸發自動更新
 			}
 		}
@@ -301,14 +293,14 @@ const Tests: { [test: string]: () => void } = {
 		class A {
 
 			// 稽核條件：不可以有偶數
-			@observable({
+			@shrewd({
 				renderer(this: A, v: Set<number>) {
 					for(let n of v) if(n % 2 == 0) v.delete(n);
 					return v;
 				}
 			}) public set: Set<number> = new Set();
 
-			@reactive public log() {
+			@shrewd public log() {
 				count = this.set.size;
 				n++;
 			}
@@ -337,11 +329,11 @@ const Tests: { [test: string]: () => void } = {
 
 	ObservableObject() {
 		class A {
-			@observable public value: { [key: string]: any } = {
+			@shrewd public value: { [key: string]: any } = {
 				prop: 1
 			};
 
-			@reactive public log() {
+			@shrewd public log() {
 				m = this.value.prop;
 				if("new" in this.value) m += this.value.new.value;
 				n++;
@@ -369,20 +361,20 @@ const Tests: { [test: string]: () => void } = {
 
 	Independent() {
 		class A {
-			@observable public value = 1;
-			@observable public lookAtValue = true;
+			@shrewd public value = 1;
+			@shrewd public lookAtValue = true;
 
-			@computed public get c1() {
+			@shrewd public get c1() {
 				t += "1";
 				return this.value;
 			}
 
-			@computed public get c2() {
+			@shrewd public get c2() {
 				t += "2";
 				return this.c1;
 			}
 
-			@reactive log() {
+			@shrewd log() {
 				t += "3";
 				if(this.lookAtValue) this.c2;
 			}
@@ -402,7 +394,7 @@ const Tests: { [test: string]: () => void } = {
 		a.value = 1;
 		a.lookAtValue = false;
 		commit();
-		console.assert(t == "123", "在這一回合，所有的東西都還是會執行", t);
+		console.assert(t == "13", "順序會使得 a.log 先被執行，而使 a.c2 不活躍", t);
 
 		t = "";
 		a.value = 2;
@@ -417,24 +409,31 @@ const Tests: { [test: string]: () => void } = {
 
 	CircularDependency() {
 		class A {
-			@observable public switch = true;
-			@computed public get a(): number {
+			@shrewd public switch = true;
+			@shrewd public get a(): number {
 				return this.switch ? 1 : this.b;
 			}
 
-			@computed public get b(): number {
+			@shrewd public get b(): number {
 				return this.a + 1;
 			}
 
-			@reactive log() { this.b; }
+			@shrewd log() { this.b; }
 		}
 
 		let a = new A();
 		a.log();
 		console.assert(a.b == 2, "初始值", a.b);
 
-		a.switch = false;
-		commit();
+		let err = "";
+		try {
+			a.switch = false;
+			commit();
+		} catch(e) {
+			if(e instanceof Error) err = e.message;
+		}
+		console.assert(err == "Circular dependency detected as [object A.b] attempt to read [object A.a].",
+			"打開 a.switch 會產生循環參照而出錯", err);
 	}
 };
 

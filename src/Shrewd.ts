@@ -25,11 +25,7 @@
 /// <reference path="helpers/ArrayHelper.ts" />
 
 const Shrewd = {
-	SetupError,
-
-	observable: Decorators.$observable,
-	computed: Decorators.$computed,
-	reactive: Decorators.$reactive,
+	shrewd: Decorators.$shrewd,
 
 	commit: Core.$commit,
 
@@ -37,7 +33,5 @@ const Shrewd = {
 
 	terminate: function(target: IShrewdObjectParent) {
 		if(HiddenProperty.$has(target, $shrewdObject)) target[$shrewdObject].$terminate();
-	},
-
-	Observer
+	}
 };

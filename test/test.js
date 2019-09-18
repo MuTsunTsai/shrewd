@@ -15,7 +15,7 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "a", void 0);
         class B {
             constructor(a) {
@@ -27,7 +27,7 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], B.prototype, "b", null);
         class C {
             constructor(b) {
@@ -40,7 +40,7 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], C.prototype, "log", null);
         var n = 0, m = 0;
         var a = new A(0);
@@ -70,10 +70,10 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "num", void 0);
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], A.prototype, "value", null);
         class B extends A {
             get value() {
@@ -87,21 +87,25 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], B.prototype, "value", null);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], B.prototype, "log", null);
         var b = new B(), n = "";
         b.log();
-        console.assert(n == "3214", "手動階段執行是 top-down 的", n);
+        console.assert(n == "3214", "第一次執行因為還沒有建立參照關係，是 top-down 的", n);
         n = "";
         b.num = 1;
         console.assert(n == "", "認可前還沒執行重新計算", n);
         shrewd_1.commit();
-        console.assert(n == "1234", "認可階段是 bottom-up 執行", n);
+        console.assert(n == "1234", "有了參照關係就會 bottom-up 執行", n);
         n = "";
-        b.num = 3;
+        b.num = 0;
+        b.log();
+        console.assert(n == "1234", "有參照關係之後手動階段執行也會是 bottom-up", n);
+        n = "";
+        b.num = 2;
         shrewd_1.commit();
         console.assert(n == "1", "資料流在 A.log 處中斷了");
     },
@@ -114,10 +118,10 @@ const Tests = {
             log() { o = this.value; }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "max", void 0);
         __decorate([
-            shrewd_1.observable({
+            shrewd_1.shrewd({
                 validator(v) { return v >= 0; },
                 renderer(v) {
                     n++;
@@ -126,7 +130,7 @@ const Tests = {
             })
         ], A.prototype, "value", void 0);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], A.prototype, "log", null);
         var a = new A(), n = 0, o;
         a.value = 5;
@@ -154,32 +158,13 @@ const Tests = {
                 set value(v) { }
             }
             __decorate([
-                shrewd_1.computed
+                shrewd_1.shrewd
             ], A.prototype, "value", null);
         }
         catch (e) {
-            if (e instanceof shrewd_1.SetupError)
-                error = e;
-            else
-                throw e;
+            error = e;
         }
-        console.assert(error instanceof shrewd_1.SetupError && error.class == "A" && error.prop == "value", "類別 A 的 value 屬性設置了 setter 是不能裝飾為 computed 的");
-        error = undefined;
-        try {
-            class B {
-                get value() { return 1; }
-            }
-            __decorate([
-                shrewd_1.observable
-            ], B.prototype, "value", null);
-        }
-        catch (e) {
-            if (e instanceof shrewd_1.SetupError)
-                error = e;
-            else
-                throw e;
-        }
-        console.assert(error instanceof shrewd_1.SetupError && error.class == "B" && error.prop == "value", "類別 B 的 value 屬性是不能裝飾為 observable 的");
+        console.assert(error.class == "A" && error.prop == "value", "類別 A 的 value 屬性設置了 setter 是不能裝飾為 computed 的");
     },
     ReactiveMethod() {
         class A {
@@ -197,13 +182,13 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "value", void 0);
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], A.prototype, "middle", null);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], A.prototype, "log", null);
         var a = new A();
         console.assert(a.n === 1, "初次執行");
@@ -232,10 +217,10 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "value", void 0);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], A.prototype, "log", null);
         class B extends A {
             log() {
@@ -246,7 +231,7 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], B.prototype, "log", null);
         var b = new B();
         b.log();
@@ -275,10 +260,10 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "prop", void 0);
         __decorate([
-            shrewd_1.observable({
+            shrewd_1.shrewd({
                 renderer(arr) {
                     let j = 0;
                     for (let i = 0; i < arr.length; i++) {
@@ -291,10 +276,10 @@ const Tests = {
             })
         ], A.prototype, "arr", void 0);
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], A.prototype, "total", null);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], A.prototype, "log", null);
         var n = 0, t;
         var a = new A();
@@ -327,7 +312,7 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable({
+            shrewd_1.shrewd({
                 renderer(v) {
                     for (let n of v)
                         if (n % 2 == 0)
@@ -337,7 +322,7 @@ const Tests = {
             })
         ], A.prototype, "set", void 0);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], A.prototype, "log", null);
         var count = 0, n = 0;
         var a = new A();
@@ -371,10 +356,10 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "value", void 0);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], A.prototype, "log", null);
         var n = 0, m = 0;
         var a = new A();
@@ -412,19 +397,19 @@ const Tests = {
             }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "value", void 0);
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "lookAtValue", void 0);
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], A.prototype, "c1", null);
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], A.prototype, "c2", null);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], A.prototype, "log", null);
         var t = "";
         var a = new A();
@@ -438,7 +423,7 @@ const Tests = {
         a.value = 1;
         a.lookAtValue = false;
         shrewd_1.commit();
-        console.assert(t == "123", "在這一回合，所有的東西都還是會執行", t);
+        console.assert(t == "13", "順序會使得 a.log 先被執行，而使 a.c2 不活躍", t);
         t = "";
         a.value = 2;
         shrewd_1.commit();
@@ -462,22 +447,30 @@ const Tests = {
             log() { this.b; }
         }
         __decorate([
-            shrewd_1.observable
+            shrewd_1.shrewd
         ], A.prototype, "switch", void 0);
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], A.prototype, "a", null);
         __decorate([
-            shrewd_1.computed
+            shrewd_1.shrewd
         ], A.prototype, "b", null);
         __decorate([
-            shrewd_1.reactive
+            shrewd_1.shrewd
         ], A.prototype, "log", null);
         let a = new A();
         a.log();
         console.assert(a.b == 2, "初始值", a.b);
-        a.switch = false;
-        shrewd_1.commit();
+        let err = "";
+        try {
+            a.switch = false;
+            shrewd_1.commit();
+        }
+        catch (e) {
+            if (e instanceof Error)
+                err = e.message;
+        }
+        console.assert(err == "Circular dependency detected as [object A.b] attempt to read [object A.a].", "打開 a.switch 會產生循環參照而出錯", err);
     }
 };
 let assert = console.assert;

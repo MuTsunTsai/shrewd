@@ -8,34 +8,12 @@ interface IObservablePropertyOptions<T> {
 }
 
 /**
- * The class SetupError is for testing purpose only.
- * It indicates any incorrect usage of the decorators.
+ * The shrewd decorator turns a field into an ObservableProperty,
+ * a get accessor into a ComputedProperty, and a method into a ReactiveMethod.
  */
-export class SetupError extends Error {
-	public class: string;
-	public prop: string;
-	constructor(target: object, prop: PropertyKey, message: string);
-}
-
-/**
- * The observable decorator turns any field of a class into an observable property.
- */
-export function observable<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
-export function observable(target: object, prop: PropertyKey): void;
-
-/**
- * The computed decorator turns any get accessor into a computed property.
- * 
- * Once read, it will automatically update itself if any of its reference changes.
- */
-export function computed(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
-
-/**
- * The reactive decorator turns any method into a reactive method.
- * 
- * Once run, it will automatically re-run itself if any of its reference changes.
- */
-export function reactive(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
+export function shrewd<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
+export function shrewd(target: object, prop: PropertyKey): void;
+export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
 
 /**
  * Manually triggers the commission. This is mainly for testing purpose.

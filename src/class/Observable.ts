@@ -6,17 +6,15 @@
  */
 //////////////////////////////////////////////////////////////////
 
-const $dependencyLevel = Symbol("Dependency Level");
-
 class Observable {
 
 	public static $isWritable(observable: Observable) {
-		if(Global.$constructing || !observable.$hasSubscriber) return true;
-		if(ObservableProperty.$rendering && !ObservableProperty.$accessible(observable)) {
+		if(Global.$isConstructing || !observable.$hasSubscriber) return true;
+		if(ObservableProperty.$isRendering && !ObservableProperty.$isAccessible(observable)) {
 			console.warn("Inside a renderer function, only the objects owned by the ObservableProperty can be written.");
 			return false;
 		}
-		if(!ObservableProperty.$rendering && Global.$committing) {
+		if(!ObservableProperty.$isRendering && Global.$isCommitting) {
 			console.warn("Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.");
 			return false;
 		}
@@ -32,9 +30,6 @@ class Observable {
 
 	public $subscribe(observer: Observer) {
 		this._subscribers.add(observer);
-		if(observer[$dependencyLevel] <= this[$dependencyLevel]) {
-			observer[$dependencyLevel] = this[$dependencyLevel] + 1;
-		}
 	}
 
 	public $unsubscribe(observer: Observer) {
@@ -45,7 +40,9 @@ class Observable {
 		return this._subscribers.size > 0;
 	}
 
-	public [$dependencyLevel]: number = 0;
+	protected get $subscribers() {
+		return this._subscribers.values();
+	}
 
 	private _subscribers: Set<Observer> = new Set();
 }

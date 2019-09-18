@@ -22,11 +22,16 @@ class ReactiveMethod extends DecoratedMemeber {
 		this._method = descriptor.$method!;
 	}
 
+	// 反應方法永遠是活躍的
+	protected get _isActive() { return true; }
+
 	public $getter() {
-		if(!this.$terminated) {
+		if(!this.$isTerminated) {
 			Observer.$refer(this);
-			// 如果在手動階段、或者在當前認可階段還沒執行過，則執行一次
-			if(!Global.$committing || !this.$updated) return () => Observer.$render(this);
+
+			// 手動階段時直接執行
+			if(!Global.$isCommitting && !this._isPending) return () => Observer.$render(this);
+			else this._determineState();
 		}
 		return () => this._result;
 	}

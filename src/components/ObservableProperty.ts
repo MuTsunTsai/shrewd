@@ -15,11 +15,11 @@ class ObservableProperty extends DecoratedMemeber {
 		};
 	}
 
-	private static _rendering: boolean = false;
-	public static get $rendering() { return ObservableProperty._rendering; }
+	private static _isRendering: boolean = false;
+	public static get $isRendering() { return ObservableProperty._isRendering; }
 
 	private static _accessibles: Set<Observable> = new Set();
-	private static $setAccessible(target: any) {
+	private static $setAccessible(target: any): void {
 		if(typeof target != "object") return;
 		if(Helper.$hasHelper(target)) {
 			if(!ObservableProperty._accessibles.has(target[$observableHelper])) {
@@ -35,7 +35,7 @@ class ObservableProperty extends DecoratedMemeber {
 			}
 		}
 	}
-	public static $accessible(observable: Observable) {
+	public static $isAccessible(observable: Observable): boolean {
 		return ObservableProperty._accessibles.has(observable);
 	}
 
@@ -47,18 +47,19 @@ class ObservableProperty extends DecoratedMemeber {
 		super(parent, descriptor);
 		this._option = descriptor.$option || {};
 		Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
+		if(!this._option.renderer) this._update();
 	}
 
 	public $getter() {
-		if(!this.$terminated) {
+		if(!this.$isTerminated) {
 			Observer.$refer(this);
-			if(this._option.renderer && !this.$updated) Observer.$render(this);
+			if(this._option.renderer) this._determineState();
 		}
 		return this._outputValue;
 	}
 
 	public $setter(value: any) {
-		if(this.$terminated) {
+		if(this.$isTerminated) {
 			console.warn(`[${this._name}] has been terminated.`);
 			return;
 		}
@@ -71,11 +72,11 @@ class ObservableProperty extends DecoratedMemeber {
 	}
 
 	public $render() {
-		ObservableProperty._rendering = true;
+		ObservableProperty._isRendering = true;
 		ObservableProperty.$setAccessible(this._inputValue);
 		let value = this._option.renderer!.apply(this._parent, [this._inputValue]);
 		ObservableProperty._accessibles.clear();
-		ObservableProperty._rendering = false;
+		ObservableProperty._isRendering = false;
 		if(value !== this._outputValue) this.$publish(Helper.$wrap(value));
 	}
 
