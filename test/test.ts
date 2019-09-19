@@ -151,17 +151,17 @@ const Tests: { [test: string]: () => void } = {
 	},
 
 	DecoratorRequirement() {
-		var error: any;
-		try {
-			class A {
-				@shrewd public get value() { return 1; }
-				public set value(v) { }
-			}
-		} catch(e) {
-			error = e;
+		let err = "", warn = console.warn;
+		console.warn = (s: string) => err = s;
+
+		class A {
+			@shrewd public get value() { return 1; }
+			public set value(v) { }
 		}
-		console.assert(error.class == "A" && error.prop == "value",
-			"類別 A 的 value 屬性設置了 setter 是不能裝飾為 computed 的");
+
+		console.assert(err == "Setup error at A[value]. Decorated member must be one of the following: " +
+			"a field, a readonly get accessor, or a method.", "不正確的設定", err);
+		console.warn = warn;
 	},
 
 	ReactiveMethod() {
@@ -411,29 +411,54 @@ const Tests: { [test: string]: () => void } = {
 		class A {
 			@shrewd public switch = true;
 			@shrewd public get a(): number {
-				return this.switch ? 1 : this.b;
+				return this.switch ? 1 : this.c;
 			}
 
 			@shrewd public get b(): number {
 				return this.a + 1;
 			}
 
-			@shrewd log() { this.b; }
+			@shrewd public get c(): number {
+				return this.b;
+			}
+
+			@shrewd log() { this.c; }
 		}
 
 		let a = new A();
 		a.log();
-		console.assert(a.b == 2, "初始值", a.b);
+		console.assert(a.c == 2, "初始值", a.c);
 
-		let err = "";
-		try {
-			a.switch = false;
-			commit();
-		} catch(e) {
-			if(e instanceof Error) err = e.message;
+		let err = "", warn = console.warn;
+		console.warn = (s: string) => err = s;
+		a.switch = false;
+		commit();
+		console.assert(err == "Circular dependency detected: A.a => A.c => A.b => A.a" +
+			"\nAll these observers will be terminated.", "打開 a.switch 會產生循環參照而出錯", err);
+		console.warn = warn;
+	},
+
+	FakeCircularDependency() {
+		class A {
+			@shrewd public switch = true;
+			@shrewd public get a(): number {
+				return this.switch ? 1 : this.b;
+			}
+
+			@shrewd public get b(): number {
+				return this.switch ? this.a : 2;
+			}
+
+			@shrewd log() { this.a; this.b; }
 		}
-		console.assert(err == "Circular dependency detected as [object A.b] attempt to read [object A.a].",
-			"打開 a.switch 會產生循環參照而出錯", err);
+
+		let a = new A();
+		a.log();
+		console.assert(a.b == 1, "初始值", a.b);
+
+		a.switch = false;
+		commit();
+		console.assert(a.a == 2, "其實這裡並沒有真的發生循環參照，只是路徑改變");
 	}
 };
 

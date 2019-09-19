@@ -60,7 +60,7 @@ class ObservableProperty extends DecoratedMemeber {
 
 	public $setter(value: any) {
 		if(this.$isTerminated) {
-			console.warn(`[${this._name}] has been terminated.`);
+			this._outputValue = value;
 			return;
 		}
 		if(Observable.$isWritable(this) && value != this._inputValue) {
@@ -83,5 +83,12 @@ class ObservableProperty extends DecoratedMemeber {
 	private $publish(value: any) {
 		this._outputValue = value;
 		Observable.$publish(this);
+	}
+
+	public $terminate() {
+		if(this.$isTerminated) return;
+		delete this._inputValue;
+		delete this._option;
+		super.$terminate();
 	}
 }

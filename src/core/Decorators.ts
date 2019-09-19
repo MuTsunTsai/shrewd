@@ -72,36 +72,28 @@ class Decorators {
 	public static $shrewd(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
 	public static $shrewd(a: object, b?: PropertyKey, c?: PropertyDescriptor) {
 		if(typeof b == "undefined") {
-			let decorator: PropertyDecorator =
-				(proto: object, prop: PropertyKey) => Decorators.$observable(proto, prop, a);
-			return decorator;
-		} else if(typeof b != "string") throw new Error("Incorrect call of decorator.");
-
-		let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
-		if(!descriptor) {
-			// ObservableProperty
-			Decorators.$observable(a, b);
-		} else if(descriptor.get && !descriptor.set) {
-			// ComputedProperty
-			return Decorators.$computed(a, b, descriptor);
-		} else if(typeof (descriptor.value) == "function") {
-			// ReactiveMethod
-			return Decorators.$reactive(a, b, descriptor);
-		} else {
-			throw new SetupError(a, b, "Incorrect call of decorator.");
+			return ((proto: object, prop: PropertyKey) => Decorators.$observable(proto, prop, a)) as PropertyDecorator;
+		} else if(typeof b == "string") {
+			let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
+			if(!descriptor) { // ObservableProperty
+				return Decorators.$observable(a, b);
+			} else if(descriptor.get && !descriptor.set) { // ComputedProperty
+				return Decorators.$computed(a, b, descriptor);
+			} else if(typeof (descriptor.value) == "function") { // ReactiveMethod
+				return Decorators.$reactive(a, b, descriptor);
+			}
 		}
+		console.warn(`Setup error at ${a.constructor.name}[${b.toString()}]. ` +
+			"Decorated member must be one of the following: a field, a readonly get accessor, or a method.");
 	}
-
-	// public static $observable<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
-	// public static $observable(proto: object, prop: PropertyKey): void;
-	// public static $observable(a: any, b?: PropertyKey): any {
-	// 	if(typeof b == "string") Decorators.$observableFactory(a, b);
-	// 	else return (proto: object, prop: PropertyKey) => Decorators.$observableFactory(proto, prop, a);
-	// }
 
 	private static $observable(proto: object, prop: PropertyKey, option?: IObservablePropertyOptions<any>) {
 		let descriptor = Object.getOwnPropertyDescriptor(proto, prop);
-		if(descriptor) throw new SetupError(proto, prop, "Decorated property is not a field.");
+		if(descriptor) {
+			console.warn(`Setup error at ${proto.constructor.name}[${prop.toString()}]. ` +
+				"Decorated property is not a field.");
+			return;
+		}
 
 		Decorators.get(proto).push({
 			$key: prop,
@@ -123,9 +115,6 @@ class Decorators {
 	}
 
 	public static $computed(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor) {
-		if(!descriptor || !descriptor.get) throw new SetupError(proto, prop, "Decorated property has no getter.");
-		if(descriptor.set) throw new SetupError(proto, prop, "Decorated property is not readonly.");
-
 		let name = proto.constructor.name + "." + prop.toString();
 		Decorators.get(proto).push({
 			$key: name,
@@ -141,10 +130,6 @@ class Decorators {
 	}
 
 	public static $reactive(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor) {
-		if(!descriptor || typeof (descriptor.value) != "function") {
-			throw new SetupError(proto, prop, "Decorated member is not a method.");
-		}
-
 		let name = proto.constructor.name + "." + prop.toString();
 		Decorators.get(proto).push({
 			$key: name,

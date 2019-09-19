@@ -14,14 +14,6 @@
   }
 }(this, function() {
 "use strict";
-class SetupError extends Error {
-    constructor(target, prop, message) {
-        super(message);
-        this.class = target.constructor.name;
-        this.prop = prop.toString();
-        this.name = `SetupError at ${this.class}[${this.prop}]`;
-    }
-}
 class Core {
     static $commit() {
         Global.$pushState({ $isCommitting: true });
@@ -60,6 +52,10 @@ class Core {
         Global.$restore();
         return result;
     }
+    static $terminate(target) {
+        if (HiddenProperty.$has(target, $shrewdObject))
+            target[$shrewdObject].$terminate();
+    }
 }
 Core._queue = new Set();
 Core._promised = false;
@@ -78,29 +74,30 @@ class Decorators {
     }
     static $shrewd(a, b, c) {
         if (typeof b == "undefined") {
-            let decorator = (proto, prop) => Decorators.$observable(proto, prop, a);
-            return decorator;
+            return ((proto, prop) => Decorators.$observable(proto, prop, a));
         }
-        else if (typeof b != "string")
-            throw new Error("Incorrect call of decorator.");
-        let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
-        if (!descriptor) {
-            Decorators.$observable(a, b);
+        else if (typeof b == "string") {
+            let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
+            if (!descriptor) {
+                return Decorators.$observable(a, b);
+            }
+            else if (descriptor.get && !descriptor.set) {
+                return Decorators.$computed(a, b, descriptor);
+            }
+            else if (typeof (descriptor.value) == "function") {
+                return Decorators.$reactive(a, b, descriptor);
+            }
         }
-        else if (descriptor.get && !descriptor.set) {
-            return Decorators.$computed(a, b, descriptor);
-        }
-        else if (typeof (descriptor.value) == "function") {
-            return Decorators.$reactive(a, b, descriptor);
-        }
-        else {
-            throw new SetupError(a, b, "Incorrect call of decorator.");
-        }
+        console.warn(`Setup error at ${a.constructor.name}[${b.toString()}]. ` +
+            "Decorated member must be one of the following: a field, a readonly get accessor, or a method.");
     }
     static $observable(proto, prop, option) {
         let descriptor = Object.getOwnPropertyDescriptor(proto, prop);
-        if (descriptor)
-            throw new SetupError(proto, prop, "Decorated property is not a field.");
+        if (descriptor) {
+            console.warn(`Setup error at ${proto.constructor.name}[${prop.toString()}]. ` +
+                "Decorated property is not a field.");
+            return;
+        }
         Decorators.get(proto).push({
             $key: prop,
             $name: proto.constructor.name + "." + prop.toString(),
@@ -119,10 +116,6 @@ class Decorators {
         });
     }
     static $computed(proto, prop, descriptor) {
-        if (!descriptor || !descriptor.get)
-            throw new SetupError(proto, prop, "Decorated property has no getter.");
-        if (descriptor.set)
-            throw new SetupError(proto, prop, "Decorated property is not readonly.");
         let name = proto.constructor.name + "." + prop.toString();
         Decorators.get(proto).push({
             $key: name,
@@ -136,9 +129,6 @@ class Decorators {
         return descriptor;
     }
     static $reactive(proto, prop, descriptor) {
-        if (!descriptor || typeof (descriptor.value) != "function") {
-            throw new SetupError(proto, prop, "Decorated member is not a method.");
-        }
         let name = proto.constructor.name + "." + prop.toString();
         Decorators.get(proto).push({
             $key: name,
@@ -255,12 +245,13 @@ var ObserverState;
     ObserverState[ObserverState["$pending"] = 2] = "$pending";
 })(ObserverState || (ObserverState = {}));
 class Observer extends Observable {
-    constructor() {
-        super(...arguments);
+    constructor(name) {
+        super();
         this._reference = new Set();
         this._isRendering = false;
         this._state = ObserverState.$outdated;
         this._isTerminated = false;
+        this._name = name;
     }
     static $clearPending() {
         for (let pending of Observer._pending) {
@@ -332,13 +323,21 @@ class Observer extends Observable {
         }
     }
     _determineState() {
+        if (this.$isRendering) {
+            let last = Observer._trace.indexOf(this);
+            let cycle = [this, ...Observer._trace.slice(last + 1), this];
+            cycle.forEach(o => o.$terminate());
+            let trace = cycle.map(o => o._name).join(" => ");
+            console.warn("Circular dependency detected: " + trace + "\nAll these observers will be terminated.");
+        }
         if (this._state == ObserverState.$updated)
             return;
+        Observer._trace.push(this);
         for (let ref of this._reference) {
             if (ref instanceof Observer) {
                 if (ref._isRendering)
-                    throw new Error(`Circular dependency detected as ${this} attempt to read ${ref}.`);
-                if (ref._state != ObserverState.$updated)
+                    Observer.$render(this);
+                else if (ref._state != ObserverState.$updated)
                     ref._determineState();
             }
         }
@@ -348,6 +347,7 @@ class Observer extends Observable {
             Observer._pending.delete(this);
             this._update();
         }
+        Observer._trace.pop();
     }
     _update() { this._state = ObserverState.$updated; }
     get _isPending() { return this._state == ObserverState.$pending; }
@@ -360,6 +360,7 @@ class Observer extends Observable {
     get $isTerminated() { return this._isTerminated; }
 }
 Observer._pending = new Set();
+Observer._trace = [];
 const $observableHelper = Symbol("Observable Helper");
 class Helper extends Observable {
     constructor(target, handler) {
@@ -442,11 +443,9 @@ class CollectionProxyHandler extends BaseProxyHandler {
 }
 class DecoratedMemeber extends Observer {
     constructor(parent, descriptor) {
-        super();
+        super(descriptor.$name);
         this._parent = parent;
-        this._name = descriptor.$name;
     }
-    get [Symbol.toStringTag]() { return this._name; }
 }
 class ObjectProxyHandler extends BaseProxyHandler {
     has(target, prop) {
@@ -577,6 +576,9 @@ class ComputedProperty extends DecoratedMemeber {
             Observer.$refer(this);
             this._determineState();
         }
+        else {
+            this._value = this._getter.apply(this._parent);
+        }
         return this._value;
     }
 }
@@ -627,7 +629,7 @@ class ObservableProperty extends DecoratedMemeber {
     }
     $setter(value) {
         if (this.$isTerminated) {
-            console.warn(`[${this._name}] has been terminated.`);
+            this._outputValue = value;
             return;
         }
         if (Observable.$isWritable(this) && value != this._inputValue) {
@@ -653,6 +655,13 @@ class ObservableProperty extends DecoratedMemeber {
         this._outputValue = value;
         Observable.$publish(this);
     }
+    $terminate() {
+        if (this.$isTerminated)
+            return;
+        delete this._inputValue;
+        delete this._option;
+        super.$terminate();
+    }
 }
 ObservableProperty._interceptor = {};
 ObservableProperty._isRendering = false;
@@ -668,10 +677,14 @@ class ReactiveMethod extends DecoratedMemeber {
             Observer.$refer(this);
             if (!Global.$isCommitting && !this._isPending)
                 return () => Observer.$render(this);
-            else
+            return () => {
                 this._determineState();
+                return this._result;
+            };
         }
-        return () => this._result;
+        else {
+            return () => this._method.apply(this._parent);
+        }
     }
     $render() {
         this._result = this._method.apply(this._parent);
@@ -707,12 +720,10 @@ class ArrayHelper extends Helper {
 ArrayHelper._handler = new ArrayProxyHandler();
 const Shrewd = {
     shrewd: Decorators.$shrewd,
+    decorate: null,
     commit: Core.$commit,
     construct: Core.$construct,
-    terminate: function (target) {
-        if (HiddenProperty.$has(target, $shrewdObject))
-            target[$shrewdObject].$terminate();
-    }
+    terminate: Core.$terminate
 };
 class Global {
     static $pushState(state) {

@@ -11,6 +11,8 @@ abstract class Observer extends Observable {
 
 	private static _pending: Set<Observer> = new Set();
 
+	private static _trace: Observer[] = [];
+
 	public static $clearPending() {
 		for(let pending of Observer._pending) {
 			if(pending._state == ObserverState.$pending) pending._update();
@@ -91,6 +93,14 @@ abstract class Observer extends Observable {
 
 	private _isTerminated: boolean = false;
 
+	/** 識別名稱； */
+	protected _name: string;
+
+	constructor(name: string) {
+		super();
+		this._name = name;
+	}
+
 	/** 目前是否處於執行的堆疊中 */
 	public get $isRendering() { return this._isRendering; }
 
@@ -116,20 +126,41 @@ abstract class Observer extends Observable {
 	}
 
 	protected _determineState() {
+
+		// 真的找到循環參照了
+		if(this.$isRendering) {
+			// this 不一定會是往下回溯的起點，有可能是往下的途中發現了較小的循環，
+			// 所以找出最小的循環圈子
+			let last = Observer._trace.indexOf(this);
+			let cycle = [this, ...Observer._trace.slice(last + 1), this];
+
+			// 把循環裡面的東西全部終結掉，以便程式可以在不丟錯的情況下繼續執行
+			cycle.forEach(o => o.$terminate());
+
+			// 產生偵錯訊息
+			let trace = cycle.map(o => o._name).join(" => ");
+			console.warn("Circular dependency detected: " + trace + "\nAll these observers will be terminated.");
+		}
+
 		if(this._state == ObserverState.$updated) return;
+		Observer._trace.push(this);
 
 		// 整理目前的未更新的參照
 		for(let ref of this._reference) {
 			if(ref instanceof Observer) {
-				if(ref._isRendering) throw new Error(`Circular dependency detected as ${this} attempt to read ${ref}.`);
-				if(ref._state != ObserverState.$updated) ref._determineState();
+				// 發現了一個可能的循環參照，但仍然有可能只是參照路徑變動
+				// 唯有的確定辦法是真的執行看看；若是真的，會跑到上面那邊去
+				if(ref._isRendering) Observer.$render(this);
+				else if(ref._state != ObserverState.$updated) ref._determineState();
 			}
 		}
+
 		if(this._state == ObserverState.$outdated) Observer.$render(this);
 		else {
 			Observer._pending.delete(this);
 			this._update();
 		}
+		Observer._trace.pop();
 	}
 
 	protected _update() { this._state = ObserverState.$updated; }

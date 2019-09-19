@@ -31,9 +31,13 @@ class ReactiveMethod extends DecoratedMemeber {
 
 			// 手動階段時直接執行
 			if(!Global.$isCommitting && !this._isPending) return () => Observer.$render(this);
-			else this._determineState();
+			return () => {
+				this._determineState();
+				return this._result;
+			}
+		} else {
+			return () => this._method.apply(this._parent);
 		}
-		return () => this._result;
 	}
 
 	protected $render() {

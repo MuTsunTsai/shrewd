@@ -54,4 +54,8 @@ class Core {
 		Global.$restore();
 		return result;
 	}
+
+	public static $terminate(target: object) {
+		if(HiddenProperty.$has(target, $shrewdObject)) target[$shrewdObject].$terminate();
+	}
 }

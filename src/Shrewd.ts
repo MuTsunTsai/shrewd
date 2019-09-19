@@ -1,5 +1,4 @@
 // Level 0
-/// <reference path="class/Error.ts" />
 /// <reference path="core/Core.ts" />
 /// <reference path="core/Decorators.ts" />
 /// <reference path="core/ShrewdObject.ts" />
@@ -26,12 +25,9 @@
 
 const Shrewd = {
 	shrewd: Decorators.$shrewd,
+	decorate: null,
 
 	commit: Core.$commit,
-
 	construct: Core.$construct,
-
-	terminate: function(target: IShrewdObjectParent) {
-		if(HiddenProperty.$has(target, $shrewdObject)) target[$shrewdObject].$terminate();
-	}
+	terminate: Core.$terminate
 };

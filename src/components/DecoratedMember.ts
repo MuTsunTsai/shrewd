@@ -8,17 +8,11 @@
 abstract class DecoratedMemeber extends Observer {
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
-		super();
+		super(descriptor.$name);
 		this._parent = parent;
-		this._name = descriptor.$name;
 	}
 
 	protected _parent: IShrewdObjectParent;
-
-	/** 這個成員的識別名稱； */
-	protected _name: string;
-
-	public get [Symbol.toStringTag]() { return this._name; }
 
 	/** 讀取這個成員時要傳回的東西；必須由繼承類別實作 */
 	public abstract $getter(): any;

@@ -36,6 +36,8 @@ class ComputedProperty extends DecoratedMemeber {
 			// 於是這個計算屬性至少會有一個訂閱者
 			Observer.$refer(this);
 			this._determineState();
+		} else {
+			this._value = this._getter.apply(this._parent);
 		}
 
 		// 傳回暫存值

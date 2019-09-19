@@ -10,7 +10,7 @@ interface IHelperParent<T extends object> {
 abstract class Helper<T extends object> extends Observable {
 
 	/** 快取已經包裝過的物件 */
-	public static _proxyMap: WeakMap<object, object> = new WeakMap();
+	private static readonly _proxyMap: WeakMap<object, object> = new WeakMap();
 
 	/**
 	 * 把原生的 Array, Set, Map, Object 物件包裝成反應式物件。

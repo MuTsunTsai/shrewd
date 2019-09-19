@@ -151,20 +151,18 @@ const Tests = {
         console.assert(o === 12 && n === 5, "規則說如果指定負數，則完全不改變", o, n);
     },
     DecoratorRequirement() {
-        var error;
-        try {
-            class A {
-                get value() { return 1; }
-                set value(v) { }
-            }
-            __decorate([
-                shrewd_1.shrewd
-            ], A.prototype, "value", null);
+        let err = "", warn = console.warn;
+        console.warn = (s) => err = s;
+        class A {
+            get value() { return 1; }
+            set value(v) { }
         }
-        catch (e) {
-            error = e;
-        }
-        console.assert(error.class == "A" && error.prop == "value", "類別 A 的 value 屬性設置了 setter 是不能裝飾為 computed 的");
+        __decorate([
+            shrewd_1.shrewd
+        ], A.prototype, "value", null);
+        console.assert(err == "Setup error at A[value]. Decorated member must be one of the following: " +
+            "a field, a readonly get accessor, or a method.", "不正確的設定", err);
+        console.warn = warn;
     },
     ReactiveMethod() {
         class A {
@@ -439,12 +437,54 @@ const Tests = {
                 this.switch = true;
             }
             get a() {
-                return this.switch ? 1 : this.b;
+                return this.switch ? 1 : this.c;
             }
             get b() {
                 return this.a + 1;
             }
-            log() { this.b; }
+            get c() {
+                return this.b;
+            }
+            log() { this.c; }
+        }
+        __decorate([
+            shrewd_1.shrewd
+        ], A.prototype, "switch", void 0);
+        __decorate([
+            shrewd_1.shrewd
+        ], A.prototype, "a", null);
+        __decorate([
+            shrewd_1.shrewd
+        ], A.prototype, "b", null);
+        __decorate([
+            shrewd_1.shrewd
+        ], A.prototype, "c", null);
+        __decorate([
+            shrewd_1.shrewd
+        ], A.prototype, "log", null);
+        let a = new A();
+        a.log();
+        console.assert(a.c == 2, "初始值", a.c);
+        let err = "", warn = console.warn;
+        console.warn = (s) => err = s;
+        a.switch = false;
+        shrewd_1.commit();
+        console.assert(err == "Circular dependency detected: A.a => A.c => A.b => A.a" +
+            "\nAll these observers will be terminated.", "打開 a.switch 會產生循環參照而出錯", err);
+        console.warn = warn;
+    },
+    FakeCircularDependency() {
+        class A {
+            constructor() {
+                this.switch = true;
+            }
+            get a() {
+                return this.switch ? 1 : this.b;
+            }
+            get b() {
+                return this.switch ? this.a : 2;
+            }
+            log() { this.a; this.b; }
         }
         __decorate([
             shrewd_1.shrewd
@@ -460,17 +500,10 @@ const Tests = {
         ], A.prototype, "log", null);
         let a = new A();
         a.log();
-        console.assert(a.b == 2, "初始值", a.b);
-        let err = "";
-        try {
-            a.switch = false;
-            shrewd_1.commit();
-        }
-        catch (e) {
-            if (e instanceof Error)
-                err = e.message;
-        }
-        console.assert(err == "Circular dependency detected as [object A.b] attempt to read [object A.a].", "打開 a.switch 會產生循環參照而出錯", err);
+        console.assert(a.b == 1, "初始值", a.b);
+        a.switch = false;
+        shrewd_1.commit();
+        console.assert(a.a == 2, "其實這裡並沒有真的發生循環參照，只是路徑改變");
     }
 };
 let assert = console.assert;
