@@ -9,7 +9,6 @@ const shrewd_1 = require("../../dist/shrewd");
 module.exports = function () {
     class A {
         constructor() {
-            this.prop = 0;
             this.arr = [];
         }
         get total() {
@@ -20,9 +19,6 @@ module.exports = function () {
             t = this.total;
         }
     }
-    __decorate([
-        shrewd_1.shrewd
-    ], A.prototype, "prop", void 0);
     __decorate([
         shrewd_1.shrewd({
             renderer(arr) {

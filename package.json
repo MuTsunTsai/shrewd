@@ -21,6 +21,7 @@
 		"@types/node": "^12.7.2",
 		"gulp": "^4.0.2",
 		"gulp-header-comment": "^0.6.1",
+		"gulp-if-any-newer": "^1.0.2",
 		"gulp-plumber": "^1.2.1",
 		"gulp-rename": "^1.4.0",
 		"gulp-terser": "^1.2.0",

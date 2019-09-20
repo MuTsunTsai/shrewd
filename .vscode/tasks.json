@@ -6,7 +6,7 @@
 		{
 			"label": "Gulp build",
 			"type": "gulp",
-			"task": "default",
+			"task": "build",
 			"isBackground": true,
 			// "runOptions": {
 			// 	"runOn": "folderOpen"
@@ -38,6 +38,19 @@
 			"group": {
 				"kind": "build",
 				"isDefault": true
+			}
+		},
+		{
+			"label": "Gulp buildTest",
+			"type": "gulp",
+			"task": "buildTest",
+			"presentation": {
+				"echo": true,
+				"reveal": "never",
+				"revealProblems": "onProblem",
+				"focus": false,
+				"panel": "dedicated",
+				"showReuseMessage": true
 			}
 		}
 	]

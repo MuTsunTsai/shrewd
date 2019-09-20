@@ -3,8 +3,6 @@ import { shrewd, commit } from "../../dist/shrewd";
 export = function() {
 	
 	class A {
-		@shrewd private prop = 0;
-
 		@shrewd({
 			renderer(this: A, arr: number[]) {
 				// 如果開啟下面這一行，程式將會發出警告
