@@ -26,6 +26,7 @@
 		"gulp-terser": "^1.2.0",
 		"gulp-typescript": "^5.0.1",
 		"gulp-umd": "^2.0.0",
+		"require-dir": "^1.2.0",
 		"typescript": "^3.5.3"
 	},
 	"dependencies": {},

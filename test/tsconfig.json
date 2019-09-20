@@ -9,7 +9,6 @@
 		"experimentalDecorators": true
 	},
 	"include": [
-		"*.ts",
-		"../dist/shrewd.d.ts"
+		"./src/**/*.ts"
 	]
 }

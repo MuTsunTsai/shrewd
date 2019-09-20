@@ -46,7 +46,7 @@ gulp.task('buildTest', () =>
 	testProject.src()
 		.pipe(plumber())
 		.pipe(testProject())
-		.pipe(gulp.dest('test/'))
+		.pipe(gulp.dest('test/tests'))
 );
 
 gulp.task('watch', () => {
