@@ -50,6 +50,11 @@ class ObservableProperty extends DecoratedMemeber {
 		if(!this._option.renderer) this._update();
 	}
 
+	protected _outdate() {
+		// 如果沒有配置渲染方法，就無所謂過期
+		if(this._option.renderer) super._outdate();
+	}
+
 	public $getter() {
 		if(!this.$isTerminated) {
 			Observer.$refer(this);

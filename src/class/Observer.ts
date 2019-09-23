@@ -22,6 +22,7 @@ abstract class Observer extends Observable {
 
 	/** 側錄參照關係 */
 	public static $refer(observable: Observable) {
+		if(observable instanceof Observer && observable._isTerminated) return;
 		let target = Global.$target;
 		if(target && target != observable && !target._isTerminated) target._reference.add(observable);
 	}
@@ -29,11 +30,11 @@ abstract class Observer extends Observable {
 	// 檢查參照死路；top-down 地把沒有被訂閱的可觀測物件清除參照。
 	// 反應方法是例外，不管有沒有被訂閱，它的參照都是有效的。
 	public static $checkDeadEnd(observable: Observable) {
-		if(observable instanceof Observer && !observable._isActive) {
+		if(observable instanceof Observer && !observable._isActive && !observable._isTerminated) {
 			let oldReferences = new Set(observable._reference);
 			observable.$clearReference();
 			Core.$unqueue(observable);
-			observable._state = ObserverState.$outdated; // 非活躍狀態的觀測者均視為未更新
+			observable._outdate(); // 非活躍狀態的觀測者均視為未更新
 			for(let ref of oldReferences) Observer.$checkDeadEnd(ref);
 		}
 	}
@@ -106,15 +107,20 @@ abstract class Observer extends Observable {
 
 	public $notified() {
 		this._pend();
-		this._state = ObserverState.$outdated;
+		this._outdate();
 		Core.$queue(this);
 	}
 
 	public $terminate() {
 		if(this._isTerminated) return;
 		this.$clearReference();
+		for(let subscriber of this.$subscribers) {
+			subscriber._reference.delete(this);
+			this.$unsubscribe(subscriber);
+		}
 		this._update();
 		this._isTerminated = true;
+		this._isRendering = false;
 	}
 
 	private _pend() {
@@ -164,6 +170,8 @@ abstract class Observer extends Observable {
 	}
 
 	protected _update() { this._state = ObserverState.$updated; }
+
+	protected _outdate() { this._state = ObserverState.$outdated; }
 
 	protected get _isPending() { return this._state == ObserverState.$pending; }
 
