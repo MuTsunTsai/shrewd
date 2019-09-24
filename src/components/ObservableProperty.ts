@@ -1,9 +1,4 @@
 
-interface IObservablePropertyOptions<T> {
-	validator?: (value: T) => boolean;
-	renderer?: (value: T) => T;
-}
-
 class ObservableProperty extends DecoratedMemeber {
 
 	// 為了節省記憶體，根據 key 來暫存函數以重複使用
@@ -39,7 +34,7 @@ class ObservableProperty extends DecoratedMemeber {
 		return ObservableProperty._accessibles.has(observable);
 	}
 
-	private _option: IObservablePropertyOptions<any>;
+	private _option: IDecoratorOptions<any>;
 	private _inputValue: any;
 	private _outputValue: any;
 

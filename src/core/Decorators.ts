@@ -29,6 +29,12 @@ interface IShrewdPrototype {
 	[$shrewdDecorators]: IDecoratorDescriptor[];
 }
 
+interface IDecoratorOptions<T> {
+	validator?: (value: T) => boolean;
+	renderer?: (value: T) => T;
+	lazy?: boolean;
+}
+
 interface IDecoratorDescriptor {
 	/**
 	 * 識別 DecoratedMemeber 的 PropertyKey。
@@ -45,7 +51,7 @@ interface IDecoratorDescriptor {
 	$constructor: IDecoratedMemberConstructor;
 
 	/** 選項 */
-	$option?: IObservablePropertyOptions<any>;
+	$option?: IDecoratorOptions<any>;
 
 	/** 原本定義在原型上的方法 */
 	$method?: Function;
@@ -67,27 +73,29 @@ class Decorators {
 		};
 	}
 
-	public static $shrewd<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
+	public static $shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
 	public static $shrewd(proto: object, prop: PropertyKey): void;
 	public static $shrewd(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
-	public static $shrewd(a: object, b?: PropertyKey, c?: PropertyDescriptor) {
+	public static $shrewd(a: object, b: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<any>): void;
+	public static $shrewd(a: object, b?: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<any>) {
 		if(typeof b == "undefined") {
-			return ((proto: object, prop: PropertyKey) => Decorators.$observable(proto, prop, a)) as PropertyDecorator;
+			return ((proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor) =>
+				Decorators.$shrewd(proto, prop, descriptor, a)) as PropertyDecorator;
 		} else if(typeof b == "string") {
 			let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
 			if(!descriptor) { // ObservableProperty
-				return Decorators.$observable(a, b);
+				return Decorators.$observable(a, b, d);
 			} else if(descriptor.get && !descriptor.set) { // ComputedProperty
 				return Decorators.$computed(a, b, descriptor);
 			} else if(typeof (descriptor.value) == "function") { // ReactiveMethod
-				return Decorators.$reactive(a, b, descriptor);
+				return Decorators.$reactive(a, b, descriptor, d);
 			}
 		}
 		console.warn(`Setup error at ${a.constructor.name}[${b.toString()}]. ` +
 			"Decorated member must be one of the following: a field, a readonly get accessor, or a method.");
 	}
 
-	private static $observable(proto: object, prop: PropertyKey, option?: IObservablePropertyOptions<any>) {
+	private static $observable(proto: object, prop: PropertyKey, option?: IDecoratorOptions<any>) {
 		let descriptor = Object.getOwnPropertyDescriptor(proto, prop);
 		if(descriptor) {
 			console.warn(`Setup error at ${proto.constructor.name}[${prop.toString()}]. ` +
@@ -129,13 +137,14 @@ class Decorators {
 		return descriptor;
 	}
 
-	public static $reactive(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor) {
+	public static $reactive(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor, option?: IDecoratorOptions<any>) {
 		let name = proto.constructor.name + "." + prop.toString();
 		Decorators.get(proto).push({
 			$key: name,
 			$name: name,
 			$constructor: ReactiveMethod,
-			$method: descriptor.value
+			$method: descriptor.value,
+			$option: option
 		});
 
 		delete descriptor.value;

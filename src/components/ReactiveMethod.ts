@@ -13,13 +13,15 @@
 //////////////////////////////////////////////////////////////////
 
 class ReactiveMethod extends DecoratedMemeber {
-
+	
+	private _option: IDecoratorOptions<any>;
 	private _method: Function;
 	private _result: any;
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
 		this._method = descriptor.$method!;
+		this._option = descriptor.$option || {};
 	}
 
 	// 反應方法永遠是活躍的
@@ -28,6 +30,8 @@ class ReactiveMethod extends DecoratedMemeber {
 	public $getter() {
 		if(!this.$isTerminated) {
 			Observer.$refer(this);
+
+			if(this._option.lazy) return () => this.$notified();
 
 			// 手動階段時直接執行
 			if(!Global.$isCommitting && !this._isPending) return () => Observer.$render(this);

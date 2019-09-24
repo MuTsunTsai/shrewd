@@ -2,16 +2,18 @@
 /**
  * Enable strict mode in TypeScript to allow type checking for this interface.
  */
-interface IObservablePropertyOptions<T> {
+interface IDecoratorOptions<T> {
 	validator?: (value: T) => boolean;
 	renderer?: (value: T) => T;
+	lazy?: boolean;
 }
+
 
 /**
  * The shrewd decorator turns a field into an ObservableProperty,
  * a get accessor into a ComputedProperty, and a method into a ReactiveMethod.
  */
-export function shrewd<T>(option: IObservablePropertyOptions<T>): PropertyDecorator;
+export function shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
 export function shrewd(target: object, prop: PropertyKey): void;
 export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
 

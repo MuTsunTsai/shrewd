@@ -73,17 +73,17 @@
             }
             ;
         }
-        static $shrewd(a, b, c) {
+        static $shrewd(a, b, c, d) {
             if (typeof b == 'undefined') {
-                return (proto, prop) => Decorators.$observable(proto, prop, a);
+                return (proto, prop, descriptor) => Decorators.$shrewd(proto, prop, descriptor, a);
             } else if (typeof b == 'string') {
                 let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
                 if (!descriptor) {
-                    return Decorators.$observable(a, b);
+                    return Decorators.$observable(a, b, d);
                 } else if (descriptor.get && !descriptor.set) {
                     return Decorators.$computed(a, b, descriptor);
                 } else if (typeof descriptor.value == 'function') {
-                    return Decorators.$reactive(a, b, descriptor);
+                    return Decorators.$reactive(a, b, descriptor, d);
                 }
             }
             console.warn(`Setup error at ${ a.constructor.name }[${ b.toString() }]. ` + 'Decorated member must be one of the following: a field, a readonly get accessor, or a method.');
@@ -124,13 +124,14 @@
             };
             return descriptor;
         }
-        static $reactive(proto, prop, descriptor) {
+        static $reactive(proto, prop, descriptor, option) {
             let name = proto.constructor.name + '.' + prop.toString();
             Decorators.get(proto).push({
                 $key: name,
                 $name: name,
                 $constructor: ReactiveMethod,
-                $method: descriptor.value
+                $method: descriptor.value,
+                $option: option
             });
             delete descriptor.value;
             delete descriptor.writable;
@@ -698,6 +699,7 @@
         constructor(parent, descriptor) {
             super(parent, descriptor);
             this._method = descriptor.$method;
+            this._option = descriptor.$option || {};
         }
         get _isActive() {
             return true;
@@ -705,6 +707,8 @@
         $getter() {
             if (!this.$isTerminated) {
                 Observer.$refer(this);
+                if (this._option.lazy)
+                    return () => this.$notified();
                 if (!Global.$isCommitting && !this._isPending)
                     return () => Observer.$render(this);
                 return () => {
