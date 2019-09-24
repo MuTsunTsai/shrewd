@@ -1,11 +1,17 @@
 var gulp = require('gulp');
 var ts = require('gulp-typescript');
 var rename = require('gulp-rename');
-var umd = require('gulp-umd');
+var wrapJS = require("gulp-wrap-js");
 var terser = require('gulp-terser');
 var ifAnyNewer = require('gulp-if-any-newer');
 var sourcemaps = require('gulp-sourcemaps');
-var headerComment = require('gulp-header-comment');
+
+var pkg = require('./package.json');
+var header = `/**
+ * ${pkg.name} v${pkg.version}
+ * (c) ${new Date().getFullYear()} Mu-Tsun Tsai
+ * Released under the MIT License.
+ */`;
 
 var terserOption = {
 	"mangle": {
@@ -20,18 +26,24 @@ var terserOption = {
 
 let project = ts.createProject('src/tsconfig.json');
 
-gulp.task('build', () =>
+gulp.task('buildMain', () =>
 	project.src()
+		.pipe(sourcemaps.init())
 		.pipe(project())
-		.pipe(umd({ exports: () => "Shrewd" }))
-		.pipe(headerComment(`
-			<%= pkg.name %> v<%= pkg.version %>
-			(c) <%= moment().format('YYYY') %> Mu-Tsun Tsai
-			Released under the MIT License.
-		`))
+		.pipe(wrapJS(`${header};(function(root,factory){if(typeof define==='function'&&define.amd)
+			{define([],factory);}else if(typeof exports==='object'){module.exports=factory();}
+			else{root.Shrewd=factory();}}(this,function(){ %= body % ;return Shrewd;}));`
+		))
+		.pipe(sourcemaps.write('.', { includeContent: false, sourceRoot: '../src' }))
 		.pipe(gulp.dest('dist/'))
+);
+
+gulp.task('buildMin', () =>
+	gulp.src('dist/shrewd.js')
+		.pipe(sourcemaps.init({ loadMaps: true }))
 		.pipe(terser(terserOption))
 		.pipe(rename({ suffix: '.min' }))
+		.pipe(sourcemaps.write('.', { includeContent: false }))
 		.pipe(gulp.dest('dist/'))
 );
 
@@ -42,8 +54,10 @@ gulp.task('buildTest', () =>
 		.pipe(ifAnyNewer("test/tests"))
 		.pipe(sourcemaps.init())
 		.pipe(testProject())
-		.pipe(sourcemaps.write({includeContent: false, sourceRoot: '../src'}))
+		.pipe(sourcemaps.write({ includeContent: false, sourceRoot: '../src' }))
 		.pipe(gulp.dest('test/tests'))
 );
+
+gulp.task('build', gulp.series('buildMain', 'buildMin'));
 
 gulp.task('default', gulp.series('build', 'buildTest'));
