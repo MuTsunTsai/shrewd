@@ -31,7 +31,7 @@ class ReactiveMethod extends DecoratedMemeber {
 		if(!this.$isTerminated) {
 			Observer.$refer(this);
 
-			if(this._option.lazy) return () => this.$notified();
+			if(this._option.lazy) return () => (this.$notified(), this._result);
 
 			// 手動階段時直接執行
 			if(!Global.$isCommitting && !this._isPending) return () => Observer.$render(this);

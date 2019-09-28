@@ -391,7 +391,7 @@
             Helper._proxyMap.set(target, this._proxy);
         }
         static $wrap(value) {
-            if (typeof value != 'object')
+            if (value == null || typeof value != 'object')
                 return value;
             if (Helper._proxyMap.has(value))
                 return Helper._proxyMap.get(value);
@@ -414,7 +414,7 @@
             return value;
         }
         static $hasHelper(value) {
-            return typeof value == 'object' && HiddenProperty.$has(value, $observableHelper);
+            return value != null && typeof value == 'object' && HiddenProperty.$has(value, $observableHelper);
         }
         get $proxy() {
             return this._proxy;
@@ -624,7 +624,7 @@
             return ObservableProperty._isRendering;
         }
         static $setAccessible(target) {
-            if (typeof target != 'object')
+            if (target == null || typeof target != 'object')
                 return;
             if (Helper.$hasHelper(target)) {
                 if (!ObservableProperty._accessibles.has(target[$observableHelper])) {
@@ -708,7 +708,7 @@
             if (!this.$isTerminated) {
                 Observer.$refer(this);
                 if (this._option.lazy)
-                    return () => this.$notified();
+                    return () => (this.$notified(), this._result);
                 if (!Global.$isCommitting && !this._isPending)
                     return () => Observer.$render(this);
                 return () => {

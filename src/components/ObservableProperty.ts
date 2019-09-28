@@ -15,7 +15,7 @@ class ObservableProperty extends DecoratedMemeber {
 
 	private static _accessibles: Set<Observable> = new Set();
 	private static $setAccessible(target: any): void {
-		if(typeof target != "object") return;
+		if(target == null || typeof target != "object") return;
 		if(Helper.$hasHelper(target)) {
 			if(!ObservableProperty._accessibles.has(target[$observableHelper])) {
 				ObservableProperty._accessibles.add(target[$observableHelper]);

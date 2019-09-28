@@ -19,7 +19,7 @@ abstract class Helper<T extends object> extends Observable {
 	 * 而不能夠是任何繼承的類別，因為繼承類別的行為是 Shrewd 框架所沒辦法預測的。
 	 */
 	public static $wrap(value: any) {
-		if(typeof value != "object") return value;
+		if(value == null || typeof value != "object") return value;
 		if(Helper._proxyMap.has(value)) return Helper._proxyMap.get(value);
 		if(!Helper.$hasHelper(value)) {
 			switch(Object.getPrototypeOf(value)) {
@@ -33,7 +33,7 @@ abstract class Helper<T extends object> extends Observable {
 	}
 
 	public static $hasHelper(value: any): value is IHelperParent<any> {
-		return typeof value == "object" && HiddenProperty.$has(value, $observableHelper);
+		return value != null && typeof value == "object" && HiddenProperty.$has(value, $observableHelper);
 	}
 
 	private readonly _proxy: T;
