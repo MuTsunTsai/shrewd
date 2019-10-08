@@ -18,12 +18,14 @@ class ShrewdObject {
 		while(proto) {
 			if(HiddenProperty.$has(proto, $shrewdDecorators)) {
 				let decorators = proto[$shrewdDecorators];
-				for(let decorator of decorators) {
-					this._members.set(decorator.$key, new decorator.$constructor(this._parent, decorator));
-				}
+				for(let decorator of decorators) this.setup(decorator);
 			}
 			proto = Object.getPrototypeOf(proto);
 		}
+	}
+
+	public setup(decorator: IDecoratorDescriptor) {
+		this._members.set(decorator.$key, new decorator.$constructor(this._parent, decorator));
 	}
 
 	/** 這個 ShrewdObject 對應的物件 */

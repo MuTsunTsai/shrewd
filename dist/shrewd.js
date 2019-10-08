@@ -151,9 +151,8 @@
             while (proto) {
                 if (HiddenProperty.$has(proto, $shrewdDecorators)) {
                     let decorators = proto[$shrewdDecorators];
-                    for (let decorator of decorators) {
-                        this._members.set(decorator.$key, new decorator.$constructor(this._parent, decorator));
-                    }
+                    for (let decorator of decorators)
+                        this.setup(decorator);
                 }
                 proto = Object.getPrototypeOf(proto);
             }
@@ -163,6 +162,9 @@
                 return target[$shrewdObject];
             else
                 return new ShrewdObject(target);
+        }
+        setup(decorator) {
+            this._members.set(decorator.$key, new decorator.$constructor(this._parent, decorator));
         }
         $terminate() {
             if (this._isTerminated)
@@ -234,6 +236,30 @@
         isExtensible(target) {
             return false;
         }
+    }
+    class VuePlugin {
+        static install(Vue) {
+            Vue.mixin({
+                mounted() {
+                    let shrewd = new ShrewdObject(this._watcher);
+                    shrewd.setup({
+                        $key: 'Watcher.getter',
+                        $name: 'Watcher.getter',
+                        $constructor: ReactiveMethod,
+                        $method: this._watcher.getter
+                    });
+                    Object.defineProperty(this._watcher, 'getter', {
+                        get: function () {
+                            return ShrewdObject.get(this).$getMember('Watcher.getter').$getter();
+                        }
+                    });
+                    this._watcher.getter();
+                }
+            });
+        }
+    }
+    if (typeof window !== 'undefined' && window.Vue) {
+        window.Vue.use(VuePlugin);
     }
     var ObserverState;
     (function (ObserverState) {
@@ -754,7 +780,8 @@
         decorate: null,
         commit: Core.$commit,
         construct: Core.$construct,
-        terminate: Core.$terminate
+        terminate: Core.$terminate,
+        plugin: { vue: VuePlugin }
     };
     class Global {
         static $pushState(state) {

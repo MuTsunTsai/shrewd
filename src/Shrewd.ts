@@ -5,6 +5,7 @@
 /// <reference path="class/Observable.ts" />
 /// <reference path="util/HiddenProperty.ts" />
 /// <reference path="helpers/BaseProxyHandler.ts" />
+/// <reference path="plugin/VuePlugin.ts" />
 
 // Level 1
 /// <reference path="class/Observer.ts" />
@@ -29,5 +30,9 @@ const Shrewd = {
 
 	commit: Core.$commit,
 	construct: Core.$construct,
-	terminate: Core.$terminate
+	terminate: Core.$terminate,
+
+	plugin: {
+		vue: VuePlugin
+	}
 };

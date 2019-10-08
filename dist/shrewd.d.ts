@@ -34,4 +34,8 @@ export function terminate(target: object): void;
  */
 export function construct<T, A extends any[]>(constructor: new (...args: A) => T, ...args: A): T;
 
+export const vuePlugin: {
+	vue: any
+};
+
 export as namespace Shrewd;
