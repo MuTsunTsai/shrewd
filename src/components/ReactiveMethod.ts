@@ -1,19 +1,13 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * ReactiveMethod 是反應方法。
- * 
- * 它會在參照對象發生改變的時候自動執行，然後通知後續的處理（無論執行結果）。
- * 定義在每一個類別層次上的反應方法都是獨立的實體。
- * 
- * 如果一個反應方法在認可階段中已經執行過一次，
- * 再次呼叫時它只會傳回暫存的傳回值，而不會重新再執行一次。
- * 不過無論如何，它都會通知參照了自己後續操作去執行。
+ * A ReactiveMethod runs automatically whenever any of its references
+ * has changed. It would only run once during the comitting stage.
  */
 //////////////////////////////////////////////////////////////////
 
 class ReactiveMethod extends DecoratedMemeber {
-	
+
 	private _option: IDecoratorOptions<any>;
 	private _method: Function;
 	private _result: any;
@@ -24,19 +18,20 @@ class ReactiveMethod extends DecoratedMemeber {
 		this._option = descriptor.$option || {};
 	}
 
-	// 反應方法永遠是活躍的
-	protected get _isActive() { return true; }
+	// ReactiveMethods are always active.
+	protected checkActive() { return true; }
 
 	public $getter() {
 		if(!this.$isTerminated) {
 			Observer.$refer(this);
-
-			if(this._option.lazy) return () => (this.$notified(), this._result);
-
-			// 手動階段時直接執行
-			if(!Global.$isCommitting && !this._isPending) return () => Observer.$render(this);
+			let force = false;
+			// Manual stage.
+			if(!Global.$isCommitting) {
+				if(this._option.lazy) return () => (this.$notified(), this._result);
+				if(!this._isPending) force = true;
+			}
 			return () => {
-				this._determineState();
+				this._determineState(force);
 				return this._result;
 			}
 		} else {

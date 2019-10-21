@@ -1,32 +1,45 @@
 
+interface IShrewdOption {
+	hook: IHook;
+	autoCommit: boolean;
+}
+
 class Core {
 
-	/** 已接到通知、等待被執行的 Observer */
+	/** Shrewd global options. */
+	public static $option: IShrewdOption = {
+		hook: new DefaultHook(),
+		autoCommit: true
+	}
+
+	/** Notified, to-be-rendered Observers. */
 	private static readonly _queue: Set<Observer> = new Set();
 
-	/** 等待終結的物件 */
+	/** Objects to be terminated. */
 	private static readonly _terminate: Set<ShrewdObject> = new Set();
 
-	/** 在當前堆疊中是否已經設置了自動認可 */
+	/** Whether there is auto-commit in the current stack. */
 	private static _promised: boolean = false;
 
 	public static $commit() {
 		Global.$pushState({ $isCommitting: true });
 
-		// 開始執行認可
+		// Start comitting.
 		for(let observer of Core._queue) Observer.$render(observer);
 
-		// 結束認可
+		// Finish comitting.
 		Observer.$clearPending();
 		Core._queue.clear();
 		Global.$restore();
 
-		// 終結物件
+		// Terminate objects.
 		for(let shrewd of Core._terminate) shrewd.$terminate();
 		Core._terminate.clear();
+
+		Core.$option.hook.gc();
 	}
 
-	/** 自動認可會在堆疊清空時立刻執行（比任何 setTimeout 都更早） */
+	/** Auto-commit runs after finishing the current stack (but before any setTimeout). */
 	private static _autoCommit() {
 		Core.$commit();
 		Core._promised = false;
@@ -37,11 +50,11 @@ class Core {
 	}
 
 	public static $queue(observer: Observer) {
-		// 正在執行中的觀測者就不用重新加入了
+		// There's no need to add rendering Observers again.
 		if(!observer.$isRendering) Core._queue.add(observer);
 
-		// 設置自動認可
-		if(!Core._promised) {
+		// Setup auto-commit.
+		if(Core.$option.autoCommit && !Core._promised) {
 			let promise = Promise.resolve();
 			promise.then(Core._autoCommit);
 			Core._promised = true;
@@ -52,10 +65,11 @@ class Core {
 		Global.$pushState({
 			$isConstructing: true,
 			$isCommitting: false,
-			$isActive: false,
 			$target: null
 		});
+		Observer.$trace.push("construct " + constructor.name);
 		let result = new constructor(...args);
+		Observer.$trace.pop();
 		Global.$restore();
 		return result;
 	}

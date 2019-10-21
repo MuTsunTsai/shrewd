@@ -1,7 +1,8 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * DecoratedMember 是三種裝飾成員（可觀測屬性、計算屬性、反應方法）的基底類別。
+ * DecoratedMember is the super class of ObservableProperty,
+ * ComputedProperty, and ReactiveMethod.
  */
 //////////////////////////////////////////////////////////////////
 
@@ -14,6 +15,6 @@ abstract class DecoratedMemeber extends Observer {
 
 	protected _parent: IShrewdObjectParent;
 
-	/** 讀取這個成員時要傳回的東西；必須由繼承類別實作 */
+	/** The thing to return when calling "get" on this member. */
 	public abstract $getter(): any;
 }

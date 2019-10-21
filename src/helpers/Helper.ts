@@ -9,14 +9,14 @@ interface IHelperParent<T extends object> {
 
 abstract class Helper<T extends object> extends Observable {
 
-	/** 快取已經包裝過的物件 */
+	/** Cache for wrapped objects. */
 	private static readonly _proxyMap: WeakMap<object, object> = new WeakMap();
 
 	/**
-	 * 把原生的 Array, Set, Map, Object 物件包裝成反應式物件。
+	 * Wrap native Arrays, Sets, Maps, and Objects into reactive objects.
 	 * 
-	 * 這邊只支援完全原生的物件的包裝，也就是說包裝的對象必須直接以對應類別的原型作為原型，
-	 * 而不能夠是任何繼承的類別，因為繼承類別的行為是 Shrewd 框架所沒辦法預測的。
+	 * Only strict native objects are supported here, meaning that their prototype
+	 * must be immediately the native prototype, not even derived prototypes.
 	 */
 	public static $wrap(value: any) {
 		if(value == null || typeof value != "object") return value;

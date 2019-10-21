@@ -1,7 +1,14 @@
 
+//////////////////////////////////////////////////////////////////
+/**
+ * A ObservableProperty is an Observable field that can be set manually.
+ * It is considered the source of the state changes. 
+ */
+//////////////////////////////////////////////////////////////////
+
 class ObservableProperty extends DecoratedMemeber {
 
-	// 為了節省記憶體，根據 key 來暫存函數以重複使用
+	// Reuse interceptor by its key to save memory.
 	private static _interceptor: any = {};
 	public static $interceptor(key: PropertyKey) {
 		return ObservableProperty._interceptor[key] = ObservableProperty._interceptor[key] || {
@@ -46,7 +53,7 @@ class ObservableProperty extends DecoratedMemeber {
 	}
 
 	protected _outdate() {
-		// 如果沒有配置渲染方法，就無所謂過期
+		// Without a renderer, the ObservableProperty is always updated.
 		if(this._option.renderer) super._outdate();
 	}
 
@@ -64,7 +71,10 @@ class ObservableProperty extends DecoratedMemeber {
 			return;
 		}
 		if(Observable.$isWritable(this) && value != this._inputValue) {
-			if(this._option.validator && !this._option.validator.apply(this._parent, [value])) return;
+			if(this._option.validator && !this._option.validator.apply(this._parent, [value])) {
+				// Notify client that the value has been changed back.
+				return Core.$option.hook.write(this.$id);
+			}
 			this._inputValue = Helper.$wrap(value);
 			if(this._option.renderer) Observer.$render(this);
 			else this.$publish(this._inputValue);
@@ -85,10 +95,9 @@ class ObservableProperty extends DecoratedMemeber {
 		Observable.$publish(this);
 	}
 
-	public $terminate() {
-		if(this.$isTerminated) return;
+	protected _onTerminate() {
 		delete this._inputValue;
 		delete this._option;
-		super.$terminate();
+		super._onTerminate();
 	}
 }

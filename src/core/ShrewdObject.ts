@@ -28,13 +28,13 @@ class ShrewdObject {
 		this._members.set(decorator.$key, new decorator.$constructor(this._parent, decorator));
 	}
 
-	/** 這個 ShrewdObject 對應的物件 */
+	/** The object corresponding to this ShrewdObject. */
 	private _parent: IShrewdObjectParent;
 
-	/** 是否已經終結 */
+	/** Whether the current ShrewdObject has been terminated. */
 	private _isTerminated: boolean = false;
 
-	/** 目前的 ShrewdObject 所具有的裝飾成員 */
+	/** All DecoratedMembers owned by this ShrewdObject */
 	private _members: Map<PropertyKey, DecoratedMemeber> = new Map();
 
 	public $terminate() {

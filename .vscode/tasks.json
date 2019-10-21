@@ -41,9 +41,9 @@
 			}
 		},
 		{
-			"label": "Gulp buildTest",
+			"label": "Gulp preTest",
 			"type": "gulp",
-			"task": "buildTest",
+			"task": "preTest",
 			"presentation": {
 				"echo": true,
 				"reveal": "never",

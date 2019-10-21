@@ -6,95 +6,98 @@ enum ObserverState {
 abstract class Observer extends Observable {
 
 	/////////////////////////////////////////////////////
-	// 靜態成員
+	// Static member
 	/////////////////////////////////////////////////////
 
 	private static _pending: Set<Observer> = new Set();
 
-	private static _trace: Observer[] = [];
+	public static $trace: (Observer | string)[] = [];
 
 	public static $clearPending() {
 		for(let pending of Observer._pending) {
-			if(pending._state == ObserverState.$pending) pending._update();
+			// If a pending, active Observer does not get updated after the comitting stage,
+			// then it must be in fact updated.
+			if(pending._state == ObserverState.$pending && pending._isActive) {
+				pending._update();
+				Observer._pending.delete(pending);
+			}
 		}
-		Observer._pending.clear();
 	}
 
-	/** 側錄參照關係 */
+	/** Side-record dependencies. */
 	public static $refer(observable: Observable) {
 		if(observable instanceof Observer && observable._isTerminated) return;
+		Core.$option.hook.read(observable.$id);
 		let target = Global.$target;
 		if(target && target != observable && !target._isTerminated) target._reference.add(observable);
 	}
 
-	// 檢查參照死路；top-down 地把沒有被訂閱的可觀測物件清除參照。
-	// 反應方法是例外，不管有沒有被訂閱，它的參照都是有效的。
+	// Check reference dead-ends; clear references of Observers that has no subscription.
+	// ReactiveMethods are exceptions; they are always active regardlessly.
 	public static $checkDeadEnd(observable: Observable) {
-		if(observable instanceof Observer && !observable._isActive && !observable._isTerminated) {
-			let oldReferences = new Set(observable._reference);
-			observable.$clearReference();
-			Core.$unqueue(observable);
-			observable._outdate(); // 非活躍狀態的觀測者均視為未更新
-			for(let ref of oldReferences) Observer.$checkDeadEnd(ref);
+		if(observable instanceof Observer && !observable._isTerminated) {
+			observable._isActive = observable.checkActive();
+			if(!observable._isActive) {
+				let oldReferences = new Set(observable._reference);
+				Core.$unqueue(observable);
+				for(let ref of oldReferences) Observer.$checkDeadEnd(ref);
+			}
 		}
 	}
 
 	public static $render(observer: Observer): any {
 
-		// 暫存並推送新狀態
+		// Push new state.
 		Global.$pushState({
 			$isConstructing: false,
-			$target: observer,
-			$isActive: Global.$isActive || observer._isActive
+			$target: observer
 		});
 		observer._isRendering = true;
 		Core.$unqueue(observer);
 
-		// 把參照完全清除
+		// Clear all references.
 		let oldReferences = new Set(observer._reference);
 		observer.$clearReference();
 
-		// 執行主體動作
+		// Execute the rendering method.
 		let result = observer.$render();
+		observer._update();
 
-		// 活躍狀態的觀測者設定為更新；非活躍觀測者不改變狀態
-		if(Global.$isActive) observer._update();
-
-		// 根據側錄結果進行訂閱
+		// Make subscription based on the side-recording result.
 		if(!observer._isTerminated) {
 			for(let observable of observer._reference) {
 				oldReferences.delete(observable);
-				if(Global.$isActive) observable.$subscribe(observer);
+				observable.$subscribe(observer);
+				if(observer._isActive && observable instanceof Observer) observable.passDownActive();
 			}
 		}
 
-		// 清理參照死路
+		// Clean up dead-ends.
 		for(let observable of oldReferences) Observer.$checkDeadEnd(observable);
 
-		// 恢復狀態
+		// Restore state.
 		observer._isRendering = false;
 		Global.$restore();
 
-		// 回傳可能有的方法執行結果
 		return result;
 	}
 
 	/////////////////////////////////////////////////////
-	// 實體成員
+	// Instance member
 	/////////////////////////////////////////////////////
 
-	/** 參照的可觀測物件清單 */
+	/** The set of referred Observables. */
 	private _reference: Set<Observable> = new Set();
 
-	/** 目前是否處於執行的堆疊中 */
+	/** Whether self is in the current rendering stack. */
 	private _isRendering: boolean = false;
 
-	/** 目前的更新狀態 */
+	/** The current state of updating. */
 	private _state: ObserverState = ObserverState.$outdated;
 
 	private _isTerminated: boolean = false;
 
-	/** 識別名稱； */
+	/** Identifying name */
 	protected _name: string;
 
 	constructor(name: string) {
@@ -102,24 +105,28 @@ abstract class Observer extends Observable {
 		this._name = name;
 	}
 
-	/** 目前是否處於執行的堆疊中 */
+	/** Whether self is in the current rendering stack. */
 	public get $isRendering() { return this._isRendering; }
 
 	public $notified() {
 		this._pend();
 		this._outdate();
-		Core.$queue(this);
+		if(this._isActive) Core.$queue(this);
 	}
 
 	public $terminate() {
 		if(this._isTerminated) return;
+		this._isTerminated = true;
+		this._onTerminate();
+	}
+
+	protected _onTerminate() {
 		this.$clearReference();
 		for(let subscriber of this.$subscribers) {
 			subscriber._reference.delete(this);
 			this.$unsubscribe(subscriber);
 		}
 		this._update();
-		this._isTerminated = true;
 		this._isRendering = false;
 	}
 
@@ -131,42 +138,42 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	protected _determineState() {
+	protected _determineState(force: boolean = false) {
 
-		// 真的找到循環參照了
+		// Circular dependency found.
 		if(this.$isRendering) {
-			// this 不一定會是往下回溯的起點，有可能是往下的途中發現了較小的循環，
-			// 所以找出最小的循環圈子
-			let last = Observer._trace.indexOf(this);
-			let cycle = [this, ...Observer._trace.slice(last + 1), this];
+			// Find the smallest cycle.
+			let last = Observer.$trace.indexOf(this);
+			let cycle = [this, ...Observer.$trace.slice(last + 1), this];
 
-			// 把循環裡面的東西全部終結掉，以便程式可以在不丟錯的情況下繼續執行
-			cycle.forEach(o => o.$terminate());
+			// Terminate everything inside the cycle, allowing the program to continue without throwing error.
+			cycle.forEach(o => o instanceof Observer && o.$terminate());
 
-			// 產生偵錯訊息
-			let trace = cycle.map(o => o._name).join(" => ");
+			// Generate debug message.
+			let trace = cycle.map(o => typeof o == "string" ? o : o._name).join(" => ");
 			console.warn("Circular dependency detected: " + trace + "\nAll these observers will be terminated.");
 		}
 
 		if(this._state == ObserverState.$updated) return;
-		Observer._trace.push(this);
+		Observer.$trace.push(this);
 
-		// 整理目前的未更新的參照
+		// Gather references that are not updated.
 		for(let ref of this._reference) {
 			if(ref instanceof Observer) {
-				// 發現了一個可能的循環參照，但仍然有可能只是參照路徑變動
-				// 唯有的確定辦法是真的執行看看；若是真的，會跑到上面那邊去
+				// Found potential circular dependency; but it might just be dynamic dependency.
+				// The only way to be certain is to actually execute it.
 				if(ref._isRendering) Observer.$render(this);
 				else if(ref._state != ObserverState.$updated) ref._determineState();
 			}
 		}
 
-		if(this._state == ObserverState.$outdated) Observer.$render(this);
+		if(this._state == ObserverState.$outdated || force) Observer.$render(this);
 		else {
 			Observer._pending.delete(this);
 			this._update();
 		}
-		Observer._trace.pop();
+
+		Observer.$trace.pop();
 	}
 
 	protected _update() { this._state = ObserverState.$updated; }
@@ -175,8 +182,21 @@ abstract class Observer extends Observable {
 
 	protected get _isPending() { return this._state == ObserverState.$pending; }
 
-	/** 不考慮參照者的情況下，自身是否活躍；反應方法覆寫了這個方法 */
-	protected get _isActive() { return this.$hasSubscriber; }
+	private _isActive: boolean = this.checkActive();
+	protected checkActive() {
+		if(Core.$option.hook.sub(this.$id)) return true;
+		for(let subscriber of this.$subscribers) {
+			if(subscriber._isActive) return true;
+		}
+		return false;
+	}
+	private passDownActive() {
+		if(this._isActive) return;
+		this._isActive = true;
+		for(let observable of this._reference) {
+			if(observable instanceof Observer) observable.passDownActive();
+		}
+	}
 
 	protected abstract $render(): any;
 

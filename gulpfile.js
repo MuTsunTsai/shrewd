@@ -28,6 +28,7 @@ let project = ts.createProject('src/tsconfig.json');
 
 gulp.task('buildMain', () =>
 	project.src()
+		.pipe(ifAnyNewer("dist", { filter: 'shrewd.js' }))
 		.pipe(sourcemaps.init())
 		.pipe(project())
 		.pipe(wrapJS(`${header};(function(root,factory){if(typeof define==='function'&&define.amd)
@@ -57,6 +58,8 @@ gulp.task('buildTest', () =>
 		.pipe(sourcemaps.write({ includeContent: false, sourceRoot: '../src' }))
 		.pipe(gulp.dest('test/tests'))
 );
+
+gulp.task('preTest', gulp.series('buildMain', 'buildTest'));
 
 gulp.task('build', gulp.series('buildMain', 'buildMin'));
 

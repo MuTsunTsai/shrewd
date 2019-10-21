@@ -46,5 +46,5 @@ export = function() {
 	t = "";
 	a.lookAtValue = true;
 	commit();
-	console.assert(t == "321", "重新建立了參照關係", t);
+	console.assert(t == "312", "重新建立了參照關係", t);
 }

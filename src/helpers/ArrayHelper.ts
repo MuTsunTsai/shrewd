@@ -2,9 +2,10 @@
 class ArrayProxyHandler extends ObjectProxyHandler<any[]> {
 
 	public get(target: WrappedObservable<any[]>, prop: PropertyKey, receiver: WrappedObservable<any[]>): any {
-		// 這邊列舉的情況可以說是陣列的「原始讀取操作」，
-		// 除了這些以外的讀取方法最終其實在內部程式碼執行都會用到這幾個，
-		// 所以只要攔截到這些就可以監視一切的讀取行為
+		// These are the "raw reading operations" of an Array;
+		// all other reading methods will eventually use one of these
+		// in the internal code, so by intercepting these operations,
+		// we can monitor all readings.
 		if(prop == "length" ||
 			typeof prop == "symbol" || typeof prop == "number" ||
 			typeof prop == "string" && prop.match(/^\d+$/)) {

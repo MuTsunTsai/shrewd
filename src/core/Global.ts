@@ -3,7 +3,6 @@ interface IState {
 	$isCommitting: boolean;
 	$isConstructing: boolean;
 	$target: Observer | null;
-	$isActive: boolean;
 }
 
 class Global {
@@ -11,7 +10,6 @@ class Global {
 	private static _state: IState = {
 		$isCommitting: false,
 		$isConstructing: false,
-		$isActive: false,
 		$target: null
 	};
 
@@ -26,16 +24,13 @@ class Global {
 		Global._state = Global._history.pop()!;
 	}
 
-	/** 目前是否處於認可階段 */
+	/** Whether currently in committing stage. */
 	public static get $isCommitting() { return Global._state.$isCommitting; }
 
-	/** 目前是否正在建構新物件 */
+	/** Whether Shrewd is constructing a new object. */
 	public static get $isConstructing() { return Global._state.$isConstructing; }
 
-	/** 目前的側錄執行者是否為活躍 */
-	public static get $isActive() { return Global._state.$isActive; }
-
-	/** 目前的側錄執行者 */
+	/** Current target of side-recording. */
 	public static get $target() { return Global._state.$target; }
 
 }

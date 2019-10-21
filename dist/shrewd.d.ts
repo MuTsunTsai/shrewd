@@ -1,10 +1,29 @@
 
 /**
+ *  Provides connection to 3rd party reactive frameworks.
+ */
+interface IHook {
+	/** Trigger a "read" operation. */
+	read(id: number): void;
+
+	/** Trigger a "write" operation. */
+	write(id: number): void;
+
+	/** Garbage collection. */
+	gc(): void;
+
+	/** If the given Observable has 3rd party subscribers. */
+	sub(id: number): boolean;
+}
+
+/**
  * Enable strict mode in TypeScript to allow type checking for this interface.
  */
 interface IDecoratorOptions<T> {
 	validator?: (value: T) => boolean;
 	renderer?: (value: T) => T;
+
+	/** If true, a ReactiveMethod will postpone its execution until the committing state. */
 	lazy?: boolean;
 }
 
@@ -18,7 +37,7 @@ export function shrewd(target: object, prop: PropertyKey): void;
 export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
 
 /**
- * Manually triggers the commission. This is mainly for testing purpose.
+ * Manually triggers the commission.
  */
 export function commit(): void;
 
@@ -34,8 +53,36 @@ export function terminate(target: object): void;
  */
 export function construct<T, A extends any[]>(constructor: new (...args: A) => T, ...args: A): T;
 
-export const vuePlugin: {
-	vue: any
+/**
+ * Built-in hooks.
+ */
+export const hook: {
+
+	/** The default hook that does nothing. */
+	default: IHook,
+
+	/** Hook for Vue.js. */
+	vue: IHook
 };
+
+interface IShrewdOption {
+
+	/**
+	 * Hook for 3rd party frameworks. The default hook is an instance of Shrewd.hook.default.
+	 */
+	hook: IHook;
+
+	/**
+	 * Whether to use auto-commit. The default value is true.
+	 * However, setting it to false and calling Shrewd.commit() periodically
+	 * might result in better performance for some applications.
+	 */
+	autoCommit: boolean;
+}
+
+/**
+ * Shrewd global options.
+ */
+export const option: IShrewdOption;
 
 export as namespace Shrewd;

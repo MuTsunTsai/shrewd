@@ -1,11 +1,12 @@
 // Level 0
+/// <reference path="class/Observable.ts" />
+/// <reference path="hook/DefaultHook.ts" />
+/// <reference path="hook/VueHook.ts" />
 /// <reference path="core/Core.ts" />
 /// <reference path="core/Decorators.ts" />
 /// <reference path="core/ShrewdObject.ts" />
-/// <reference path="class/Observable.ts" />
 /// <reference path="util/HiddenProperty.ts" />
 /// <reference path="helpers/BaseProxyHandler.ts" />
-/// <reference path="plugin/VuePlugin.ts" />
 
 // Level 1
 /// <reference path="class/Observer.ts" />
@@ -24,15 +25,27 @@
 /// <reference path="components/ReactiveMethod.ts" />
 /// <reference path="helpers/ArrayHelper.ts" />
 
+interface Window {
+	Vue?: any;
+}
+
 const Shrewd = {
 	shrewd: Decorators.$shrewd,
 	decorate: null,
+	symbol: $shrewdObject,
 
 	commit: Core.$commit,
 	construct: Core.$construct,
 	terminate: Core.$terminate,
 
-	plugin: {
-		vue: VuePlugin
-	}
+	hook: {
+		default: DefaultHook,
+		vue: VueHook
+	},
+
+	option: Core.$option,
 };
+
+if(typeof window !== 'undefined' && window.Vue) {
+	Core.$option.hook = new VueHook();
+}

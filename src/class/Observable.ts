@@ -1,12 +1,15 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * Observable 物件可以讓 Observer 物件來註冊觀測，
- * 並且在自身狀態發生改變（具體意義由繼承類別來定義）時通知那些 Observer 進行更新。
+ * Observables accept subscriptions from Observers,
+ * and they will notify those subscribers to execute when they
+ * change their inner state (defined by the derived class).
  */
 //////////////////////////////////////////////////////////////////
 
-class Observable {
+abstract class Observable {
+
+	private static _id: number = 0;
 
 	public static $isWritable(observable: Observable) {
 		if(Global.$isConstructing || !observable.$hasSubscriber) return true;
@@ -22,10 +25,15 @@ class Observable {
 	}
 
 	/**
-	 * 通知所有訂閱對象
+	 * Notify all subscribers.
 	 */
 	public static $publish(observable: Observable) {
+		Core.$option.hook.write(observable.$id);
 		for(let observer of observable._subscribers) observer.$notified();
+	}
+
+	constructor() {
+		this.$id = Observable._id++;
 	}
 
 	public $subscribe(observer: Observer) {
@@ -43,6 +51,8 @@ class Observable {
 	protected get $subscribers() {
 		return this._subscribers.values();
 	}
+
+	public readonly $id: number;
 
 	private _subscribers: Set<Observer> = new Set();
 }

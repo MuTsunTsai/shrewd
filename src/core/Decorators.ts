@@ -37,23 +37,23 @@ interface IDecoratorOptions<T> {
 
 interface IDecoratorDescriptor {
 	/**
-	 * 識別 DecoratedMemeber 的 PropertyKey。
-	 * 在 ObservableProperty 的情況中，這個直接就是屬性的名稱，
-	 * 而在 ComputedProperty 或 ReactiveMethod 的情況中，因為要區分不同層次原型中的方法，
-	 * key 會跟 name 一樣。
+	 * The PropertyKey for identifying this DecoratedMemeber.
+	 * For an ObservableProperty, this is the name of the property.
+	 * For a ComputedProperty or ReactiveMethod, the key is the same as the name,
+	 * so as to distinguish the member from different prototype.
 	 */
 	$key: PropertyKey;
 
-	/** 可閱讀的成員名稱，其格式均為「類別.成員名稱」 */
+	/** Readable member name, if the format of [Class.MemberName]. */
 	$name: string;
 
-	/** 成員要使用的建構子 */
+	/** The constructor used for this memeber. */
 	$constructor: IDecoratedMemberConstructor;
 
-	/** 選項 */
+	/** Options for this DecoratedMember. */
 	$option?: IDecoratorOptions<any>;
 
-	/** 原本定義在原型上的方法 */
+	/** The original method defined on the prototype. */
 	$method?: Function;
 }
 

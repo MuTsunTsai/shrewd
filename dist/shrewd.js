@@ -14,6 +14,74 @@
     }
 }(this, function () {
     'use strict';
+    class Observable {
+        constructor() {
+            this._subscribers = new Set();
+            this.$id = Observable._id++;
+        }
+        static $isWritable(observable) {
+            if (Global.$isConstructing || !observable.$hasSubscriber)
+                return true;
+            if (ObservableProperty.$isRendering && !ObservableProperty.$isAccessible(observable)) {
+                console.warn('Inside a renderer function, only the objects owned by the ObservableProperty can be written.');
+                return false;
+            }
+            if (!ObservableProperty.$isRendering && Global.$isCommitting) {
+                console.warn('Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.');
+                return false;
+            }
+            return true;
+        }
+        static $publish(observable) {
+            Core.$option.hook.write(observable.$id);
+            for (let observer of observable._subscribers)
+                observer.$notified();
+        }
+        $subscribe(observer) {
+            this._subscribers.add(observer);
+        }
+        $unsubscribe(observer) {
+            this._subscribers.delete(observer);
+        }
+        get $hasSubscriber() {
+            return this._subscribers.size > 0;
+        }
+        get $subscribers() {
+            return this._subscribers.values();
+        }
+    }
+    Observable._id = 0;
+    class DefaultHook {
+        read(id) {
+        }
+        write(id) {
+        }
+        gc() {
+        }
+        sub(id) {
+            return false;
+        }
+    }
+    class VueHook {
+        constructor() {
+            this._vue = new Vue({ data: { shrewd: {} } });
+        }
+        read(id) {
+            this._vue.shrewd[id];
+        }
+        write(id) {
+            Vue.set(this._vue.shrewd, id, {});
+        }
+        gc() {
+            for (let id in this._vue.shrewd) {
+                if (this._vue.shrewd[id].__ob__.dep.subs.length == 0)
+                    Vue.delete(this._vue.shrewd, id);
+            }
+        }
+        sub(id) {
+            return id in this._vue.shrewd && this._vue.shrewd[id].__ob__.dep.subs.length > 0;
+        }
+    }
     class Core {
         static $commit() {
             Global.$pushState({ $isCommitting: true });
@@ -25,6 +93,7 @@
             for (let shrewd of Core._terminate)
                 shrewd.$terminate();
             Core._terminate.clear();
+            Core.$option.hook.gc();
         }
         static _autoCommit() {
             Core.$commit();
@@ -36,7 +105,7 @@
         static $queue(observer) {
             if (!observer.$isRendering)
                 Core._queue.add(observer);
-            if (!Core._promised) {
+            if (Core.$option.autoCommit && !Core._promised) {
                 let promise = Promise.resolve();
                 promise.then(Core._autoCommit);
                 Core._promised = true;
@@ -46,10 +115,11 @@
             Global.$pushState({
                 $isConstructing: true,
                 $isCommitting: false,
-                $isActive: false,
                 $target: null
             });
+            Observer.$trace.push('construct ' + constructor.name);
             let result = new constructor(...args);
+            Observer.$trace.pop();
             Global.$restore();
             return result;
         }
@@ -58,6 +128,10 @@
                 Core._terminate.add(target[$shrewdObject]);
         }
     }
+    Core.$option = {
+        hook: new DefaultHook(),
+        autoCommit: true
+    };
     Core._queue = new Set();
     Core._terminate = new Set();
     Core._promised = false;
@@ -184,40 +258,6 @@
             return result;
         }
     }
-    class Observable {
-        constructor() {
-            this._subscribers = new Set();
-        }
-        static $isWritable(observable) {
-            if (Global.$isConstructing || !observable.$hasSubscriber)
-                return true;
-            if (ObservableProperty.$isRendering && !ObservableProperty.$isAccessible(observable)) {
-                console.warn('Inside a renderer function, only the objects owned by the ObservableProperty can be written.');
-                return false;
-            }
-            if (!ObservableProperty.$isRendering && Global.$isCommitting) {
-                console.warn('Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.');
-                return false;
-            }
-            return true;
-        }
-        static $publish(observable) {
-            for (let observer of observable._subscribers)
-                observer.$notified();
-        }
-        $subscribe(observer) {
-            this._subscribers.add(observer);
-        }
-        $unsubscribe(observer) {
-            this._subscribers.delete(observer);
-        }
-        get $hasSubscriber() {
-            return this._subscribers.size > 0;
-        }
-        get $subscribers() {
-            return this._subscribers.values();
-        }
-    }
     class HiddenProperty {
         static $has(target, prop) {
             return Object.prototype.hasOwnProperty.call(target, prop);
@@ -233,33 +273,6 @@
         }
     }
     class BaseProxyHandler {
-        isExtensible(target) {
-            return false;
-        }
-    }
-    class VuePlugin {
-        static install(Vue) {
-            Vue.mixin({
-                mounted() {
-                    let shrewd = new ShrewdObject(this._watcher);
-                    shrewd.setup({
-                        $key: 'Watcher.getter',
-                        $name: 'Watcher.getter',
-                        $constructor: ReactiveMethod,
-                        $method: this._watcher.getter
-                    });
-                    Object.defineProperty(this._watcher, 'getter', {
-                        get: function () {
-                            return ShrewdObject.get(this).$getMember('Watcher.getter').$getter();
-                        }
-                    });
-                    this._watcher.getter();
-                }
-            });
-        }
-    }
-    if (typeof window !== 'undefined' && window.Vue) {
-        window.Vue.use(VuePlugin);
     }
     var ObserverState;
     (function (ObserverState) {
@@ -274,50 +287,53 @@
             this._isRendering = false;
             this._state = ObserverState.$outdated;
             this._isTerminated = false;
+            this._isActive = this.checkActive();
             this._name = name;
         }
         static $clearPending() {
             for (let pending of Observer._pending) {
-                if (pending._state == ObserverState.$pending)
+                if (pending._state == ObserverState.$pending && pending._isActive) {
                     pending._update();
+                    Observer._pending.delete(pending);
+                }
             }
-            Observer._pending.clear();
         }
         static $refer(observable) {
             if (observable instanceof Observer && observable._isTerminated)
                 return;
+            Core.$option.hook.read(observable.$id);
             let target = Global.$target;
             if (target && target != observable && !target._isTerminated)
                 target._reference.add(observable);
         }
         static $checkDeadEnd(observable) {
-            if (observable instanceof Observer && !observable._isActive && !observable._isTerminated) {
-                let oldReferences = new Set(observable._reference);
-                observable.$clearReference();
-                Core.$unqueue(observable);
-                observable._outdate();
-                for (let ref of oldReferences)
-                    Observer.$checkDeadEnd(ref);
+            if (observable instanceof Observer && !observable._isTerminated) {
+                observable._isActive = observable.checkActive();
+                if (!observable._isActive) {
+                    let oldReferences = new Set(observable._reference);
+                    Core.$unqueue(observable);
+                    for (let ref of oldReferences)
+                        Observer.$checkDeadEnd(ref);
+                }
             }
         }
         static $render(observer) {
             Global.$pushState({
                 $isConstructing: false,
-                $target: observer,
-                $isActive: Global.$isActive || observer._isActive
+                $target: observer
             });
             observer._isRendering = true;
             Core.$unqueue(observer);
             let oldReferences = new Set(observer._reference);
             observer.$clearReference();
             let result = observer.$render();
-            if (Global.$isActive)
-                observer._update();
+            observer._update();
             if (!observer._isTerminated) {
                 for (let observable of observer._reference) {
                     oldReferences.delete(observable);
-                    if (Global.$isActive)
-                        observable.$subscribe(observer);
+                    observable.$subscribe(observer);
+                    if (observer._isActive && observable instanceof Observer)
+                        observable.passDownActive();
                 }
             }
             for (let observable of oldReferences)
@@ -332,18 +348,22 @@
         $notified() {
             this._pend();
             this._outdate();
-            Core.$queue(this);
+            if (this._isActive)
+                Core.$queue(this);
         }
         $terminate() {
             if (this._isTerminated)
                 return;
+            this._isTerminated = true;
+            this._onTerminate();
+        }
+        _onTerminate() {
             this.$clearReference();
             for (let subscriber of this.$subscribers) {
                 subscriber._reference.delete(this);
                 this.$unsubscribe(subscriber);
             }
             this._update();
-            this._isTerminated = true;
             this._isRendering = false;
         }
         _pend() {
@@ -354,21 +374,21 @@
                     subscriber._pend();
             }
         }
-        _determineState() {
+        _determineState(force = false) {
             if (this.$isRendering) {
-                let last = Observer._trace.indexOf(this);
+                let last = Observer.$trace.indexOf(this);
                 let cycle = [
                     this,
-                    ...Observer._trace.slice(last + 1),
+                    ...Observer.$trace.slice(last + 1),
                     this
                 ];
-                cycle.forEach(o => o.$terminate());
-                let trace = cycle.map(o => o._name).join(' => ');
+                cycle.forEach(o => o instanceof Observer && o.$terminate());
+                let trace = cycle.map(o => typeof o == 'string' ? o : o._name).join(' => ');
                 console.warn('Circular dependency detected: ' + trace + '\nAll these observers will be terminated.');
             }
             if (this._state == ObserverState.$updated)
                 return;
-            Observer._trace.push(this);
+            Observer.$trace.push(this);
             for (let ref of this._reference) {
                 if (ref instanceof Observer) {
                     if (ref._isRendering)
@@ -377,13 +397,13 @@
                         ref._determineState();
                 }
             }
-            if (this._state == ObserverState.$outdated)
+            if (this._state == ObserverState.$outdated || force)
                 Observer.$render(this);
             else {
                 Observer._pending.delete(this);
                 this._update();
             }
-            Observer._trace.pop();
+            Observer.$trace.pop();
         }
         _update() {
             this._state = ObserverState.$updated;
@@ -394,8 +414,23 @@
         get _isPending() {
             return this._state == ObserverState.$pending;
         }
-        get _isActive() {
-            return this.$hasSubscriber;
+        checkActive() {
+            if (Core.$option.hook.sub(this.$id))
+                return true;
+            for (let subscriber of this.$subscribers) {
+                if (subscriber._isActive)
+                    return true;
+            }
+            return false;
+        }
+        passDownActive() {
+            if (this._isActive)
+                return;
+            this._isActive = true;
+            for (let observable of this._reference) {
+                if (observable instanceof Observer)
+                    observable.passDownActive();
+            }
         }
         $clearReference() {
             for (let observable of this._reference)
@@ -407,7 +442,7 @@
         }
     }
     Observer._pending = new Set();
-    Observer._trace = [];
+    Observer.$trace = [];
     const $observableHelper = Symbol('Observable Helper');
     class Helper extends Observable {
         constructor(target, handler) {
@@ -688,8 +723,9 @@
                 return;
             }
             if (Observable.$isWritable(this) && value != this._inputValue) {
-                if (this._option.validator && !this._option.validator.apply(this._parent, [value]))
-                    return;
+                if (this._option.validator && !this._option.validator.apply(this._parent, [value])) {
+                    return Core.$option.hook.write(this.$id);
+                }
                 this._inputValue = Helper.$wrap(value);
                 if (this._option.renderer)
                     Observer.$render(this);
@@ -710,12 +746,10 @@
             this._outputValue = value;
             Observable.$publish(this);
         }
-        $terminate() {
-            if (this.$isTerminated)
-                return;
+        _onTerminate() {
             delete this._inputValue;
             delete this._option;
-            super.$terminate();
+            super._onTerminate();
         }
     }
     ObservableProperty._interceptor = {};
@@ -727,18 +761,21 @@
             this._method = descriptor.$method;
             this._option = descriptor.$option || {};
         }
-        get _isActive() {
+        checkActive() {
             return true;
         }
         $getter() {
             if (!this.$isTerminated) {
                 Observer.$refer(this);
-                if (this._option.lazy)
-                    return () => (this.$notified(), this._result);
-                if (!Global.$isCommitting && !this._isPending)
-                    return () => Observer.$render(this);
+                let force = false;
+                if (!Global.$isCommitting) {
+                    if (this._option.lazy)
+                        return () => (this.$notified(), this._result);
+                    if (!this._isPending)
+                        force = true;
+                }
                 return () => {
-                    this._determineState();
+                    this._determineState(force);
                     return this._result;
                 };
             } else {
@@ -778,11 +815,19 @@
     const Shrewd = {
         shrewd: Decorators.$shrewd,
         decorate: null,
+        symbol: $shrewdObject,
         commit: Core.$commit,
         construct: Core.$construct,
         terminate: Core.$terminate,
-        plugin: { vue: VuePlugin }
+        hook: {
+            default: DefaultHook,
+            vue: VueHook
+        },
+        option: Core.$option
     };
+    if (typeof window !== 'undefined' && window.Vue) {
+        Core.$option.hook = new VueHook();
+    }
     class Global {
         static $pushState(state) {
             Global._history.push(Global._state);
@@ -797,9 +842,6 @@
         static get $isConstructing() {
             return Global._state.$isConstructing;
         }
-        static get $isActive() {
-            return Global._state.$isActive;
-        }
         static get $target() {
             return Global._state.$target;
         }
@@ -807,7 +849,6 @@
     Global._state = {
         $isCommitting: false,
         $isConstructing: false,
-        $isActive: false,
         $target: null
     };
     Global._history = [];

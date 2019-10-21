@@ -9,7 +9,7 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Launch Program",
-			"preLaunchTask": "Gulp buildTest",
+			"preLaunchTask": "Gulp preTest",
 			"console": "internalConsole",
 			"internalConsoleOptions": "openOnSessionStart",
 			"program": "${workspaceFolder}\\test\\test.js"
