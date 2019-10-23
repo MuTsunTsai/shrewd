@@ -116,6 +116,7 @@ abstract class Observer extends Observable {
 
 	public $terminate() {
 		if(this._isTerminated) return;
+		Core.$unqueue(this);
 		this._isTerminated = true;
 		this._onTerminate();
 	}

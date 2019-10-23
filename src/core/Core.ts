@@ -74,7 +74,11 @@ class Core {
 		return result;
 	}
 
-	public static $terminate(target: object) {
-		if(HiddenProperty.$has(target, $shrewdObject)) Core._terminate.add(target[$shrewdObject]);
+	public static $terminate(target: object, lazy: boolean = false) {
+		if(HiddenProperty.$has(target, $shrewdObject)) {
+			let shrewd = target[$shrewdObject];
+			if(lazy) Core._terminate.add(shrewd);
+			else shrewd.$terminate();
+		}
 	}
 }

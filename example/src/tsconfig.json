@@ -1,0 +1,12 @@
+{
+	"compileOnSave": true,
+	"compilerOptions": {
+		"target": "es6",
+		"module": "none",
+		"removeComments": true,
+		"strict": true,
+		"preserveConstEnums": true,
+		"experimentalDecorators": true,
+		"outDir": "../dist/"
+	}
+}

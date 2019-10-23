@@ -1,7 +1,7 @@
 {
 	"name": "shrewd",
 	"version": "0.0.0-beta.11",
-	"description": "Reactive framework that is both rigid and programmer-friendly.",
+	"description": "A reactive framework designed for building front-end applications that involves complex dependencies among states.",
 	"main": "dist/shrewd.js",
 	"scripts": {
 		"version": "gulp build && git add -A",
