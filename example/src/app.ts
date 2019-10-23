@@ -1,4 +1,4 @@
-
+// There is only one decorator for all: "shrewd".
 const { shrewd } = Shrewd;
 
 // You can then use it in any class in your project.
