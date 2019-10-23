@@ -101,7 +101,7 @@ and then call `Shrewd.commit()` manually to propagate the changes.
 
 ObservableProperties are the sources in our data flow. Once they are set to new values, changes will be propagated in the next committing stage. 
 
-ObservableProperties can only be changed manually, and setting their values inside an ComputedProperty or ReactiveMethod (these two are called reactions) is not allowed. This design is for preventing circular dependency and unnecessary re-running of reactions. The idea is that, if a value is supposed to depend on something else, one should make it an ComputedProperty, instead of trying to update it inside an reaction.
+ObservableProperties can only be changed manually, and setting their values inside an ComputedProperty or ReactiveMethod (these two, together with the renderer function mentioned later, are called reactions) is not allowed. This design is for preventing circular dependency and unnecessary re-running of reactions. The idea is that, if a value is supposed to depend on something else, one should make it an ComputedProperty, instead of trying to update it inside an reaction.
 
 However, we made an exception to this rule, so that an ObservableProperty can update itself based on something else. One can also add a validation rule to it, so that it accepts only certain values.
 
@@ -123,11 +123,11 @@ class App {
 }
 ```
 
-In this example, `app.number` can be set manually, and if `app.nonNegative` is set to `true`, not only from now on it will rejects command like `app.number=-1`, but if `app.number` is negative at that moment, it will change it to positive as well.
+In this example, `app.number` can be set manually, and if `app.nonNegative` is set to `true`, not only from now on it will reject commands like `app.number=-1`, but if `app.number` is negative at that very moment, it will change it to positive as well.
 
-The function `validator` runs immediately during a setting action, while `renderer` runs in the next committing stage, if there're changes to one of its dependent values.
+The function `validator` runs immediately during a setting action, and it should return a boolean value indicating whether to accept the new value. The function `renderer` runs in the next committing stage, if there're changes to one of its dependent values, and it should return the value to replace the old one.
 
-Values set to an ObservableProperty will be recursively modified into reactive data, so for example if the value is an array, the array becomes reactive as well. This behavior applies only to the native `Array`, `Set`, `Map`, and object literals, not including instances of classes derived from them.
+Values set to an ObservableProperty will be recursively modified into reactive data, so for example if the value is an array, the entire array becomes reactive as well. This behavior applies only to the native `Array`, `Set`, `Map`, and object literals, not including instances of classes derived from them.
 
 Inside the `renderer` of an ObservableProperty, if the value is one of the above, it is also allowed to modify the values hold in it. But one may not modify values of other ObservableProperties, for the same reason.
 
