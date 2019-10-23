@@ -264,6 +264,7 @@ To demonstrate, we shall modify our very first example.
 <div id="vue">
 	<!-- do the usual Vue.js thing with our Shrewd object, and it works! -->
 	<input v-model.number="app.number" />
+	<div>{{app.remainder}}</div>
 </div>
 
 <script>
