@@ -101,7 +101,7 @@ and then call `Shrewd.commit()` manually to propagate the changes.
 
 ObservableProperties are the sources in our data flow. Once they are set to new values, changes will be propagated in the next committing stage. 
 
-ObservableProperties can only be changed manually, and setting their values inside an ComputedProperty or ReactiveMethod (these two are called reactions) is not allowed (this design is for preventing circular dependency and unnecessary re-running of reactions). The idea is that, if a value is supposed to depend on something else, one should make it an ComputedProperty, instead of trying to update it inside an reaction.
+ObservableProperties can only be changed manually, and setting their values inside an ComputedProperty or ReactiveMethod (these two are called reactions) is not allowed. This design is for preventing circular dependency and unnecessary re-running of reactions. The idea is that, if a value is supposed to depend on something else, one should make it an ComputedProperty, instead of trying to update it inside an reaction.
 
 However, we made an exception to this rule, so that an ObservableProperty can update itself based on something else. One can also add a validation rule to it, so that it accepts only certain values.
 
@@ -152,7 +152,7 @@ public method() {
 
 ## Dynamically constructed objects
 
-It is commonly the case that one set of objects are created and destroyed based on another set of objects. In the example below, we establishe a one-one relation between `set` and instances of class `C`:
+It is commonly the case that one set of objects are created and destroyed based on another set of objects. In the example below, we establishe a one-to-one correspondence between a set of numbers and instances of class `C`:
 
 ```ts
 class C {
@@ -250,3 +250,34 @@ All these observers will be terminated.
 ```
 
 So that not only we know that our code went wrong, but we can also trace exactly what causes the circular dependency to fix it.
+
+## Use Shrewd with Vue.js
+
+To demonstrate, we shall modify our very first example.
+
+```html
+<script src="vue.js"></script>
+<!-- Load Shrewd after Vue.js, and it will use the built-in hook for Vue automatically -->
+<script src="shrewd.js"></script>
+<script src="app.js"></script>
+
+<div id="vue">
+	<!-- do the usual Vue.js thing with our Shrewd object, and it works! -->
+	<input v-model.number="app.number" />
+</div>
+
+<script>
+	var vue = new Vue({
+		el: "#vue",
+		// Do not load a Shrewd object into the data,
+		// as Vue will unnecessarily modifies our object;
+		// use computed property to get it instead
+		computed: {
+			app() {
+				// Recall that "app" was defined in app.js
+				return app;
+			}
+		}
+	})
+</script>
+```
