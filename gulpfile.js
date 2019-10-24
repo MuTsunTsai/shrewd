@@ -66,10 +66,10 @@ gulp.task('updateDTS', () =>
 		.pipe(gulp.dest('dist/'))
 );
 
-gulp.task('updateExample', () =>
+gulp.task('updateExample', () => (
 	gulp.src('dist/shrewd.js').pipe(gulp.dest('example/dist/')),
 	gulp.src('dist/shrewd.d.ts').pipe(gulp.dest('example/src/'))
-);
+));
 
 gulp.task('preTest', gulp.series('buildMain', 'buildTest'));
 
