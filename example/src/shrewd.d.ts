@@ -14,7 +14,10 @@ interface IHook {
 	/** Trigger a "write" operation to notify changes. */
 	write(id: number): void;
 
-	/** Garbage collection; clearing up unsubscribed entries. */
+	/**
+	 * Garbage collection; clearing up unsubscribed entries.
+	 * This method is called at the end of each committing stage.
+	 */
 	gc(): void;
 
 	/** If the given Observable has 3rd party subscribers. */
