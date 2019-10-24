@@ -28,7 +28,7 @@ export = function() {
 	a.switch = false;
 	commit();
 	console.assert(err == "Circular dependency detected: A.a => A.c => A.b => A.a" +
-		"\nAll these observers will be terminated.", "打開 a.switch 會產生循環參照而出錯", err);
+		"\nAll these reactions will be terminated.", "打開 a.switch 會產生循環參照而出錯", err);
 	console.warn = warn;
 
 }

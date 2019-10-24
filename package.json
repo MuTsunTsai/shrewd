@@ -4,7 +4,7 @@
 	"description": "A reactive framework designed for building front-end applications that involves complex dependencies among states.",
 	"main": "dist/shrewd.js",
 	"scripts": {
-		"version": "gulp build && git add -A",
+		"version": "gulp default && git add -A",
 		"test": "node test/test.js"
 	},
 	"keywords": [
@@ -22,6 +22,7 @@
 		"gulp": "^4.0.2",
 		"gulp-if-any-newer": "^1.0.2",
 		"gulp-rename": "^1.4.0",
+		"gulp-replace": "^1.0.0",
 		"gulp-sourcemaps": "^2.6.5",
 		"gulp-terser": "^1.2.0",
 		"gulp-typescript": "^5.0.1",

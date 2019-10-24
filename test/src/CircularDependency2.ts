@@ -41,7 +41,7 @@ export = function() {
 	a.n = 1;
 	commit();
 	console.assert(err == "Circular dependency detected: A.list => construct B => B.run => A.list" +
-		"\nAll these observers will be terminated.", "包含有建構式的循環參照", err);
+		"\nAll these reactions will be terminated.", "包含有建構式的循環參照", err);
 	console.warn = warn;
 
 	commit();

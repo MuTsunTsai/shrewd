@@ -35,10 +35,7 @@ class ComputedProperty extends DecoratedMemeber {
 		if(!this.$isTerminated) {
 			Observer.$refer(this);
 			this._determineState();
-		} else {
-			this._value = this._getter.apply(this._parent)
 		}
-
 		return this._value;
 	}
 }

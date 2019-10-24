@@ -2,26 +2,34 @@
 
 > A reactive framework designed for building front-end applications that involves complex dependencies among states.
 
+[![npm version](https://img.shields.io/npm/v/shrewd.svg?logo=npm)](https://www.npmjs.com/package/shrewd)
+![npm downloads](https://img.shields.io/npm/dt/shrewd?logo=npm)
+[![GitHub package version](https://img.shields.io/github/package-json/v/MuTsunTsai/shrewd.svg?logo=github&label=Github)](https://github.com/MuTsunTsai/shrewd)
+![license](https://img.shields.io/npm/l/shrewd.svg)
+
 ## Introduction
 
 Reactive-programming frameworks has become popular as they allow programmers to focus on how data affect each other, not worrying about how to handle the propagation of state changes. In recent years, major front-end frameworks such as [Vue.js](https://vuejs.org), [React.js](https://reactjs.org/), [Angular](https://angular.io/) etc. all embraces this concept and have thier built-in reactive state-container, while other state-containers such as [Redux](https://redux.js.org/), [Vuex](https://vuex.vuejs.org/), [NgRx](https://ngrx.io/), [MobX](https://mobx.js.org) etc. provides independent support for reactive states.
 
 Shrewd is also a reactive framework that can be used for building apps or state-containers for other frameworks. It is designed particularly with the following focuses:
 
+- Built for complex system\
+	Shrewd is meant for data systems that are highly complicated and may have numerous variables depending on each other in dynamic ways. It allows programmers to organize those variables in objects, and assign their dependencies in intuitive ways.
+
 - TypeScript oriented\
 	Shrewd is both developed with TypeScript and for TypeScript.
 
 - Front-end oriented\
-	Shrewd can be used directly on webpages without importing modules.
+	Like most front-end packages, Shrewd has zero dependency, and can be used directly on webpages as a global variable without importing modules.
 
 - Simplicity\
-	Shrewd has very few APIs and can be picked up in minutes.
+	Shrewd has very few APIs and can be picked-up in minutes.
 
 - Efficiency\
-	Shrewd performs only necessary calculations and rendering, and it stops any further action if at any stage the result does not change.
+	Shrewd performs only necessary calculations and rendering. Propagation of changes stops at any variable that remains unchanged, and resulting values are cached until its references have changed. Shrewd also make sure that it performs the propagation in the correct order so that nothing will be updated twice in the same committing stage.
 
 - Prevents circular dependencies\
-	The design of Shrewd makes it less likely to create circular dependency among data, and when there is one, Shrewd detects and provides readable error message that helps programmers to fix the problem.
+	The design of Shrewd makes it less likely to create circular dependency among data, and when there is one, Shrewd detects and provides readable debug message that helps programmers to fix the problem.
 
 - Third party framework support\
 	Shrewd provides hooks that enables it to communicate with other reactive frameworks, and it has a built-in hook for Vue.js.
@@ -139,7 +147,7 @@ One important feature of a ComputedProperty is that it will perform recalculatio
 
 ## ReactiveMethod
 
-ReactiveMethod re-run itself automatically during the next comitting stage, whenever one of its references has changed. It could return a value so that other reactions may depend on it, but unlike ComputedProperties, it always re-run itself regardless of absence of observers.
+ReactiveMethod re-run itself automatically during the next committing stage, whenever one of its references has changed. It could return a value so that other reactions may depend on it, but unlike ComputedProperties, it always re-run itself regardless of absence of observers.
 
 ReactiveMethods needs to be called for the first time in order to start it (one may do so inside the constructor of the class if so desired). If the option `lazy` is set to `true`, then during the first call it will not execute immediately, but wait until the committing stage to execute.
 
@@ -242,14 +250,14 @@ let a = new A();
 a.log();
 ```
 
-In the beginning, nothing is wrong. But once we set `a.switch=false` in the console, circular dependency appears. In this particular case, the following message will appear in the console:
+In the beginning, nothing is wrong. But once we set `a.switch=false` in the console, circular dependency appears. In this particular case, the following message will appear in the console,
 
 ```
 Circular dependency detected: A.a => A.c => A.b => A.a
-All these observers will be terminated.
+All these reactions will be terminated.
 ```
 
-So that not only we know that our code went wrong, but we can also trace exactly what causes the circular dependency to fix it.
+so that not only we know that our code went wrong, but we can also trace exactly what causes the circular dependency to fix it. Whenever Shrewd detects circular dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing errors. Once terminated, reactions will only return their last known return value, without performing anything.
 
 ## Use Shrewd with Vue.js
 
@@ -282,3 +290,34 @@ To demonstrate, we shall modify our very first example.
 	})
 </script>
 ```
+
+## Use custom hook
+
+You can create your own hook to make Shrewd work with any framework of your choice. All you have to do is to create an object that implements the `IHook` interface:
+
+```ts
+interface IHook {
+	/** Trigger a "read" operation to record dependency. */
+	read(id: number): void;
+
+	/** Trigger a "write" operation to notify changes. */
+	write(id: number): void;
+
+	/**
+	 * Garbage collection; clearing up unsubscribed entries.
+	 * This method is called at the end of each committing stage.
+	 */
+	gc(): void;
+
+	/** If the given Observable has 3rd party subscribers. */
+	sub(id: number): boolean;
+}
+```
+
+And then install it by:
+
+```ts
+Shrewd.option.hook = myHookInstance;
+```
+
+In the methods `read`, `write` and `sub`, the parameter `id` is the internal id for a Shrewd Observable object. You can then manage the dependency from your framework to Shrewd based on this id. You'll also need to implement the `gc` method to prevent memory leaks.

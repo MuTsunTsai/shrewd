@@ -35,7 +35,7 @@ class ReactiveMethod extends DecoratedMemeber {
 				return this._result;
 			}
 		} else {
-			return () => this._method.apply(this._parent);
+			return () => this._result;
 		}
 	}
 

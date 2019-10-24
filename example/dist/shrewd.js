@@ -360,6 +360,7 @@
             if (this._isTerminated)
                 return;
             Core.$unqueue(this);
+            Observer._pending.delete(this);
             this._isTerminated = true;
             this._onTerminate();
         }
@@ -390,7 +391,7 @@
                 ];
                 cycle.forEach(o => o instanceof Observer && o.$terminate());
                 let trace = cycle.map(o => typeof o == 'string' ? o : o._name).join(' => ');
-                console.warn('Circular dependency detected: ' + trace + '\nAll these observers will be terminated.');
+                console.warn('Circular dependency detected: ' + trace + '\nAll these reactions will be terminated.');
             }
             if (this._state == ObserverState.$updated)
                 return;
@@ -663,8 +664,6 @@
             if (!this.$isTerminated) {
                 Observer.$refer(this);
                 this._determineState();
-            } else {
-                this._value = this._getter.apply(this._parent);
             }
             return this._value;
         }
@@ -785,7 +784,7 @@
                     return this._result;
                 };
             } else {
-                return () => this._method.apply(this._parent);
+                return () => this._result;
             }
         }
         $render() {

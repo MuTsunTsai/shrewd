@@ -8,13 +8,16 @@
 //////////////////////////////////////////////////////////////////
 
 interface IHook {
-	/** Trigger a "read" operation. */
+	/** Trigger a "read" operation to record dependency. */
 	read(id: number): void;
 
-	/** Trigger a "write" operation. */
+	/** Trigger a "write" operation to notify changes. */
 	write(id: number): void;
 
-	/** Garbage collection. */
+	/**
+	 * Garbage collection; clearing up unsubscribed entries.
+	 * This method is called at the end of each committing stage.
+	 */
 	gc(): void;
 
 	/** If the given Observable has 3rd party subscribers. */

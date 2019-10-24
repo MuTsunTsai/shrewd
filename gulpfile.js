@@ -3,6 +3,7 @@ var ts = require('gulp-typescript');
 var rename = require('gulp-rename');
 var wrapJS = require("gulp-wrap-js");
 var terser = require('gulp-terser');
+var replace = require('gulp-replace');
 var ifAnyNewer = require('gulp-if-any-newer');
 var sourcemaps = require('gulp-sourcemaps');
 
@@ -59,8 +60,19 @@ gulp.task('buildTest', () =>
 		.pipe(gulp.dest('test/tests'))
 );
 
+gulp.task('updateDTS', () =>
+	gulp.src('dist/shrewd.d.ts')
+		.pipe(replace(/\/\*\*\s[\s\S]+?\s\*\//, header))
+		.pipe(gulp.dest('dist/'))
+);
+
+gulp.task('updateExample', () =>
+	gulp.src('dist/shrewd.js').pipe(gulp.dest('example/dist/')),
+	gulp.src('dist/shrewd.d.ts').pipe(gulp.dest('example/src/'))
+);
+
 gulp.task('preTest', gulp.series('buildMain', 'buildTest'));
 
 gulp.task('build', gulp.series('buildMain', 'buildMin'));
 
-gulp.task('default', gulp.series('build', 'buildTest'));
+gulp.task('default', gulp.series('build', 'buildTest', 'updateDTS', 'updateExample'));
