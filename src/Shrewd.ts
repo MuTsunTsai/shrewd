@@ -31,7 +31,6 @@ interface Window {
 
 const Shrewd = {
 	shrewd: Decorators.$shrewd,
-	decorate: null,
 	symbol: $shrewdObject,
 
 	commit: Core.$commit,
