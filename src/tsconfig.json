@@ -8,5 +8,8 @@
 		"preserveConstEnums": true,
 		"experimentalDecorators": true,
 		"outFile": "shrewd.js"
-	}
+	},
+	"include": [
+		"./**/*.ts"
+	]
 }

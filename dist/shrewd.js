@@ -199,7 +199,8 @@
                 $method: descriptor.get
             });
             descriptor.get = function () {
-                return ShrewdObject.get(this).$getMember(name).$getter();
+                let member = ShrewdObject.get(this).$getMember(name);
+                return member.$getter();
             };
             return descriptor;
         }
@@ -215,7 +216,8 @@
             delete descriptor.value;
             delete descriptor.writable;
             descriptor.get = function () {
-                return ShrewdObject.get(this).$getMember(name).$getter();
+                let member = ShrewdObject.get(this).$getMember(name);
+                return member.$getter();
             };
             return descriptor;
         }
@@ -417,6 +419,9 @@
         }
         _outdate() {
             this._state = ObserverState.$outdated;
+        }
+        get _isUpdated() {
+            return this._state == ObserverState.$updated;
         }
         get _isPending() {
             return this._state == ObserverState.$pending;
@@ -727,7 +732,7 @@
                 this._outputValue = value;
                 return;
             }
-            if (Observable.$isWritable(this) && value != this._inputValue) {
+            if (Observable.$isWritable(this) && value !== this._inputValue) {
                 if (this._option.validator && !this._option.validator.apply(this._parent, [value])) {
                     return Core.$option.hook.write(this.$id);
                 }
@@ -774,7 +779,7 @@
                 Observer.$refer(this);
                 let force = false;
                 if (!Global.$isCommitting) {
-                    if (this._option.lazy)
+                    if (this._option.lazy && !this._isUpdated)
                         return () => (this.$notified(), this._result);
                     if (!this._isPending)
                         force = true;
@@ -819,7 +824,6 @@
     ArrayHelper._handler = new ArrayProxyHandler();
     const Shrewd = {
         shrewd: Decorators.$shrewd,
-        decorate: null,
         symbol: $shrewdObject,
         commit: Core.$commit,
         construct: Core.$construct,

@@ -12,7 +12,9 @@
 			"preLaunchTask": "Gulp preTest",
 			"console": "internalConsole",
 			"internalConsoleOptions": "openOnSessionStart",
-			"program": "${workspaceFolder}\\test\\test.js"
+			"program": "${workspaceFolder}/test/test.js",
+			"sourceMaps": true,
+			"protocol": "inspector"
 		}
 	]
 }

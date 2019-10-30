@@ -27,7 +27,7 @@ class ReactiveMethod extends DecoratedMemeber {
 			let force = false;
 			// Manual stage.
 			if(!Global.$isCommitting) {
-				if(this._option.lazy) return () => (this.$notified(), this._result);
+				if(this._option.lazy && !this._isUpdated) return () => (this.$notified(), this._result);
 				if(!this._isPending) force = true;
 			}
 			return () => {

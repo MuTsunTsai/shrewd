@@ -12,8 +12,14 @@ class ObservableProperty extends DecoratedMemeber {
 	private static _interceptor: any = {};
 	public static $interceptor(key: PropertyKey) {
 		return ObservableProperty._interceptor[key] = ObservableProperty._interceptor[key] || {
-			get() { return ShrewdObject.get(this).$getMember(key).$getter(); },
-			set(value: any) { ShrewdObject.get(this).$getMember<ObservableProperty>(key).$setter(value); }
+			get() {
+				let member = ShrewdObject.get(this).$getMember(key);
+				return member.$getter();
+			},
+			set(value: any) {
+				let member = ShrewdObject.get(this).$getMember<ObservableProperty>(key);
+				member.$setter(value);
+			}
 		};
 	}
 
@@ -70,7 +76,7 @@ class ObservableProperty extends DecoratedMemeber {
 			this._outputValue = value;
 			return;
 		}
-		if(Observable.$isWritable(this) && value != this._inputValue) {
+		if(Observable.$isWritable(this) && value !== this._inputValue) {
 			if(this._option.validator && !this._option.validator.apply(this._parent, [value])) {
 				// Notify client that the value has been changed back.
 				return Core.$option.hook.write(this.$id);

@@ -182,6 +182,8 @@ abstract class Observer extends Observable {
 
 	protected _outdate() { this._state = ObserverState.$outdated; }
 
+	protected get _isUpdated() { return this._state == ObserverState.$updated; }
+
 	protected get _isPending() { return this._state == ObserverState.$pending; }
 
 	private _isActive: boolean = this.checkActive();

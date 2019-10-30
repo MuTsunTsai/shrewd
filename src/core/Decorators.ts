@@ -132,7 +132,8 @@ class Decorators {
 		});
 
 		descriptor.get = function(this: IShrewdObjectParent) {
-			return ShrewdObject.get(this).$getMember(name).$getter();
+			let member = ShrewdObject.get(this).$getMember(name);
+			return member.$getter();
 		}
 		return descriptor;
 	}
@@ -150,7 +151,8 @@ class Decorators {
 		delete descriptor.value;
 		delete descriptor.writable;
 		descriptor.get = function(this: IShrewdObjectParent) {
-			return ShrewdObject.get(this).$getMember(name).$getter();
+			let member = ShrewdObject.get(this).$getMember(name);
+			return member.$getter();
 		}
 		return descriptor;
 	}
