@@ -25,8 +25,12 @@ class MapHelper extends Helper<Map<any, any>> {
 	public get $child() {
 		let result = [];
 		for(let [key, value] of this._target) {
-			if(typeof key == "object") result.push(key);
-			if(typeof value == "object") result.push(value);
+			if(typeof key == "object") {
+				result.push(key);
+			}
+			if(typeof value == "object") {
+				result.push(value);
+			}
 		}
 		return result;
 	}

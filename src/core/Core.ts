@@ -25,7 +25,9 @@ class Core {
 		Global.$pushState({ $isCommitting: true });
 
 		// Start comitting.
-		for(let observer of Core._queue) Observer.$render(observer);
+		for(let observer of Core._queue) {
+			Observer.$render(observer);
+		}
 
 		// Finish comitting.
 		Observer.$clearPending();
@@ -33,7 +35,9 @@ class Core {
 		Global.$restore();
 
 		// Terminate objects.
-		for(let shrewd of Core._terminate) shrewd.$terminate();
+		for(let shrewd of Core._terminate) {
+			shrewd.$terminate();
+		}
 		Core._terminate.clear();
 
 		Core.$option.hook.gc();
@@ -51,7 +55,9 @@ class Core {
 
 	public static $queue(observer: Observer) {
 		// There's no need to add rendering Observers again.
-		if(!observer.$isRendering) Core._queue.add(observer);
+		if(!observer.$isRendering) {
+			Core._queue.add(observer);
+		}
 
 		// Setup auto-commit.
 		if(Core.$option.autoCommit && !Core._promised) {
@@ -77,8 +83,11 @@ class Core {
 	public static $terminate(target: object, lazy: boolean = false) {
 		if(HiddenProperty.$has(target, $shrewdObject)) {
 			let shrewd = target[$shrewdObject];
-			if(lazy) Core._terminate.add(shrewd);
-			else shrewd.$terminate();
+			if(lazy) {
+				Core._terminate.add(shrewd);
+			} else {
+				shrewd.$terminate();
+			}
 		}
 	}
 }

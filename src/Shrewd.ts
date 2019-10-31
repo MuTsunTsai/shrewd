@@ -6,12 +6,11 @@
 /// <reference path="core/Decorators.ts" />
 /// <reference path="core/ShrewdObject.ts" />
 /// <reference path="util/HiddenProperty.ts" />
-/// <reference path="helpers/BaseProxyHandler.ts" />
+/// <reference path="helpers/CollectionProxyHandler.ts" />
 
 // Level 1
 /// <reference path="class/Observer.ts" />
 /// <reference path="helpers/Helper.ts" />
-/// <reference path="helpers/CollectionProxyHandler.ts" />
 
 // Level 2
 /// <reference path="components/DecoratedMember.ts" />

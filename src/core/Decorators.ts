@@ -1,25 +1,13 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * Decorators 類別包含了各種可以裝飾類別成員的裝飾器。
+ * The static Decorators class contains various decorators for decorating class members.
  * 
- * 由於成員裝飾器是作用在類別的原型上面，而且不像類別裝飾器一樣能夠修改類別的建構子，
- * 所以這些裝飾器沒有辦法直接修改對象類別的實體行為；取而代之地，
- * 它們的運作原理都是在原型上設置一個啟動器，
- * 使得當對象成員第一次被呼叫的同時對實體進行初始化修改。
- * 
- * 這樣的作法對於欄位來說是單純的，因為欄位是沒有辦法被繼承的，
- * 而啟動器設置完成之後也就再也不會被執行到。
- * 
- * 對於方法類型的成員，無論是反應方法或是計算屬性，我們都需要額外考慮到方法繼承的問題。
- * 經過考慮之後，我決定如此定義：繼承類別中的方法必須重新加上裝飾器才會有其裝飾效果。
- * 這樣做有幾個理由：
- * 1. 在計算屬性之中，繼承類別的同名計算屬性其實未必會呼叫 super 的屬性（視其計算規則而定），
- *    如果繼承類別的屬性不用加上裝飾器，那麼就可能因為沒有呼叫 super 屬性而沒有被修改到。
- * 2. 如果繼承類別的計算屬性或監視方法不用加上裝飾器，那至少在第一次執行的時候，
- *    我們一定無法立刻監控繼承類別中的方法的執行，所以為了建立相依性，
- *    整個方法至少還要再執行一次；雖然這只有在第一次呼叫的時候有這樣的問題，
- *    但是我總之覺得這很不清爽。
+ * Because member decorators act on prototypes instead of on instances,
+ * and has no control over the constructor (as in a class decorator),
+ * these decorators cannot modify individual instances, and instead,
+ * they set up initializers on the prototype so that instances gets initialized
+ * when those members are first accessed.
  */
 //////////////////////////////////////////////////////////////////
 
@@ -73,6 +61,10 @@ class Decorators {
 		};
 	}
 
+	/**
+	 * This is the entry of the @shrewd decorator, and it contains various overloads that return
+	 * proper decorators based on different use case.
+	 */
 	public static $shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
 	public static $shrewd(proto: object, prop: PropertyKey): void;
 	public static $shrewd(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;

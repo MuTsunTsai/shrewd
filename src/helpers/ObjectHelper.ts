@@ -1,5 +1,5 @@
 
-class ObjectProxyHandler<T extends object = object> extends BaseProxyHandler<T> {
+class ObjectProxyHandler<T extends object = object> implements ProxyHandler<T> {
 
 	public has(target: WrappedObservable<T>, prop: PropertyKey): boolean {
 		Observer.$refer(target[$observableHelper]);
@@ -47,7 +47,9 @@ class ObjectHelper extends Helper<object> {
 		let result = [];
 		for(let key in this._target) {
 			let value = (this._target as any)[key];
-			if(typeof value == "object") result.push(value);
+			if(typeof value == "object") {
+				result.push(value);
+			}
 		}
 		return result;
 	}

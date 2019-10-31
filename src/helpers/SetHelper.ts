@@ -28,7 +28,9 @@ class SetHelper extends Helper<Set<any>> {
 	public get $child() {
 		let result = [];
 		for(let value of this._target) {
-			if(typeof value == "object") result.push(value);
+			if(typeof value == "object") {
+				result.push(value);
+			}
 		}
 		return result;
 	}

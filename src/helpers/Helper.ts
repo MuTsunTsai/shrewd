@@ -23,10 +23,14 @@ abstract class Helper<T extends object> extends Observable {
 		if(Helper._proxyMap.has(value)) return Helper._proxyMap.get(value);
 		if(!Helper.$hasHelper(value)) {
 			switch(Object.getPrototypeOf(value)) {
-				case Array.prototype: value = new ArrayHelper(value).$proxy; break;
-				case Set.prototype: value = new SetHelper(value).$proxy; break;
-				case Map.prototype: value = new MapHelper(value).$proxy; break;
-				case Object.prototype: value = new ObjectHelper(value).$proxy; break;
+				case Array.prototype:
+					value = new ArrayHelper(value).$proxy; break;
+				case Set.prototype:
+					value = new SetHelper(value).$proxy; break;
+				case Map.prototype:
+					value = new MapHelper(value).$proxy; break;
+				case Object.prototype:
+					value = new ObjectHelper(value).$proxy; break;
 			}
 		}
 		return value;

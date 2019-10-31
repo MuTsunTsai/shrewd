@@ -13,11 +13,11 @@ abstract class Observable {
 
 	public static $isWritable(observable: Observable) {
 		if(Global.$isConstructing || !observable.$hasSubscriber) return true;
-		if(ObservableProperty.$isRendering && !ObservableProperty.$isAccessible(observable)) {
+		if(Global.$isRenderingProperty && !Global.$isAccessible(observable)) {
 			console.warn("Inside a renderer function, only the objects owned by the ObservableProperty can be written.");
 			return false;
 		}
-		if(!ObservableProperty.$isRendering && Global.$isCommitting) {
+		if(!Global.$isRenderingProperty && Global.$isCommitting) {
 			console.warn("Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.");
 			return false;
 		}
@@ -29,7 +29,9 @@ abstract class Observable {
 	 */
 	public static $publish(observable: Observable) {
 		Core.$option.hook.write(observable.$id);
-		for(let observer of observable._subscribers) observer.$notified();
+		for(let observer of observable._subscribers) {
+			observer.$notified();
+		}
 	}
 
 	constructor() {

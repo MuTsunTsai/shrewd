@@ -2,15 +2,25 @@
 interface IState {
 	$isCommitting: boolean;
 	$isConstructing: boolean;
+	$isRenderingProperty: boolean;
 	$target: Observer | null;
+	$accessibles: Set<Observable>;
 }
+
+//////////////////////////////////////////////////////////////////
+/**
+ * The static Global class is the internal state container of Shrewd.
+ */
+//////////////////////////////////////////////////////////////////
 
 class Global {
 
 	private static _state: IState = {
 		$isCommitting: false,
 		$isConstructing: false,
-		$target: null
+		$isRenderingProperty: false,
+		$target: null,
+		$accessibles: new Set()
 	};
 
 	private static _history: IState[] = [];
@@ -30,7 +40,13 @@ class Global {
 	/** Whether Shrewd is constructing a new object. */
 	public static get $isConstructing() { return Global._state.$isConstructing; }
 
+	/** Whether Shrewd is rendering a ObservableProperty. */
+	public static get $isRenderingProperty() { return Global._state.$isRenderingProperty; }
+
 	/** Current target of side-recording. */
 	public static get $target() { return Global._state.$target; }
 
+	public static $isAccessible(observable: Observable) { return Global._state.$accessibles.has(observable); }
+
+	public static $setAccessible(observable: Observable) { Global._state.$accessibles.add(observable); }
 }

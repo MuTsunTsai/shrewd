@@ -1,6 +1,8 @@
 
 enum ObserverState {
-	$outdated, $updated, $pending
+	$outdated,
+	$updated,
+	$pending
 }
 
 abstract class Observer extends Observable {
@@ -29,7 +31,9 @@ abstract class Observer extends Observable {
 		if(observable instanceof Observer && observable._isTerminated) return;
 		Core.$option.hook.read(observable.$id);
 		let target = Global.$target;
-		if(target && target != observable && !target._isTerminated) target._reference.add(observable);
+		if(target && target != observable && !target._isTerminated) {
+			target._reference.add(observable);
+		}
 	}
 
 	// Check reference dead-ends; clear references of Observers that has no subscription.
@@ -40,7 +44,9 @@ abstract class Observer extends Observable {
 			if(!observable._isActive) {
 				let oldReferences = new Set(observable._reference);
 				Core.$unqueue(observable);
-				for(let ref of oldReferences) Observer.$checkDeadEnd(ref);
+				for(let ref of oldReferences) {
+					Observer.$checkDeadEnd(ref);
+				}
 			}
 		}
 	}
@@ -68,12 +74,16 @@ abstract class Observer extends Observable {
 			for(let observable of observer._reference) {
 				oldReferences.delete(observable);
 				observable.$subscribe(observer);
-				if(observer._isActive && observable instanceof Observer) observable.passDownActive();
+				if(observer._isActive && observable instanceof Observer) {
+					observable.passDownActive();
+				}
 			}
 		}
 
 		// Clean up dead-ends.
-		for(let observable of oldReferences) Observer.$checkDeadEnd(observable);
+		for(let observable of oldReferences) {
+			Observer.$checkDeadEnd(observable);
+		}
 
 		// Restore state.
 		observer._isRendering = false;
@@ -106,12 +116,16 @@ abstract class Observer extends Observable {
 	}
 
 	/** Whether self is in the current rendering stack. */
-	public get $isRendering() { return this._isRendering; }
+	public get $isRendering() {
+		return this._isRendering;
+	}
 
 	public $notified() {
 		this._pend();
 		this._outdate();
-		if(this._isActive) Core.$queue(this);
+		if(this._isActive) {
+			Core.$queue(this);
+		}
 	}
 
 	public $terminate() {
@@ -136,7 +150,9 @@ abstract class Observer extends Observable {
 		if(this._state == ObserverState.$updated) {
 			this._state = ObserverState.$pending;
 			Observer._pending.add(this);
-			for(let subscriber of this.$subscribers) subscriber._pend();
+			for(let subscriber of this.$subscribers) {
+				subscriber._pend();
+			}
 		}
 	}
 
@@ -164,13 +180,17 @@ abstract class Observer extends Observable {
 			if(ref instanceof Observer) {
 				// Found potential circular dependency; but it might just be dynamic dependency.
 				// The only way to be certain is to actually execute it.
-				if(ref._isRendering) Observer.$render(this);
-				else if(ref._state != ObserverState.$updated) ref._determineState();
+				if(ref._isRendering) {
+					Observer.$render(this);
+				} else if(ref._state != ObserverState.$updated) {
+					ref._determineState();
+				}
 			}
 		}
 
-		if(this._state == ObserverState.$outdated || force) Observer.$render(this);
-		else {
+		if(this._state == ObserverState.$outdated || force) {
+			Observer.$render(this);
+		} else {
 			Observer._pending.delete(this);
 			this._update();
 		}
@@ -178,13 +198,17 @@ abstract class Observer extends Observable {
 		Observer.$trace.pop();
 	}
 
-	protected _update() { this._state = ObserverState.$updated; }
+	protected _update() {
+		this._state = ObserverState.$updated;
+	}
 
-	protected _outdate() { this._state = ObserverState.$outdated; }
+	protected _outdate() {
+		this._state = ObserverState.$outdated;
+	}
 
-	protected get _isUpdated() { return this._state == ObserverState.$updated; }
-
-	protected get _isPending() { return this._state == ObserverState.$pending; }
+	protected get $state() {
+		return this._state;
+	}
 
 	private _isActive: boolean = this.checkActive();
 	protected checkActive() {

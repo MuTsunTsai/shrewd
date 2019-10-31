@@ -9,7 +9,7 @@ interface IMethodDescriptor<T extends Collection> {
 	$receiver: T;
 }
 
-class CollectionProxyHandler<T extends Collection> extends BaseProxyHandler<T> {
+class CollectionProxyHandler<T extends Collection> implements ProxyHandler<T> {
 	
 	public get(target: WrappedObservable<T>, prop: keyof T, receiver: T): any {
 		let ob = target[$observableHelper];

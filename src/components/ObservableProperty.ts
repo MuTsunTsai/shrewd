@@ -23,28 +23,21 @@ class ObservableProperty extends DecoratedMemeber {
 		};
 	}
 
-	private static _isRendering: boolean = false;
-	public static get $isRendering() { return ObservableProperty._isRendering; }
-
-	private static _accessibles: Set<Observable> = new Set();
 	private static $setAccessible(target: any): void {
 		if(target == null || typeof target != "object") return;
 		if(Helper.$hasHelper(target)) {
-			if(!ObservableProperty._accessibles.has(target[$observableHelper])) {
-				ObservableProperty._accessibles.add(target[$observableHelper]);
+			if(!Global.$isAccessible(target[$observableHelper])) {
+				Global.$setAccessible(target[$observableHelper]);
 				for(let child of target[$observableHelper].$child) ObservableProperty.$setAccessible(child);
 			}
 		} else if(HiddenProperty.$has(target, $shrewdObject)) {
 			for(let obp of ShrewdObject.get(target).$observables) {
-				if(!ObservableProperty._accessibles.has(obp)) {
-					ObservableProperty._accessibles.add(obp);
+				if(!Global.$isAccessible(obp)) {
+					Global.$setAccessible(obp);
 					ObservableProperty.$setAccessible(obp._outputValue);
 				}
 			}
 		}
-	}
-	public static $isAccessible(observable: Observable): boolean {
-		return ObservableProperty._accessibles.has(observable);
 	}
 
 	private _option: IDecoratorOptions<any>;
@@ -55,18 +48,24 @@ class ObservableProperty extends DecoratedMemeber {
 		super(parent, descriptor);
 		this._option = descriptor.$option || {};
 		Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
-		if(!this._option.renderer) this._update();
+		if(!this._option.renderer) {
+			this._update();
+		}
 	}
 
 	protected _outdate() {
 		// Without a renderer, the ObservableProperty is always updated.
-		if(this._option.renderer) super._outdate();
+		if(this._option.renderer) {
+			super._outdate();
+		}
 	}
 
 	public $getter() {
 		if(!this.$isTerminated) {
 			Observer.$refer(this);
-			if(this._option.renderer) this._determineState();
+			if(this._option.renderer) {
+				this._determineState();
+			}
 		}
 		return this._outputValue;
 	}
@@ -82,18 +81,25 @@ class ObservableProperty extends DecoratedMemeber {
 				return Core.$option.hook.write(this.$id);
 			}
 			this._inputValue = Helper.$wrap(value);
-			if(this._option.renderer) Observer.$render(this);
-			else this.$publish(this._inputValue);
+			if(this._option.renderer) {
+				Observer.$render(this);
+			} else {
+				this.$publish(this._inputValue);
+			}
 		}
 	}
 
 	public $render() {
-		ObservableProperty._isRendering = true;
+		Global.$pushState({
+			$isRenderingProperty: true,
+			$accessibles: new Set()
+		})
 		ObservableProperty.$setAccessible(this._inputValue);
 		let value = this._option.renderer!.apply(this._parent, [this._inputValue]);
-		ObservableProperty._accessibles.clear();
-		ObservableProperty._isRendering = false;
-		if(value !== this._outputValue) this.$publish(Helper.$wrap(value));
+		Global.$restore();
+		if(value !== this._outputValue) {
+			this.$publish(Helper.$wrap(value));
+		}
 	}
 
 	private $publish(value: any) {

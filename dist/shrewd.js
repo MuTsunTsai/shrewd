@@ -22,11 +22,11 @@
         static $isWritable(observable) {
             if (Global.$isConstructing || !observable.$hasSubscriber)
                 return true;
-            if (ObservableProperty.$isRendering && !ObservableProperty.$isAccessible(observable)) {
+            if (Global.$isRenderingProperty && !Global.$isAccessible(observable)) {
                 console.warn('Inside a renderer function, only the objects owned by the ObservableProperty can be written.');
                 return false;
             }
-            if (!ObservableProperty.$isRendering && Global.$isCommitting) {
+            if (!Global.$isRenderingProperty && Global.$isCommitting) {
                 console.warn('Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.');
                 return false;
             }
@@ -34,8 +34,9 @@
         }
         static $publish(observable) {
             Core.$option.hook.write(observable.$id);
-            for (let observer of observable._subscribers)
+            for (let observer of observable._subscribers) {
                 observer.$notified();
+            }
         }
         $subscribe(observer) {
             this._subscribers.add(observer);
@@ -85,13 +86,15 @@
     class Core {
         static $commit() {
             Global.$pushState({ $isCommitting: true });
-            for (let observer of Core._queue)
+            for (let observer of Core._queue) {
                 Observer.$render(observer);
+            }
             Observer.$clearPending();
             Core._queue.clear();
             Global.$restore();
-            for (let shrewd of Core._terminate)
+            for (let shrewd of Core._terminate) {
                 shrewd.$terminate();
+            }
             Core._terminate.clear();
             Core.$option.hook.gc();
         }
@@ -103,8 +106,9 @@
             Core._queue.delete(observer);
         }
         static $queue(observer) {
-            if (!observer.$isRendering)
+            if (!observer.$isRendering) {
                 Core._queue.add(observer);
+            }
             if (Core.$option.autoCommit && !Core._promised) {
                 let promise = Promise.resolve();
                 promise.then(Core._autoCommit);
@@ -126,10 +130,11 @@
         static $terminate(target, lazy = false) {
             if (HiddenProperty.$has(target, $shrewdObject)) {
                 let shrewd = target[$shrewdObject];
-                if (lazy)
+                if (lazy) {
                     Core._terminate.add(shrewd);
-                else
+                } else {
                     shrewd.$terminate();
+                }
             }
         }
     }
@@ -279,7 +284,48 @@
             return target;
         }
     }
-    class BaseProxyHandler {
+    class CollectionProxyHandler {
+        get(target, prop, receiver) {
+            let ob = target[$observableHelper];
+            let result = Reflect.get(target, prop);
+            if (typeof result == 'function') {
+                result = this._method.bind({
+                    $prop: prop,
+                    $target: target,
+                    $method: result.bind(target),
+                    $helper: ob,
+                    $receiver: receiver
+                });
+            }
+            if (prop == 'size')
+                Observer.$refer(target[$observableHelper]);
+            return result;
+        }
+        _method(...args) {
+            switch (this.$prop) {
+            case 'clear':
+                if (Observer.$isWritable(this.$helper) && this.$target.size > 0) {
+                    this.$target.clear();
+                    Observable.$publish(this.$helper);
+                }
+                return;
+            case 'delete':
+                if (Observer.$isWritable(this.$helper) && this.$target.has(args[0])) {
+                    this.$target.delete(args[0]);
+                    Observable.$publish(this.$helper);
+                }
+                return;
+            case Symbol.iterator:
+            case 'entries':
+            case 'forEach':
+            case 'has':
+            case 'keys':
+            case 'values':
+                Observer.$refer(this.$helper);
+            default:
+                return this.$method(...args);
+            }
+        }
     }
     var ObserverState;
     (function (ObserverState) {
@@ -310,8 +356,9 @@
                 return;
             Core.$option.hook.read(observable.$id);
             let target = Global.$target;
-            if (target && target != observable && !target._isTerminated)
+            if (target && target != observable && !target._isTerminated) {
                 target._reference.add(observable);
+            }
         }
         static $checkDeadEnd(observable) {
             if (observable instanceof Observer && !observable._isTerminated) {
@@ -319,8 +366,9 @@
                 if (!observable._isActive) {
                     let oldReferences = new Set(observable._reference);
                     Core.$unqueue(observable);
-                    for (let ref of oldReferences)
+                    for (let ref of oldReferences) {
                         Observer.$checkDeadEnd(ref);
+                    }
                 }
             }
         }
@@ -339,12 +387,14 @@
                 for (let observable of observer._reference) {
                     oldReferences.delete(observable);
                     observable.$subscribe(observer);
-                    if (observer._isActive && observable instanceof Observer)
+                    if (observer._isActive && observable instanceof Observer) {
                         observable.passDownActive();
+                    }
                 }
             }
-            for (let observable of oldReferences)
+            for (let observable of oldReferences) {
                 Observer.$checkDeadEnd(observable);
+            }
             observer._isRendering = false;
             Global.$restore();
             return result;
@@ -355,8 +405,9 @@
         $notified() {
             this._pend();
             this._outdate();
-            if (this._isActive)
+            if (this._isActive) {
                 Core.$queue(this);
+            }
         }
         $terminate() {
             if (this._isTerminated)
@@ -379,8 +430,9 @@
             if (this._state == ObserverState.$updated) {
                 this._state = ObserverState.$pending;
                 Observer._pending.add(this);
-                for (let subscriber of this.$subscribers)
+                for (let subscriber of this.$subscribers) {
                     subscriber._pend();
+                }
             }
         }
         _determineState(force = false) {
@@ -400,15 +452,16 @@
             Observer.$trace.push(this);
             for (let ref of this._reference) {
                 if (ref instanceof Observer) {
-                    if (ref._isRendering)
+                    if (ref._isRendering) {
                         Observer.$render(this);
-                    else if (ref._state != ObserverState.$updated)
+                    } else if (ref._state != ObserverState.$updated) {
                         ref._determineState();
+                    }
                 }
             }
-            if (this._state == ObserverState.$outdated || force)
+            if (this._state == ObserverState.$outdated || force) {
                 Observer.$render(this);
-            else {
+            } else {
                 Observer._pending.delete(this);
                 this._update();
             }
@@ -420,11 +473,8 @@
         _outdate() {
             this._state = ObserverState.$outdated;
         }
-        get _isUpdated() {
-            return this._state == ObserverState.$updated;
-        }
-        get _isPending() {
-            return this._state == ObserverState.$pending;
+        get $state() {
+            return this._state;
         }
         checkActive() {
             if (Core.$option.hook.sub(this.$id))
@@ -494,56 +544,13 @@
         }
     }
     Helper._proxyMap = new WeakMap();
-    class CollectionProxyHandler extends BaseProxyHandler {
-        get(target, prop, receiver) {
-            let ob = target[$observableHelper];
-            let result = Reflect.get(target, prop);
-            if (typeof result == 'function') {
-                result = this._method.bind({
-                    $prop: prop,
-                    $target: target,
-                    $method: result.bind(target),
-                    $helper: ob,
-                    $receiver: receiver
-                });
-            }
-            if (prop == 'size')
-                Observer.$refer(target[$observableHelper]);
-            return result;
-        }
-        _method(...args) {
-            switch (this.$prop) {
-            case 'clear':
-                if (Observer.$isWritable(this.$helper) && this.$target.size > 0) {
-                    this.$target.clear();
-                    Observable.$publish(this.$helper);
-                }
-                return;
-            case 'delete':
-                if (Observer.$isWritable(this.$helper) && this.$target.has(args[0])) {
-                    this.$target.delete(args[0]);
-                    Observable.$publish(this.$helper);
-                }
-                return;
-            case Symbol.iterator:
-            case 'entries':
-            case 'forEach':
-            case 'has':
-            case 'keys':
-            case 'values':
-                Observer.$refer(this.$helper);
-            default:
-                return this.$method(...args);
-            }
-        }
-    }
     class DecoratedMemeber extends Observer {
         constructor(parent, descriptor) {
             super(descriptor.$name);
             this._parent = parent;
         }
     }
-    class ObjectProxyHandler extends BaseProxyHandler {
+    class ObjectProxyHandler {
         has(target, prop) {
             Observer.$refer(target[$observableHelper]);
             return Reflect.has(target, prop);
@@ -586,8 +593,9 @@
             let result = [];
             for (let key in this._target) {
                 let value = this._target[key];
-                if (typeof value == 'object')
+                if (typeof value == 'object') {
                     result.push(value);
+                }
             }
             return result;
         }
@@ -616,8 +624,9 @@
         get $child() {
             let result = [];
             for (let value of this._target) {
-                if (typeof value == 'object')
+                if (typeof value == 'object') {
                     result.push(value);
+                }
             }
             return result;
         }
@@ -644,10 +653,12 @@
         get $child() {
             let result = [];
             for (let [key, value] of this._target) {
-                if (typeof key == 'object')
+                if (typeof key == 'object') {
                     result.push(key);
-                if (typeof value == 'object')
+                }
+                if (typeof value == 'object') {
                     result.push(value);
+                }
             }
             return result;
         }
@@ -678,52 +689,51 @@
             super(parent, descriptor);
             this._option = descriptor.$option || {};
             Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
-            if (!this._option.renderer)
+            if (!this._option.renderer) {
                 this._update();
+            }
         }
         static $interceptor(key) {
             return ObservableProperty._interceptor[key] = ObservableProperty._interceptor[key] || {
                 get() {
-                    return ShrewdObject.get(this).$getMember(key).$getter();
+                    let member = ShrewdObject.get(this).$getMember(key);
+                    return member.$getter();
                 },
                 set(value) {
-                    ShrewdObject.get(this).$getMember(key).$setter(value);
+                    let member = ShrewdObject.get(this).$getMember(key);
+                    member.$setter(value);
                 }
             };
-        }
-        static get $isRendering() {
-            return ObservableProperty._isRendering;
         }
         static $setAccessible(target) {
             if (target == null || typeof target != 'object')
                 return;
             if (Helper.$hasHelper(target)) {
-                if (!ObservableProperty._accessibles.has(target[$observableHelper])) {
-                    ObservableProperty._accessibles.add(target[$observableHelper]);
+                if (!Global.$isAccessible(target[$observableHelper])) {
+                    Global.$setAccessible(target[$observableHelper]);
                     for (let child of target[$observableHelper].$child)
                         ObservableProperty.$setAccessible(child);
                 }
             } else if (HiddenProperty.$has(target, $shrewdObject)) {
                 for (let obp of ShrewdObject.get(target).$observables) {
-                    if (!ObservableProperty._accessibles.has(obp)) {
-                        ObservableProperty._accessibles.add(obp);
+                    if (!Global.$isAccessible(obp)) {
+                        Global.$setAccessible(obp);
                         ObservableProperty.$setAccessible(obp._outputValue);
                     }
                 }
             }
         }
-        static $isAccessible(observable) {
-            return ObservableProperty._accessibles.has(observable);
-        }
         _outdate() {
-            if (this._option.renderer)
+            if (this._option.renderer) {
                 super._outdate();
+            }
         }
         $getter() {
             if (!this.$isTerminated) {
                 Observer.$refer(this);
-                if (this._option.renderer)
+                if (this._option.renderer) {
                     this._determineState();
+                }
             }
             return this._outputValue;
         }
@@ -737,20 +747,24 @@
                     return Core.$option.hook.write(this.$id);
                 }
                 this._inputValue = Helper.$wrap(value);
-                if (this._option.renderer)
+                if (this._option.renderer) {
                     Observer.$render(this);
-                else
+                } else {
                     this.$publish(this._inputValue);
+                }
             }
         }
         $render() {
-            ObservableProperty._isRendering = true;
+            Global.$pushState({
+                $isRenderingProperty: true,
+                $accessibles: new Set()
+            });
             ObservableProperty.$setAccessible(this._inputValue);
             let value = this._option.renderer.apply(this._parent, [this._inputValue]);
-            ObservableProperty._accessibles.clear();
-            ObservableProperty._isRendering = false;
-            if (value !== this._outputValue)
+            Global.$restore();
+            if (value !== this._outputValue) {
                 this.$publish(Helper.$wrap(value));
+            }
         }
         $publish(value) {
             this._outputValue = value;
@@ -763,8 +777,6 @@
         }
     }
     ObservableProperty._interceptor = {};
-    ObservableProperty._isRendering = false;
-    ObservableProperty._accessibles = new Set();
     class ReactiveMethod extends DecoratedMemeber {
         constructor(parent, descriptor) {
             super(parent, descriptor);
@@ -779,10 +791,12 @@
                 Observer.$refer(this);
                 let force = false;
                 if (!Global.$isCommitting) {
-                    if (this._option.lazy && !this._isUpdated)
+                    if (this._option.lazy && this.$state != ObserverState.$updated) {
                         return () => (this.$notified(), this._result);
-                    if (!this._isPending)
+                    }
+                    if (this.$state != ObserverState.$pending) {
                         force = true;
+                    }
                 }
                 return () => {
                     this._determineState(force);
@@ -808,15 +822,17 @@
     }
     class ArrayHelper extends Helper {
         constructor(arr) {
-            for (let i in arr)
+            for (let i in arr) {
                 arr[i] = Helper.$wrap(arr[i]);
+            }
             super(arr, ArrayHelper._handler);
         }
         get $child() {
             let result = [];
             for (let value of this._target) {
-                if (typeof value == 'object')
+                if (typeof value == 'object') {
                     result.push(value);
+                }
             }
             return this._target;
         }
@@ -851,14 +867,25 @@
         static get $isConstructing() {
             return Global._state.$isConstructing;
         }
+        static get $isRenderingProperty() {
+            return Global._state.$isRenderingProperty;
+        }
         static get $target() {
             return Global._state.$target;
+        }
+        static $isAccessible(observable) {
+            return Global._state.$accessibles.has(observable);
+        }
+        static $setAccessible(observable) {
+            Global._state.$accessibles.add(observable);
         }
     }
     Global._state = {
         $isCommitting: false,
         $isConstructing: false,
-        $target: null
+        $isRenderingProperty: false,
+        $target: null,
+        $accessibles: new Set()
     };
     Global._history = [];
     return Shrewd;
