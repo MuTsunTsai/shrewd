@@ -24,23 +24,25 @@ class Core {
 	public static $commit() {
 		Global.$pushState({ $isCommitting: true });
 
-		// Start comitting.
-		for(let observer of Core._queue) {
-			Observer.$render(observer);
+		try {
+			// Start comitting.
+			for(let observer of Core._queue) {
+				Observer.$render(observer);
+			}
+		} finally {
+			// Finish comitting.
+			Observer.$clearPending();
+			Core._queue.clear();
+			Global.$restore();
+
+			// Terminate objects.
+			for(let shrewd of Core._terminate) {
+				shrewd.$terminate();
+			}
+			Core._terminate.clear();
+
+			Core.$option.hook.gc();
 		}
-
-		// Finish comitting.
-		Observer.$clearPending();
-		Core._queue.clear();
-		Global.$restore();
-
-		// Terminate objects.
-		for(let shrewd of Core._terminate) {
-			shrewd.$terminate();
-		}
-		Core._terminate.clear();
-
-		Core.$option.hook.gc();
 	}
 
 	/** Auto-commit runs after finishing the current stack (but before any setTimeout). */
@@ -74,10 +76,12 @@ class Core {
 			$target: null
 		});
 		Observer.$trace.push("construct " + constructor.name);
-		let result = new constructor(...args);
-		Observer.$trace.pop();
-		Global.$restore();
-		return result;
+		try {
+			return new constructor(...args);
+		} finally {
+			Observer.$trace.pop();
+			Global.$restore();
+		}
 	}
 
 	public static $terminate(target: object, lazy: boolean = false) {

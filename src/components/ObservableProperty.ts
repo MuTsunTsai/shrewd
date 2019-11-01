@@ -94,11 +94,15 @@ class ObservableProperty extends DecoratedMemeber {
 			$isRenderingProperty: true,
 			$accessibles: new Set()
 		})
-		ObservableProperty.$setAccessible(this._inputValue);
-		let value = this._option.renderer!.apply(this._parent, [this._inputValue]);
-		Global.$restore();
-		if(value !== this._outputValue) {
-			this.$publish(Helper.$wrap(value));
+
+		try {
+			ObservableProperty.$setAccessible(this._inputValue);
+			let value = this._option.renderer!.apply(this._parent, [this._inputValue]);
+			if(value !== this._outputValue) {
+				this.$publish(Helper.$wrap(value));
+			}
+		} finally {
+			Global.$restore();
 		}
 	}
 

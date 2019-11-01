@@ -86,17 +86,20 @@
     class Core {
         static $commit() {
             Global.$pushState({ $isCommitting: true });
-            for (let observer of Core._queue) {
-                Observer.$render(observer);
+            try {
+                for (let observer of Core._queue) {
+                    Observer.$render(observer);
+                }
+            } finally {
+                Observer.$clearPending();
+                Core._queue.clear();
+                Global.$restore();
+                for (let shrewd of Core._terminate) {
+                    shrewd.$terminate();
+                }
+                Core._terminate.clear();
+                Core.$option.hook.gc();
             }
-            Observer.$clearPending();
-            Core._queue.clear();
-            Global.$restore();
-            for (let shrewd of Core._terminate) {
-                shrewd.$terminate();
-            }
-            Core._terminate.clear();
-            Core.$option.hook.gc();
         }
         static _autoCommit() {
             Core.$commit();
@@ -122,10 +125,12 @@
                 $target: null
             });
             Observer.$trace.push('construct ' + constructor.name);
-            let result = new constructor(...args);
-            Observer.$trace.pop();
-            Global.$restore();
-            return result;
+            try {
+                return new constructor(...args);
+            } finally {
+                Observer.$trace.pop();
+                Global.$restore();
+            }
         }
         static $terminate(target, lazy = false) {
             if (HiddenProperty.$has(target, $shrewdObject)) {
@@ -379,25 +384,28 @@
             });
             observer._isRendering = true;
             Core.$unqueue(observer);
-            let oldReferences = new Set(observer._reference);
-            observer.$clearReference();
-            let result = observer.$render();
-            observer._update();
-            if (!observer._isTerminated) {
-                for (let observable of observer._reference) {
-                    oldReferences.delete(observable);
-                    observable.$subscribe(observer);
-                    if (observer._isActive && observable instanceof Observer) {
-                        observable.passDownActive();
+            try {
+                let oldReferences = new Set(observer._reference);
+                observer.$clearReference();
+                let result = observer.$render();
+                observer._update();
+                if (!observer._isTerminated) {
+                    for (let observable of observer._reference) {
+                        oldReferences.delete(observable);
+                        observable.$subscribe(observer);
+                        if (observer._isActive && observable instanceof Observer) {
+                            observable.passDownActive();
+                        }
                     }
                 }
+                for (let observable of oldReferences) {
+                    Observer.$checkDeadEnd(observable);
+                }
+                return result;
+            } finally {
+                observer._isRendering = false;
+                Global.$restore();
             }
-            for (let observable of oldReferences) {
-                Observer.$checkDeadEnd(observable);
-            }
-            observer._isRendering = false;
-            Global.$restore();
-            return result;
         }
         get $isRendering() {
             return this._isRendering;
@@ -436,7 +444,7 @@
             }
         }
         _determineState(force = false) {
-            if (this.$isRendering) {
+            if (this._isRendering) {
                 let last = Observer.$trace.indexOf(this);
                 let cycle = [
                     this,
@@ -450,22 +458,26 @@
             if (this._state == ObserverState.$updated)
                 return;
             Observer.$trace.push(this);
-            for (let ref of this._reference) {
-                if (ref instanceof Observer) {
-                    if (ref._isRendering) {
-                        Observer.$render(this);
-                    } else if (ref._state != ObserverState.$updated) {
-                        ref._determineState();
+            try {
+                for (let ref of this._reference) {
+                    if (ref instanceof Observer) {
+                        if (ref._isRendering) {
+                            Observer.$render(this);
+                            break;
+                        } else if (ref._state != ObserverState.$updated) {
+                            ref._determineState();
+                        }
                     }
                 }
+                if (this._state == ObserverState.$outdated || force) {
+                    Observer.$render(this);
+                } else {
+                    Observer._pending.delete(this);
+                    this._update();
+                }
+            } finally {
+                Observer.$trace.pop();
             }
-            if (this._state == ObserverState.$outdated || force) {
-                Observer.$render(this);
-            } else {
-                Observer._pending.delete(this);
-                this._update();
-            }
-            Observer.$trace.pop();
         }
         _update() {
             this._state = ObserverState.$updated;
@@ -759,11 +771,14 @@
                 $isRenderingProperty: true,
                 $accessibles: new Set()
             });
-            ObservableProperty.$setAccessible(this._inputValue);
-            let value = this._option.renderer.apply(this._parent, [this._inputValue]);
-            Global.$restore();
-            if (value !== this._outputValue) {
-                this.$publish(Helper.$wrap(value));
+            try {
+                ObservableProperty.$setAccessible(this._inputValue);
+                let value = this._option.renderer.apply(this._parent, [this._inputValue]);
+                if (value !== this._outputValue) {
+                    this.$publish(Helper.$wrap(value));
+                }
+            } finally {
+                Global.$restore();
             }
         }
         $publish(value) {

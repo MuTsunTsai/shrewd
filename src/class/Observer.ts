@@ -61,35 +61,39 @@ abstract class Observer extends Observable {
 		observer._isRendering = true;
 		Core.$unqueue(observer);
 
-		// Clear all references.
-		let oldReferences = new Set(observer._reference);
-		observer.$clearReference();
+		try {
 
-		// Execute the rendering method.
-		let result = observer.$render();
-		observer._update();
+			// Clear all references.
+			let oldReferences = new Set(observer._reference);
+			observer.$clearReference();
 
-		// Make subscription based on the side-recording result.
-		if(!observer._isTerminated) {
-			for(let observable of observer._reference) {
-				oldReferences.delete(observable);
-				observable.$subscribe(observer);
-				if(observer._isActive && observable instanceof Observer) {
-					observable.passDownActive();
+			// Execute the rendering method.
+			let result = observer.$render();
+			observer._update();
+
+			// Make subscription based on the side-recording result.
+			if(!observer._isTerminated) {
+				for(let observable of observer._reference) {
+					oldReferences.delete(observable);
+					observable.$subscribe(observer);
+					if(observer._isActive && observable instanceof Observer) {
+						observable.passDownActive();
+					}
 				}
 			}
+
+			// Clean up dead-ends.
+			for(let observable of oldReferences) {
+				Observer.$checkDeadEnd(observable);
+			}
+			
+			return result;
+
+		} finally {
+			// Restore state.
+			observer._isRendering = false;
+			Global.$restore();
 		}
-
-		// Clean up dead-ends.
-		for(let observable of oldReferences) {
-			Observer.$checkDeadEnd(observable);
-		}
-
-		// Restore state.
-		observer._isRendering = false;
-		Global.$restore();
-
-		return result;
 	}
 
 	/////////////////////////////////////////////////////
@@ -159,7 +163,7 @@ abstract class Observer extends Observable {
 	protected _determineState(force: boolean = false) {
 
 		// Circular dependency found.
-		if(this.$isRendering) {
+		if(this._isRendering) {
 			// Find the smallest cycle.
 			let last = Observer.$trace.indexOf(this);
 			let cycle = [this, ...Observer.$trace.slice(last + 1), this];
@@ -175,27 +179,30 @@ abstract class Observer extends Observable {
 		if(this._state == ObserverState.$updated) return;
 		Observer.$trace.push(this);
 
-		// Gather references that are not updated.
-		for(let ref of this._reference) {
-			if(ref instanceof Observer) {
-				// Found potential circular dependency; but it might just be dynamic dependency.
-				// The only way to be certain is to actually execute it.
-				if(ref._isRendering) {
-					Observer.$render(this);
-				} else if(ref._state != ObserverState.$updated) {
-					ref._determineState();
+		try {
+			// Gather references that are not updated.
+			for(let ref of this._reference) {
+				if(ref instanceof Observer) {
+					// Found potential circular dependency; but it might just be dynamic dependency.
+					// The only way to be certain is to actually execute it.
+					if(ref._isRendering) {
+						Observer.$render(this);
+						break;
+					} else if(ref._state != ObserverState.$updated) {
+						ref._determineState();
+					}
 				}
 			}
-		}
 
-		if(this._state == ObserverState.$outdated || force) {
-			Observer.$render(this);
-		} else {
-			Observer._pending.delete(this);
-			this._update();
+			if(this._state == ObserverState.$outdated || force) {
+				Observer.$render(this);
+			} else {
+				Observer._pending.delete(this);
+				this._update();
+			}
+		} finally {
+			Observer.$trace.pop();
 		}
-
-		Observer.$trace.pop();
 	}
 
 	protected _update() {
