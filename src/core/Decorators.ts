@@ -85,6 +85,7 @@ class Decorators {
 		}
 		console.warn(`Setup error at ${a.constructor.name}[${b.toString()}]. ` +
 			"Decorated member must be one of the following: a field, a readonly get accessor, or a method.");
+		if(Core.$option.debug) debugger;
 	}
 
 	private static $observable(proto: object, prop: PropertyKey, option?: IDecoratorOptions<any>) {
@@ -92,6 +93,7 @@ class Decorators {
 		if(descriptor) {
 			console.warn(`Setup error at ${proto.constructor.name}[${prop.toString()}]. ` +
 				"Decorated property is not a field.");
+			if(Core.$option.debug) debugger;
 			return;
 		}
 
@@ -124,7 +126,7 @@ class Decorators {
 		});
 
 		descriptor.get = function(this: IShrewdObjectParent) {
-			let member = ShrewdObject.get(this).$getMember(name);
+			let member: ComputedProperty = ShrewdObject.get(this).$getMember(name);
 			return member.$getter();
 		}
 		return descriptor;
@@ -143,7 +145,7 @@ class Decorators {
 		delete descriptor.value;
 		delete descriptor.writable;
 		descriptor.get = function(this: IShrewdObjectParent) {
-			let member = ShrewdObject.get(this).$getMember(name);
+			let member: ReactiveMethod = ShrewdObject.get(this).$getMember(name);
 			return member.$getter();
 		}
 		return descriptor;

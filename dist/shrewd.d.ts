@@ -92,6 +92,12 @@ interface IShrewdOption {
 	 * might result in better performance for some applications.
 	 */
 	autoCommit: boolean;
+
+	/**
+	 * Whether to pause when Shrewd detects problem and when a debugger is available.
+	 * The default value is true.
+	 */
+	debug: boolean;
 }
 
 /**

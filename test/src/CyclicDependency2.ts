@@ -1,4 +1,4 @@
-import { shrewd, construct, commit } from "../../dist/shrewd";
+import { shrewd, construct, commit, option } from "../../dist/shrewd";
 
 export = function() {
 
@@ -35,12 +35,14 @@ export = function() {
 	}
 
 	let a = new A();
-	
+
+	option.debug = false;
+
 	let err = "", warn = console.warn;
 	console.warn = (s: string) => err = s;
 	a.n = 1;
 	commit();
-	console.assert(err == "Circular dependency detected: A.list => construct B => B.run => A.list" +
+	console.assert(err == "Cyclic dependency detected: A.list => construct B => B.run => A.list" +
 		"\nAll these reactions will be terminated.", "包含有建構式的循環參照", err);
 	console.warn = warn;
 

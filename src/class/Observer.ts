@@ -86,7 +86,7 @@ abstract class Observer extends Observable {
 			for(let observable of oldReferences) {
 				Observer.$checkDeadEnd(observable);
 			}
-			
+
 			return result;
 
 		} finally {
@@ -162,18 +162,20 @@ abstract class Observer extends Observable {
 
 	protected _determineState(force: boolean = false) {
 
-		// Circular dependency found.
+		// Cyclic dependency found.
 		if(this._isRendering) {
 			// Find the smallest cycle.
 			let last = Observer.$trace.indexOf(this);
-			let cycle = [this, ...Observer.$trace.slice(last + 1), this];
+			let cycle = [this, ...Observer.$trace.slice(last + 1)];
 
 			// Terminate everything inside the cycle, allowing the program to continue without throwing error.
 			cycle.forEach(o => o instanceof Observer && o.$terminate());
 
 			// Generate debug message.
+			cycle.push(this);
 			let trace = cycle.map(o => typeof o == "string" ? o : o._name).join(" => ");
-			console.warn("Circular dependency detected: " + trace + "\nAll these reactions will be terminated.");
+			console.warn("Cyclic dependency detected: " + trace + "\nAll these reactions will be terminated.");
+			if(Core.$option.debug) debugger;
 		}
 
 		if(this._state == ObserverState.$updated) return;
@@ -183,7 +185,7 @@ abstract class Observer extends Observable {
 			// Gather references that are not updated.
 			for(let ref of this._reference) {
 				if(ref instanceof Observer) {
-					// Found potential circular dependency; but it might just be dynamic dependency.
+					// Found potential cyclic dependency; but it might just be dynamic dependency.
 					// The only way to be certain is to actually execute it.
 					if(ref._isRendering) {
 						Observer.$render(this);

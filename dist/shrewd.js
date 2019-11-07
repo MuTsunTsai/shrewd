@@ -24,10 +24,14 @@
                 return true;
             if (Global.$isRenderingProperty && !Global.$isAccessible(observable)) {
                 console.warn('Inside a renderer function, only the objects owned by the ObservableProperty can be written.');
+                if (Core.$option.debug)
+                    debugger;
                 return false;
             }
             if (!Global.$isRenderingProperty && Global.$isCommitting) {
                 console.warn('Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.');
+                if (Core.$option.debug)
+                    debugger;
                 return false;
             }
             return true;
@@ -145,7 +149,8 @@
     }
     Core.$option = {
         hook: new DefaultHook(),
-        autoCommit: true
+        autoCommit: true,
+        debug: true
     };
     Core._queue = new Set();
     Core._terminate = new Set();
@@ -176,11 +181,15 @@
                 }
             }
             console.warn(`Setup error at ${ a.constructor.name }[${ b.toString() }]. ` + 'Decorated member must be one of the following: a field, a readonly get accessor, or a method.');
+            if (Core.$option.debug)
+                debugger;
         }
         static $observable(proto, prop, option) {
             let descriptor = Object.getOwnPropertyDescriptor(proto, prop);
             if (descriptor) {
                 console.warn(`Setup error at ${ proto.constructor.name }[${ prop.toString() }]. ` + 'Decorated property is not a field.');
+                if (Core.$option.debug)
+                    debugger;
                 return;
             }
             Decorators.get(proto).push({
@@ -448,12 +457,14 @@
                 let last = Observer.$trace.indexOf(this);
                 let cycle = [
                     this,
-                    ...Observer.$trace.slice(last + 1),
-                    this
+                    ...Observer.$trace.slice(last + 1)
                 ];
                 cycle.forEach(o => o instanceof Observer && o.$terminate());
+                cycle.push(this);
                 let trace = cycle.map(o => typeof o == 'string' ? o : o._name).join(' => ');
-                console.warn('Circular dependency detected: ' + trace + '\nAll these reactions will be terminated.');
+                console.warn('Cyclic dependency detected: ' + trace + '\nAll these reactions will be terminated.');
+                if (Core.$option.debug)
+                    debugger;
             }
             if (this._state == ObserverState.$updated)
                 return;

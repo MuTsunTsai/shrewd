@@ -15,10 +15,12 @@ abstract class Observable {
 		if(Global.$isConstructing || !observable.$hasSubscriber) return true;
 		if(Global.$isRenderingProperty && !Global.$isAccessible(observable)) {
 			console.warn("Inside a renderer function, only the objects owned by the ObservableProperty can be written.");
+			if(Core.$option.debug) debugger;
 			return false;
 		}
 		if(!Global.$isRenderingProperty && Global.$isCommitting) {
 			console.warn("Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.");
+			if(Core.$option.debug) debugger;
 			return false;
 		}
 		return true;

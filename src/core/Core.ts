@@ -2,6 +2,7 @@
 interface IShrewdOption {
 	hook: IHook;
 	autoCommit: boolean;
+	debug: boolean;
 }
 
 class Core {
@@ -9,7 +10,8 @@ class Core {
 	/** Shrewd global options. */
 	public static $option: IShrewdOption = {
 		hook: new DefaultHook(),
-		autoCommit: true
+		autoCommit: true,
+		debug: true
 	}
 
 	/** Notified, to-be-rendered Observers. */

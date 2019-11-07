@@ -28,8 +28,8 @@ Shrewd is also a reactive framework that can be used for building apps or state-
 - Efficiency\
 	Shrewd performs only the necessary calculations and rendering. Propagation of changes stops at any variable that remains unchanged, and resulting values are cached until its references have changed. Shrewd also make sure that it performs the propagation in the correct order so that nothing will be updated twice in the same committing stage.
 
-- Prevents circular dependencies\
-	The design of Shrewd makes it less likely to create circular dependency among data, and when there is one, Shrewd detects and provides readable debug messages that help programmers to fix the problem.
+- Prevents cyclic dependencies\
+	The design of Shrewd makes it less likely to create cyclic dependency among data, and when there is one, Shrewd detects and provides readable debug messages that help programmers to fix the problem.
 
 - Third-party framework support\
 	Shrewd provides hooks that enables it to communicate with other reactive frameworks, and it has a built-in hook for Vue.js.
@@ -109,7 +109,7 @@ and then call `Shrewd.commit()` manually to propagate the changes.
 
 ObservableProperties are the sources in our data flow. Once they are set to new values, changes will be propagated in the next committing stage. 
 
-ObservableProperties can only be changed manually, and setting their values inside a ComputedProperty or ReactiveMethod (these two, together with the renderer function mentioned later, are called reactions) is not allowed. This design is for preventing circular dependency and unnecessary re-running of reactions. The idea is that, if a value is supposed to depend on something else, one should make it an ComputedProperty, instead of trying to update it inside a reaction.
+ObservableProperties can only be changed manually, and setting their values inside a ComputedProperty or ReactiveMethod (these two, together with the renderer function mentioned later, are called reactions) is not allowed. This design is for preventing cyclic dependency and unnecessary re-running of reactions. The idea is that, if a value is supposed to depend on something else, one should make it an ComputedProperty, instead of trying to update it inside a reaction.
 
 However, we made an exception to this rule, so that an ObservableProperty can update itself based on something else. One can also add a validation rule to it so that it accepts only certain values.
 
@@ -223,9 +223,9 @@ Shrewd.terminate(target: object)
 ```
 to terminate it (which stops all its reactive features). Without doing so, the object may not be garbage-collected and causes memory leaks.
 
-## Circular dependency detection
+## Cyclic dependency detection
 
-In larger projects where dependencies of data are complicated, it is easy to accidentally design a data flow that has circular dependencies. Shrewd can help us to catch such dependency and show us how to fix it. Consider the following example:
+In larger projects where dependencies of data are complicated, it is easy to accidentally design a data flow that has cyclic dependencies. Shrewd can help us to catch such dependency and show us how to fix it. Consider the following example:
 
 ```ts
 class A {
@@ -250,14 +250,14 @@ let a = new A();
 a.log();
 ```
 
-In the beginning, nothing is wrong. But once we set `a.switch=false` in the console, circular dependency appears. In this particular case, the following message will appear in the console,
+In the beginning, nothing is wrong. But once we set `a.switch=false` in the console, cyclic dependency appears. In this particular case, the following message will appear in the console,
 
 ```
-Circular dependency detected: A.a => A.c => A.b => A.a
+Cyclic dependency detected: A.a => A.c => A.b => A.a
 All these reactions will be terminated.
 ```
 
-so that not only we know that our code went wrong, but we can also trace exactly what causes the circular dependency to fix it. Whenever Shrewd detects circular dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing errors. Once terminated, reactions will only return their last known return value, without performing anything.
+so that not only we know that our code went wrong, but we can also trace exactly what causes the cyclic dependency to fix it. Whenever Shrewd detects cyclic dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing errors. Once terminated, reactions will only return their last known return value, without performing anything.
 
 ## Use Shrewd with Vue.js
 
