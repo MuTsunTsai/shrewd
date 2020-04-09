@@ -10,7 +10,7 @@ class ObservableProperty extends DecoratedMemeber {
 
 	// Reuse interceptor by its key to save memory.
 	private static _interceptor: any = {};
-	public static $interceptor(key: PropertyKey) {
+	public static $interceptor(key: PropertyKey): PropertyDescriptor {
 		return ObservableProperty._interceptor[key] = ObservableProperty._interceptor[key] || {
 			get() {
 				let member = ShrewdObject.get(this).$getMember(key);
@@ -40,13 +40,12 @@ class ObservableProperty extends DecoratedMemeber {
 		}
 	}
 
-	private _option: IDecoratorOptions<any>;
+
 	private _inputValue: any;
 	private _outputValue: any;
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
-		this._option = descriptor.$option || {};
 		Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
 		if(!this._option.renderer) {
 			this._update();
@@ -60,13 +59,18 @@ class ObservableProperty extends DecoratedMemeber {
 		}
 	}
 
-	public $getter() {
-		if(!this.$isTerminated) {
-			Observer.$refer(this);
-			if(this._option.renderer) {
-				this._determineState();
-			}
+	protected $initialGet() {
+		return this._inputValue;
+	}
+
+	protected $regularGet() {
+		if(this._option.renderer) {
+			this._determineStateAndRender();
 		}
+		return this._outputValue;
+	}
+
+	protected $terminateGet() {
 		return this._outputValue;
 	}
 
@@ -82,7 +86,7 @@ class ObservableProperty extends DecoratedMemeber {
 			}
 			this._inputValue = Helper.$wrap(value);
 			if(this._option.renderer) {
-				Observer.$render(this);
+				this.$notified();
 			} else {
 				this.$publish(this._inputValue);
 			}

@@ -22,6 +22,7 @@ export = function() {
 
 	var b = new B();
 	b.log();
+	commit();
 	console.assert(b.n == "213", "兩個層次的 log 都有被執行，且因為是獨立呼叫，下層優先", b.n);
 
 	b.n = "";

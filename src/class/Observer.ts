@@ -19,7 +19,7 @@ abstract class Observer extends Observable {
 		for(let pending of Observer._pending) {
 			// If a pending, active Observer does not get updated after the comitting stage,
 			// then it must be in fact updated.
-			if(pending._state == ObserverState.$pending && pending._isActive) {
+			if(pending._state == ObserverState.$pending && pending.$isActive) {
 				pending._update();
 				Observer._pending.delete(pending);
 			}
@@ -41,7 +41,7 @@ abstract class Observer extends Observable {
 	public static $checkDeadEnd(observable: Observable) {
 		if(observable instanceof Observer && !observable._isTerminated) {
 			observable._isActive = observable.checkActive();
-			if(!observable._isActive) {
+			if(!observable.$isActive) {
 				let oldReferences = new Set(observable._reference);
 				Core.$unqueue(observable);
 				for(let ref of oldReferences) {
@@ -76,8 +76,8 @@ abstract class Observer extends Observable {
 				for(let observable of observer._reference) {
 					oldReferences.delete(observable);
 					observable.$subscribe(observer);
-					if(observer._isActive && observable instanceof Observer) {
-						observable.passDownActive();
+					if(observer.$isActive && observable instanceof Observer) {
+						observable.activate();
 					}
 				}
 			}
@@ -127,7 +127,7 @@ abstract class Observer extends Observable {
 	public $notified() {
 		this._pend();
 		this._outdate();
-		if(this._isActive) {
+		if(this.$isActive) {
 			Core.$queue(this);
 		}
 	}
@@ -150,6 +150,7 @@ abstract class Observer extends Observable {
 		this._isRendering = false;
 	}
 
+	/** Set the state of the current and all down-stream `Observer` to be pending. */
 	private _pend() {
 		if(this._state == ObserverState.$updated) {
 			this._state = ObserverState.$pending;
@@ -160,23 +161,17 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	protected _determineState(force: boolean = false) {
+	/**
+	 * This is the entry point of the reaction process.
+	 * 
+	 * Inside the method it will determine whether the current `Observer` is outdated
+	 * by recursively determine the states of all its dependencies, and if it is outdated,
+	 * render it.
+	 */
+	protected _determineStateAndRender(force: boolean = false) {
 
 		// Cyclic dependency found.
-		if(this._isRendering) {
-			// Find the smallest cycle.
-			let last = Observer.$trace.indexOf(this);
-			let cycle = [this, ...Observer.$trace.slice(last + 1)];
-
-			// Terminate everything inside the cycle, allowing the program to continue without throwing error.
-			cycle.forEach(o => o instanceof Observer && o.$terminate());
-
-			// Generate debug message.
-			cycle.push(this);
-			let trace = cycle.map(o => typeof o == "string" ? o : o._name).join(" => ");
-			console.warn("Cyclic dependency detected: " + trace + "\nAll these reactions will be terminated.");
-			if(Core.$option.debug) debugger;
-		}
+		if(this._isRendering) this._onCyclicDependencyFound();
 
 		if(this._state == ObserverState.$updated) return;
 		Observer.$trace.push(this);
@@ -191,7 +186,7 @@ abstract class Observer extends Observable {
 						Observer.$render(this);
 						break;
 					} else if(ref._state != ObserverState.$updated) {
-						ref._determineState();
+						ref._determineStateAndRender();
 					}
 				}
 			}
@@ -207,6 +202,21 @@ abstract class Observer extends Observable {
 		}
 	}
 
+	private _onCyclicDependencyFound() {
+		// Find the smallest cycle.
+		let last = Observer.$trace.indexOf(this);
+		let cycle = [this, ...Observer.$trace.slice(last + 1)];
+
+		// Terminate everything inside the cycle, allowing the program to continue without throwing error.
+		cycle.forEach(o => o instanceof Observer && o.$terminate());
+
+		// Generate debug message.
+		cycle.push(this);
+		let trace = cycle.map(o => typeof o == "string" ? o : o._name).join(" => ");
+		console.warn("Cyclic dependency detected: " + trace + "\nAll these reactions will be terminated.");
+		if(Core.$option.debug) debugger;
+	}
+
 	protected _update() {
 		this._state = ObserverState.$updated;
 	}
@@ -219,19 +229,25 @@ abstract class Observer extends Observable {
 		return this._state;
 	}
 
-	private _isActive: boolean = this.checkActive();
+	/** Whether the current `Observer` is active (i.e. has any subscriber) */
+	protected get $isActive(): boolean {
+		return this._isActive = this._isActive != undefined ? this._isActive : this.checkActive();
+	}
+	private _isActive?: boolean;
+
 	protected checkActive() {
 		if(Core.$option.hook.sub(this.$id)) return true;
 		for(let subscriber of this.$subscribers) {
-			if(subscriber._isActive) return true;
+			if(subscriber.$isActive) return true;
 		}
 		return false;
 	}
-	private passDownActive() {
-		if(this._isActive) return;
+
+	private activate() {
+		if(this.$isActive) return;
 		this._isActive = true;
 		for(let observable of this._reference) {
-			if(observable instanceof Observer) observable.passDownActive();
+			if(observable instanceof Observer) observable.activate();
 		}
 	}
 

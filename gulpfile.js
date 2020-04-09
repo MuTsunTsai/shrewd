@@ -10,7 +10,7 @@ var sourcemaps = require('gulp-sourcemaps');
 var pkg = require('./package.json');
 var header = `/**
  * ${pkg.name} v${pkg.version}
- * (c) ${new Date().getFullYear()} Mu-Tsun Tsai
+ * (c) 2019-${new Date().getFullYear()} Mu-Tsun Tsai
  * Released under the MIT License.
  */`;
 

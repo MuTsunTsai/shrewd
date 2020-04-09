@@ -24,6 +24,7 @@ export = function() {
 	a.set.add(2);
 	a.set.add(3);
 	a.log();
+	commit();
 	console.assert(count == 2 && n == 1, "初始計數", count, n);
 
 	a.set.add(5);

@@ -29,6 +29,7 @@ export = function() {
 	var n = 0, t;
 	var a = new A();
 	a.log();
+	commit();
 
 	a.arr.push(1, 2, 3);
 	commit();

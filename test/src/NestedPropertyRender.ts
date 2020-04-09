@@ -31,6 +31,7 @@ export = function() {
 
 	let a = new A();
 	a.log();
+	commit();
 	console.assert(a.c.size == 0, "初始值", a.c);
 	// At this point a.b is not active and will not render itself.
 

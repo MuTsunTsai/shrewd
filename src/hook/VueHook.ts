@@ -18,9 +18,13 @@ class VueHook implements IHook {
 		}
 	});
 
-	public read(id: number) { this._vue.shrewd[id];	}
+	public read(id: number) {
+		this._vue.shrewd[id];
+	}
 
-	public write(id: number) { Vue.set(this._vue.shrewd, id, {}); }
+	public write(id: number) {
+		Vue.set(this._vue.shrewd, id, {});
+	}
 
 	public gc() {
 		for(let id in this._vue.shrewd) {
@@ -28,5 +32,7 @@ class VueHook implements IHook {
 		}
 	}
 
-	public sub(id: number) { return id in this._vue.shrewd && this._vue.shrewd[id].__ob__.dep.subs.length > 0; }
+	public sub(id: number) {
+		return id in this._vue.shrewd && this._vue.shrewd[id].__ob__.dep.subs.length > 0;
+	}
 }

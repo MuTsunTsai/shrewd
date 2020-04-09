@@ -22,8 +22,8 @@ Shrewd is also a reactive framework that can be used for building apps or state-
 - Front-end oriented\
 	Like most front-end packages, Shrewd has zero dependencies and can be used directly on webpages as a global variable without importing modules.
 
-- Simplicity\
-	Shrewd has very few APIs and can be picked up in minutes.
+- Simple and intuitive\
+	Shrewd has very few APIs and can be picked up in minutes. Like Vue.js, Shrewd also allows you to write dependencies in natural-looking scripts, without a bunch of pipings.
 
 - Efficiency\
 	Shrewd performs only the necessary calculations and rendering. Propagation of changes stops at any variable that remains unchanged, and resulting values are cached until its references have changed. Shrewd also make sure that it performs the propagation in the correct order so that nothing will be updated twice in the same committing stage.
@@ -103,7 +103,7 @@ One can also turn off auto-commit by setting
 ```
 Shrewd.option.autoCommit = false;
 ```
-and then call `Shrewd.commit()` manually to propagate the changes.
+and then call `Shrewd.commit()` manually to propagate the changes. This works particularly well for frame-based apps, where one may call `Shrewd.commit()` per frame to reduce calculation loads.
 
 ## ObservableProperty
 
@@ -143,20 +143,13 @@ Inside the `renderer` of an ObservableProperty, if the value is one of the above
 
 ComputedProperties are values entirely depending on other values. It recalculates itself every time one of its references has changed. Its purpose is only for calculation, and it is not recommended to manipulate UI inside it (this is something that should be done in a ReactiveMethod instead).
 
-One important feature of a ComputedProperty is that it will perform recalculation automatically only when its result is eventually used by some ReactiveMethods down the line. If that's not the case, then it will postpone its recalculation, until some non-reactive code requires it.
+One important feature of a ComputedProperty is that it will perform recalculation automatically only when its result is eventually used by some ReactiveMethods down the line. If that's not the case, then it will postpone its recalculation, until some non-reactive code (such as user events, or third party reactive frameworks) requires it.
 
 ## ReactiveMethod
 
-ReactiveMethod re-runs itself automatically during the next committing stage, whenever one of its references has changed. It could return a value so that other reactions may depend on it, but unlike ComputedProperties, it always re-runs itself regardless of the absence of observers.
+ReactiveMethod re-runs itself automatically during the next committing stage, if and only if one of its references has changed. It could return a value so that other reactions may depend on it, but unlike ComputedProperties, it always re-runs itself regardless of the absence of observers.
 
-ReactiveMethods needs to be called for the first time to start it (one may do so inside the constructor of the class if so desired). If the option `lazy` is set to `true`, then during the first call it will not execute immediately, but wait until the committing stage to execute.
-
-```ts
-@shrewd({ lazy: true })
-public method() {
-	....
-}
-```
+ReactiveMethods needs to be called manually in order to start it (one may do so inside the constructor of the class if so desired), and it will run for the first time in the very next comitting stage.
 
 ## Dynamically constructed objects
 
@@ -215,13 +208,25 @@ In order to construct new instances of class `C` inside the ComputedProperty `ma
 ```ts
 Shrewd.construct(constructor: Function, ...params: any[])
 ```
-that allows one to construct new objects without worries.
+that allows one to construct new objects without worries. It creates an isolated scope so that any action that takes place during the construction of the object will not be related to the ComputedProperty.
 
 If an object is no longer needed in the future, make sure to call
 ```ts
 Shrewd.terminate(target: object)
 ```
 to terminate it (which stops all its reactive features). Without doing so, the object may not be garbage-collected and causes memory leaks.
+
+
+## Comparison
+
+| | `ObservableProperty` | `ComputedProperty` | `ReactiveMethod` |
+| --- | --- | --- | --- |
+| Setting in manual stage | Runs validation when applicable. | --- | --- |
+| Getting in manual stage | Returns the last-known value before rendering. | Recomputes as needed, and returns new value. | Returns the last-known value without executing. Triggers itself if not updated. |
+| Comitting stage | Renders the property when applicable, and returns the value after rendering. | Recomputes as needed, and returns new value. | Executes the method when triggered, and returns the new result. |
+| Triggers further reaction ... | ...if the return value has changed. | ...if the return value has changed. | ...in any case. |
+| After terminated | Can be get or set like normal properties, without validation or rendering. | Returns the last-known value without executing. | Returns the last-known value without executing. |
+
 
 ## Cyclic dependency detection
 
@@ -257,7 +262,7 @@ Cyclic dependency detected: A.a => A.c => A.b => A.a
 All these reactions will be terminated.
 ```
 
-so that not only we know that our code went wrong, but we can also trace exactly what causes the cyclic dependency to fix it. Whenever Shrewd detects cyclic dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing errors. Once terminated, reactions will only return their last known return value, without performing anything.
+so that not only we know that our code went wrong, but we can also trace exactly what causes the cyclic dependency to fix it. Whenever Shrewd detects cyclic dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing uncatched errors. Once terminated, reactions will only return their last known return value, without performing anything.
 
 ## Use Shrewd with Vue.js
 
@@ -278,8 +283,8 @@ To demonstrate, we shall modify our very first example.
 <script>
 	var vue = new Vue({
 		el: "#vue",
-		// Do not load a Shrewd object into the data,
-		// as Vue will unnecessarily modifies our object;
+		// Do not load a Shrewd object into the data section,
+		// as Vue will make redundant modifications to our object;
 		// use computed property to get it instead
 		computed: {
 			app() {

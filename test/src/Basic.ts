@@ -16,7 +16,7 @@ export = function() {
 		}
 		@shrewd public get b() {
 			n++;
-			return this.a.a;
+			return test = this.a.a;
 		}
 	}
 
@@ -36,22 +36,20 @@ export = function() {
 	var n = 0, m = 0;
 	var a = new A(0);
 	var b = new B(a);
+	var test;
 
-	console.assert(b.b == 0 && n == 1, "第一次呼叫 b.b 會使計算屬性初始化並且開始監視");
-	console.assert(b.b == 0 && n == 1, "手動再次存取 b.b 不會再次執行計算", n);
-
-	a.a = 12;
+	console.assert(b.b == 0 && n == 1, "在認可前手動呼叫 b.b 會進行初始化", test, n);
 	commit();
-	console.assert(n == 1, "因為 b.b 沒有訂閱者，即使認可也不會自動更新 b.b");
-	console.assert(b.b == 12 && n == 2, "不過手動讀取 b.b 仍然是可以的", n);
+	console.assert(b.b == 0 && n == 1, "已經更新過了就不會在認可階段再次執行 b.b 的計算", test, n);
 
-	a.a = 11;
 	var c = new C(b); // 增加一個 b.b 的訂閱者
 	c.log();
-	console.assert(m == 1 && n == 3, "c.log 的初始化只會執行 b.b 一次", n);
+	console.assert(m == 0, "反應方法要等到認可才會被執行", m);
+	commit();
+	console.assert(test == 0 && n == 1 && m == 1, "認可之後 b.b 初始化且執行一次", test, n, m);
 
 	a.a = 10;
+	console.assert(test == 0 && n == 1 && m == 1, "如果沒有呼叫，b.b 不會自動更新", test, n, m);
 	commit();
-	console.assert(m == 2, "c.log 有自動執行", m);
-	console.assert(n == 4, "b.b 執行一次", n);
+	console.assert(test == 10 && n == 2 && m == 2, "認可後自動變更", test, n, m);
 }

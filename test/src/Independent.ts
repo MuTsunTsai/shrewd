@@ -25,6 +25,7 @@ export = function() {
 	var t = "";
 	var a = new A();
 	a.log();
+	commit();
 	console.assert(t == "321", "初始執行", t);
 
 	t = "";

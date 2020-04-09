@@ -17,6 +17,7 @@ export = function() {
 	var n = 0, m = 0;
 	var a = new A();
 	a.log();
+	commit();
 	console.assert(n == 1 && m == 1, "初始紀錄", n, m);
 
 	a.value.prop = 2;

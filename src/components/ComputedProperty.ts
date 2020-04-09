@@ -21,6 +21,7 @@ class ComputedProperty extends DecoratedMemeber {
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
 		this._getter = descriptor.$method!;
+		if(this._option.active) this.$notified();
 	}
 
 	protected $render() {
@@ -31,11 +32,16 @@ class ComputedProperty extends DecoratedMemeber {
 		}
 	}
 
-	public $getter() {
-		if(!this.$isTerminated) {
-			Observer.$refer(this);
-			this._determineState();
-		}
+	protected $initialGet() {
+		return this.$regularGet();
+	}
+
+	protected $regularGet() {
+		this._determineStateAndRender();
+		return this._value;
+	}
+
+	protected $terminateGet() {
 		return this._value;
 	}
 }

@@ -22,6 +22,7 @@ export = function() {
 	}
 
 	var a = new A();
+	commit();
 	console.assert(a.n === 1, "初次執行");
 
 	a.value = 1;

@@ -11,44 +11,6 @@
  */
 //////////////////////////////////////////////////////////////////
 
-const $shrewdDecorators = Symbol("Shrewd Decorators");
-
-interface IShrewdPrototype {
-	[$shrewdDecorators]: IDecoratorDescriptor[];
-}
-
-interface IDecoratorOptions<T> {
-	validator?: (value: T) => boolean;
-	renderer?: (value: T) => T;
-	lazy?: boolean;
-}
-
-interface IDecoratorDescriptor {
-	/**
-	 * The PropertyKey for identifying this DecoratedMemeber.
-	 * For an ObservableProperty, this is the name of the property.
-	 * For a ComputedProperty or ReactiveMethod, the key is the same as the name,
-	 * so as to distinguish the member from different prototype.
-	 */
-	$key: PropertyKey;
-
-	/** Readable member name, if the format of [Class.MemberName]. */
-	$name: string;
-
-	/** The constructor used for this memeber. */
-	$constructor: IDecoratedMemberConstructor;
-
-	/** Options for this DecoratedMember. */
-	$option?: IDecoratorOptions<any>;
-
-	/** The original method defined on the prototype. */
-	$method?: Function;
-}
-
-interface IDecoratedMemberConstructor {
-	new(target: IShrewdObjectParent, descriptor: IDecoratorDescriptor): DecoratedMemeber;
-}
-
 class Decorators {
 
 	public static get(proto: object) {
@@ -61,14 +23,22 @@ class Decorators {
 		};
 	}
 
+	/** `@shrewd` decorator with options. */
+	public static $shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
+
+	/** `@shrewd` decorator for fields. */
+	public static $shrewd(proto: object, prop: PropertyKey): void;
+
+	/** `@shrewd` decorator for get accessors or methods. */
+	public static $shrewd(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
+
+	/** This is the private overload that process target with options. */
+	public static $shrewd(a: object, b: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<any>): void;
+
 	/**
-	 * This is the entry of the @shrewd decorator, and it contains various overloads that return
+	 * This is the entry of the `@shrewd` decorator, and it contains various overloads that return
 	 * proper decorators based on different use case.
 	 */
-	public static $shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
-	public static $shrewd(proto: object, prop: PropertyKey): void;
-	public static $shrewd(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
-	public static $shrewd(a: object, b: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<any>): void;
 	public static $shrewd(a: object, b?: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<any>) {
 		if(typeof b == "undefined") {
 			return ((proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor) =>
@@ -76,11 +46,11 @@ class Decorators {
 		} else if(typeof b == "string") {
 			let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
 			if(!descriptor) { // ObservableProperty
-				return Decorators.$observable(a, b, d);
+				return Decorators._setup(ObservablePropertyAdapter, a, b, undefined, d);
 			} else if(descriptor.get && !descriptor.set) { // ComputedProperty
-				return Decorators.$computed(a, b, descriptor);
+				return Decorators._setup(ComputedPropertyAdapter, a, b, descriptor, d);
 			} else if(typeof (descriptor.value) == "function") { // ReactiveMethod
-				return Decorators.$reactive(a, b, descriptor, d);
+				return Decorators._setup(ReactiveMethodAdapter, a, b, descriptor, d);
 			}
 		}
 		console.warn(`Setup error at ${a.constructor.name}[${b.toString()}]. ` +
@@ -88,66 +58,13 @@ class Decorators {
 		if(Core.$option.debug) debugger;
 	}
 
-	private static $observable(proto: object, prop: PropertyKey, option?: IDecoratorOptions<any>) {
-		let descriptor = Object.getOwnPropertyDescriptor(proto, prop);
-		if(descriptor) {
-			console.warn(`Setup error at ${proto.constructor.name}[${prop.toString()}]. ` +
-				"Decorated property is not a field.");
-			if(Core.$option.debug) debugger;
-			return;
-		}
-
-		Decorators.get(proto).push({
-			$key: prop,
-			$name: proto.constructor.name + "." + prop.toString(),
-			$constructor: ObservableProperty,
-			$option: option
-		});
-
-		Object.defineProperty(proto, prop, {
-			get() {
-				ShrewdObject.get(this);
-				return this[prop];
-			},
-			set(value: any) {
-				ShrewdObject.get(this);
-				this[prop] = value;
-			}
-		});
-	}
-
-	public static $computed(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor) {
-		let name = proto.constructor.name + "." + prop.toString();
-		Decorators.get(proto).push({
-			$key: name,
-			$name: name,
-			$constructor: ComputedProperty,
-			$method: descriptor.get
-		});
-
-		descriptor.get = function(this: IShrewdObjectParent) {
-			let member: ComputedProperty = ShrewdObject.get(this).$getMember(name);
-			return member.$getter();
-		}
-		return descriptor;
-	}
-
-	public static $reactive(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor, option?: IDecoratorOptions<any>) {
-		let name = proto.constructor.name + "." + prop.toString();
-		Decorators.get(proto).push({
-			$key: name,
-			$name: name,
-			$constructor: ReactiveMethod,
-			$method: descriptor.value,
-			$option: option
-		});
-
-		delete descriptor.value;
-		delete descriptor.writable;
-		descriptor.get = function(this: IShrewdObjectParent) {
-			let member: ReactiveMethod = ShrewdObject.get(this).$getMember(name);
-			return member.$getter();
-		}
-		return descriptor;
+	private static _setup(
+		ctor: IAdapterConstructor,
+		proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, option?: IDecoratorOptions<any>
+	): PropertyDescriptor | void {
+		var adapter = new ctor(proto, prop, descriptor, option);
+		if(adapter.$precondition && !adapter.$precondition()) return;
+		Decorators.get(proto).push(adapter.$decoratorDescriptor);
+		return adapter.$setup();
 	}
 }

@@ -1,6 +1,6 @@
 /**
  * shrewd v0.0.0-beta.12
- * (c) 2019 Mu-Tsun Tsai
+ * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
 ;
@@ -14,6 +14,17 @@
     }
 }(this, function () {
     'use strict';
+    class Adapter {
+        constructor(proto, prop, descriptor, options) {
+            this._proto = proto;
+            this._prop = prop;
+            this._descriptor = descriptor;
+            this._options = options;
+        }
+        get _name() {
+            return this._proto.constructor.name + '.' + this._prop.toString();
+        }
+    }
     class Observable {
         constructor() {
             this._subscribers = new Set();
@@ -91,30 +102,37 @@
         static $commit() {
             Global.$pushState({ $isCommitting: true });
             try {
-                for (let observer of Core._queue) {
+                for (let observer of Core._renderQueue) {
                     Observer.$render(observer);
                 }
             } finally {
+                for (let member of Core._initializeQueue) {
+                    member.$initialize();
+                }
+                Core._initializeQueue.clear();
                 Observer.$clearPending();
-                Core._queue.clear();
+                Core._renderQueue.clear();
                 Global.$restore();
-                for (let shrewd of Core._terminate) {
+                for (let shrewd of Core._terminateQueue) {
                     shrewd.$terminate();
                 }
-                Core._terminate.clear();
+                Core._terminateQueue.clear();
                 Core.$option.hook.gc();
             }
+        }
+        static $register(target) {
+            Core._initializeQueue.add(target);
         }
         static _autoCommit() {
             Core.$commit();
             Core._promised = false;
         }
         static $unqueue(observer) {
-            Core._queue.delete(observer);
+            Core._renderQueue.delete(observer);
         }
         static $queue(observer) {
             if (!observer.$isRendering) {
-                Core._queue.add(observer);
+                Core._renderQueue.add(observer);
             }
             if (Core.$option.autoCommit && !Core._promised) {
                 let promise = Promise.resolve();
@@ -140,7 +158,7 @@
             if (HiddenProperty.$has(target, $shrewdObject)) {
                 let shrewd = target[$shrewdObject];
                 if (lazy) {
-                    Core._terminate.add(shrewd);
+                    Core._terminateQueue.add(shrewd);
                 } else {
                     shrewd.$terminate();
                 }
@@ -152,10 +170,10 @@
         autoCommit: true,
         debug: true
     };
-    Core._queue = new Set();
-    Core._terminate = new Set();
+    Core._renderQueue = new Set();
+    Core._terminateQueue = new Set();
+    Core._initializeQueue = new Set();
     Core._promised = false;
-    const $shrewdDecorators = Symbol('Shrewd Decorators');
     class Decorators {
         static get(proto) {
             if (HiddenProperty.$has(proto, $shrewdDecorators)) {
@@ -173,72 +191,23 @@
             } else if (typeof b == 'string') {
                 let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
                 if (!descriptor) {
-                    return Decorators.$observable(a, b, d);
+                    return Decorators._setup(ObservablePropertyAdapter, a, b, undefined, d);
                 } else if (descriptor.get && !descriptor.set) {
-                    return Decorators.$computed(a, b, descriptor);
+                    return Decorators._setup(ComputedPropertyAdapter, a, b, descriptor, d);
                 } else if (typeof descriptor.value == 'function') {
-                    return Decorators.$reactive(a, b, descriptor, d);
+                    return Decorators._setup(ReactiveMethodAdapter, a, b, descriptor, d);
                 }
             }
             console.warn(`Setup error at ${ a.constructor.name }[${ b.toString() }]. ` + 'Decorated member must be one of the following: a field, a readonly get accessor, or a method.');
             if (Core.$option.debug)
                 debugger;
         }
-        static $observable(proto, prop, option) {
-            let descriptor = Object.getOwnPropertyDescriptor(proto, prop);
-            if (descriptor) {
-                console.warn(`Setup error at ${ proto.constructor.name }[${ prop.toString() }]. ` + 'Decorated property is not a field.');
-                if (Core.$option.debug)
-                    debugger;
+        static _setup(ctor, proto, prop, descriptor, option) {
+            var adapter = new ctor(proto, prop, descriptor, option);
+            if (adapter.$precondition && !adapter.$precondition())
                 return;
-            }
-            Decorators.get(proto).push({
-                $key: prop,
-                $name: proto.constructor.name + '.' + prop.toString(),
-                $constructor: ObservableProperty,
-                $option: option
-            });
-            Object.defineProperty(proto, prop, {
-                get() {
-                    ShrewdObject.get(this);
-                    return this[prop];
-                },
-                set(value) {
-                    ShrewdObject.get(this);
-                    this[prop] = value;
-                }
-            });
-        }
-        static $computed(proto, prop, descriptor) {
-            let name = proto.constructor.name + '.' + prop.toString();
-            Decorators.get(proto).push({
-                $key: name,
-                $name: name,
-                $constructor: ComputedProperty,
-                $method: descriptor.get
-            });
-            descriptor.get = function () {
-                let member = ShrewdObject.get(this).$getMember(name);
-                return member.$getter();
-            };
-            return descriptor;
-        }
-        static $reactive(proto, prop, descriptor, option) {
-            let name = proto.constructor.name + '.' + prop.toString();
-            Decorators.get(proto).push({
-                $key: name,
-                $name: name,
-                $constructor: ReactiveMethod,
-                $method: descriptor.value,
-                $option: option
-            });
-            delete descriptor.value;
-            delete descriptor.writable;
-            descriptor.get = function () {
-                let member = ShrewdObject.get(this).$getMember(name);
-                return member.$getter();
-            };
-            return descriptor;
+            Decorators.get(proto).push(adapter.$decoratorDescriptor);
+            return adapter.$setup();
         }
     }
     const $shrewdObject = Symbol('ShrewdObject');
@@ -252,7 +221,7 @@
                 if (HiddenProperty.$has(proto, $shrewdDecorators)) {
                     let decorators = proto[$shrewdDecorators];
                     for (let decorator of decorators)
-                        this.setup(decorator);
+                        this._setup(decorator);
                 }
                 proto = Object.getPrototypeOf(proto);
             }
@@ -263,7 +232,7 @@
             else
                 return new ShrewdObject(target);
         }
-        setup(decorator) {
+        _setup(decorator) {
             this._members.set(decorator.$key, new decorator.$constructor(this._parent, decorator));
         }
         $terminate() {
@@ -341,6 +310,39 @@
             }
         }
     }
+    class ObservablePropertyAdapter extends Adapter {
+        precondition() {
+            let descriptor = Object.getOwnPropertyDescriptor(this._proto, this._prop);
+            if (descriptor) {
+                console.warn(`Setup error at ${ this._proto.constructor.name }[${ this._prop.toString() }]. ` + 'Decorated property is not a field.');
+                if (Core.$option.debug)
+                    debugger;
+                return false;
+            }
+            return true;
+        }
+        get $decoratorDescriptor() {
+            return {
+                $key: this._prop,
+                $name: this._name,
+                $constructor: ObservableProperty,
+                $option: this._options
+            };
+        }
+        $setup() {
+            var proto = this._proto, prop = this._prop;
+            Object.defineProperty(proto, prop, {
+                get() {
+                    ShrewdObject.get(this);
+                    return this[prop];
+                },
+                set(value) {
+                    ShrewdObject.get(this);
+                    this[prop] = value;
+                }
+            });
+        }
+    }
     var ObserverState;
     (function (ObserverState) {
         ObserverState[ObserverState['$outdated'] = 0] = '$outdated';
@@ -354,12 +356,11 @@
             this._isRendering = false;
             this._state = ObserverState.$outdated;
             this._isTerminated = false;
-            this._isActive = this.checkActive();
             this._name = name;
         }
         static $clearPending() {
             for (let pending of Observer._pending) {
-                if (pending._state == ObserverState.$pending && pending._isActive) {
+                if (pending._state == ObserverState.$pending && pending.$isActive) {
                     pending._update();
                     Observer._pending.delete(pending);
                 }
@@ -377,7 +378,7 @@
         static $checkDeadEnd(observable) {
             if (observable instanceof Observer && !observable._isTerminated) {
                 observable._isActive = observable.checkActive();
-                if (!observable._isActive) {
+                if (!observable.$isActive) {
                     let oldReferences = new Set(observable._reference);
                     Core.$unqueue(observable);
                     for (let ref of oldReferences) {
@@ -402,8 +403,8 @@
                     for (let observable of observer._reference) {
                         oldReferences.delete(observable);
                         observable.$subscribe(observer);
-                        if (observer._isActive && observable instanceof Observer) {
-                            observable.passDownActive();
+                        if (observer.$isActive && observable instanceof Observer) {
+                            observable.activate();
                         }
                     }
                 }
@@ -422,7 +423,7 @@
         $notified() {
             this._pend();
             this._outdate();
-            if (this._isActive) {
+            if (this.$isActive) {
                 Core.$queue(this);
             }
         }
@@ -452,20 +453,9 @@
                 }
             }
         }
-        _determineState(force = false) {
-            if (this._isRendering) {
-                let last = Observer.$trace.indexOf(this);
-                let cycle = [
-                    this,
-                    ...Observer.$trace.slice(last + 1)
-                ];
-                cycle.forEach(o => o instanceof Observer && o.$terminate());
-                cycle.push(this);
-                let trace = cycle.map(o => typeof o == 'string' ? o : o._name).join(' => ');
-                console.warn('Cyclic dependency detected: ' + trace + '\nAll these reactions will be terminated.');
-                if (Core.$option.debug)
-                    debugger;
-            }
+        _determineStateAndRender(force = false) {
+            if (this._isRendering)
+                this._onCyclicDependencyFound();
             if (this._state == ObserverState.$updated)
                 return;
             Observer.$trace.push(this);
@@ -476,7 +466,7 @@
                             Observer.$render(this);
                             break;
                         } else if (ref._state != ObserverState.$updated) {
-                            ref._determineState();
+                            ref._determineStateAndRender();
                         }
                     }
                 }
@@ -490,6 +480,19 @@
                 Observer.$trace.pop();
             }
         }
+        _onCyclicDependencyFound() {
+            let last = Observer.$trace.indexOf(this);
+            let cycle = [
+                this,
+                ...Observer.$trace.slice(last + 1)
+            ];
+            cycle.forEach(o => o instanceof Observer && o.$terminate());
+            cycle.push(this);
+            let trace = cycle.map(o => typeof o == 'string' ? o : o._name).join(' => ');
+            console.warn('Cyclic dependency detected: ' + trace + '\nAll these reactions will be terminated.');
+            if (Core.$option.debug)
+                debugger;
+        }
         _update() {
             this._state = ObserverState.$updated;
         }
@@ -499,22 +502,25 @@
         get $state() {
             return this._state;
         }
+        get $isActive() {
+            return this._isActive = this._isActive != undefined ? this._isActive : this.checkActive();
+        }
         checkActive() {
             if (Core.$option.hook.sub(this.$id))
                 return true;
             for (let subscriber of this.$subscribers) {
-                if (subscriber._isActive)
+                if (subscriber.$isActive)
                     return true;
             }
             return false;
         }
-        passDownActive() {
-            if (this._isActive)
+        activate() {
+            if (this.$isActive)
                 return;
             this._isActive = true;
             for (let observable of this._reference) {
                 if (observable instanceof Observer)
-                    observable.passDownActive();
+                    observable.activate();
             }
         }
         $clearReference() {
@@ -570,7 +576,33 @@
     class DecoratedMemeber extends Observer {
         constructor(parent, descriptor) {
             super(descriptor.$name);
+            this._initialized = false;
+            this._option = Object.assign(this._defaultOption, descriptor.$option);
             this._parent = parent;
+            Core.$register(this);
+        }
+        $initialize() {
+            this._initialized = true;
+        }
+        get _defaultOption() {
+            return {};
+        }
+        checkActive() {
+            if (this._option.active)
+                return true;
+            return super.checkActive();
+        }
+        $getter() {
+            if (this.$isTerminated) {
+                return this.$terminateGet();
+            } else {
+                Observer.$refer(this);
+                if (!Global.$isCommitting && !this._initialized) {
+                    return this.$initialGet();
+                } else {
+                    return this.$regularGet();
+                }
+            }
         }
     }
     class ObjectProxyHandler {
@@ -691,6 +723,8 @@
         constructor(parent, descriptor) {
             super(parent, descriptor);
             this._getter = descriptor.$method;
+            if (this._option.active)
+                this.$notified();
         }
         $render() {
             let value = this._getter.apply(this._parent);
@@ -699,18 +733,20 @@
                 Observable.$publish(this);
             }
         }
-        $getter() {
-            if (!this.$isTerminated) {
-                Observer.$refer(this);
-                this._determineState();
-            }
+        $initialGet() {
+            return this.$regularGet();
+        }
+        $regularGet() {
+            this._determineStateAndRender();
+            return this._value;
+        }
+        $terminateGet() {
             return this._value;
         }
     }
     class ObservableProperty extends DecoratedMemeber {
         constructor(parent, descriptor) {
             super(parent, descriptor);
-            this._option = descriptor.$option || {};
             Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
             if (!this._option.renderer) {
                 this._update();
@@ -751,13 +787,16 @@
                 super._outdate();
             }
         }
-        $getter() {
-            if (!this.$isTerminated) {
-                Observer.$refer(this);
-                if (this._option.renderer) {
-                    this._determineState();
-                }
+        $initialGet() {
+            return this._inputValue;
+        }
+        $regularGet() {
+            if (this._option.renderer) {
+                this._determineStateAndRender();
             }
+            return this._outputValue;
+        }
+        $terminateGet() {
             return this._outputValue;
         }
         $setter(value) {
@@ -771,7 +810,7 @@
                 }
                 this._inputValue = Helper.$wrap(value);
                 if (this._option.renderer) {
-                    Observer.$render(this);
+                    this.$notified();
                 } else {
                     this.$publish(this._inputValue);
                 }
@@ -807,30 +846,24 @@
         constructor(parent, descriptor) {
             super(parent, descriptor);
             this._method = descriptor.$method;
-            this._option = descriptor.$option || {};
         }
-        checkActive() {
-            return true;
+        get _defaultOption() {
+            return { active: true };
         }
-        $getter() {
-            if (!this.$isTerminated) {
-                Observer.$refer(this);
-                let force = false;
-                if (!Global.$isCommitting) {
-                    if (this._option.lazy && this.$state != ObserverState.$updated) {
-                        return () => (this.$notified(), this._result);
-                    }
-                    if (this.$state != ObserverState.$pending) {
-                        force = true;
-                    }
-                }
-                return () => {
-                    this._determineState(force);
-                    return this._result;
-                };
-            } else {
-                return () => this._result;
-            }
+        $initialGet() {
+            return () => {
+                this.$notified();
+                return this._result;
+            };
+        }
+        $regularGet() {
+            return () => {
+                this._determineStateAndRender();
+                return this._result;
+            };
+        }
+        $terminateGet() {
+            return () => this._result;
         }
         $render() {
             this._result = this._method.apply(this._parent);
@@ -879,6 +912,46 @@
     if (typeof window !== 'undefined' && window.Vue) {
         Core.$option.hook = new VueHook();
     }
+    class ComputedPropertyAdapter extends Adapter {
+        get $decoratorDescriptor() {
+            return {
+                $key: this._name,
+                $name: this._name,
+                $constructor: ComputedProperty,
+                $method: this._descriptor.get,
+                $option: this._options
+            };
+        }
+        $setup() {
+            var descriptor = this._descriptor, name = this._name;
+            descriptor.get = function () {
+                let member = ShrewdObject.get(this).$getMember(name);
+                return member.$getter();
+            };
+            return descriptor;
+        }
+    }
+    class ReactiveMethodAdapter extends Adapter {
+        get $decoratorDescriptor() {
+            return {
+                $key: this._name,
+                $name: this._name,
+                $constructor: ReactiveMethod,
+                $method: this._descriptor.value,
+                $option: this._options
+            };
+        }
+        $setup() {
+            let descriptor = this._descriptor, name = this._name;
+            delete descriptor.value;
+            delete descriptor.writable;
+            descriptor.get = function () {
+                let member = ShrewdObject.get(this).$getMember(name);
+                return member.$getter();
+            };
+            return descriptor;
+        }
+    }
     class Global {
         static $pushState(state) {
             Global._history.push(Global._state);
@@ -914,6 +987,7 @@
         $accessibles: new Set()
     };
     Global._history = [];
+    const $shrewdDecorators = Symbol('Shrewd Decorators');
     return Shrewd;
 }));
 //# sourceMappingURL=shrewd.js.map

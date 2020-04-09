@@ -17,6 +17,7 @@ export = function() {
 
 	let a = new A();
 	a.log();
+	commit();
 	console.assert(a.b == 1, "初始值", a.b);
 
 	a.switch = false;

@@ -21,6 +21,7 @@ export = function() {
 
 	let a = new A();
 	a.log();
+	commit();
 	console.assert(a.c == 2, "初始值", a.c);
 
 	option.debug = false;

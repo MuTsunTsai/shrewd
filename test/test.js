@@ -16,6 +16,7 @@ for(let test in Tests) {
 		if(e instanceof Error) console.error(e);
 		console.log(`\x1b[31m${test} : failed\x1b[0m`);
 		pass = false;
+		break;
 	}
 }
 

@@ -1,6 +1,6 @@
 /**
  * shrewd v0.0.0-beta.12
- * (c) 2019 Mu-Tsun Tsai
+ * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
 
@@ -28,13 +28,20 @@ interface IHook {
  * Enable strict mode in TypeScript to allow type checking for this interface.
  */
 interface IDecoratorOptions<T> {
+	
+	/** Validator for ObservableProperty. */
 	validator?: (value: T) => boolean;
+	
+	/** Renderer function for ObservableProperty. */
 	renderer?: (value: T) => T;
 
-	/** If true, a ReactiveMethod will postpone its execution until the committing state. */
-	lazy?: boolean;
+	/**
+	 * If set to true, the corresponding reaction will always execute regardless of lack of observers.
+	 * The default value is false for ObservableProperty and ComputedProperty,
+	 * and is true for ReactiveProperty.
+	 */
+	active?: boolean;
 }
-
 
 /**
  * The shrewd decorator turns a field into an ObservableProperty,
@@ -55,11 +62,8 @@ export function commit(): void;
  * Terminates a Shrewd object. The said object will cancel all its subscriptions (to and from others),
  * and can no longer be subscribed. A Shrewd object must be terminated to allow garbage-collecting.
  * Any changes made before the termination will still propagate in the committing stage.
- * 
- * @param lazy: boolean, set to true would postpone the termination until the end of
- * the next committing stage (default is false).
  */
-export function terminate(target: object, lazy?: boolean): void;
+export function terminate(target: object): void;
 
 /**
  * Construct a Shrewd object. Inside a ComputedProperty or a ReactiveMethod, to dynamically construct
@@ -92,6 +96,12 @@ interface IShrewdOption {
 	 * might result in better performance for some applications.
 	 */
 	autoCommit: boolean;
+
+	/**
+	 * Whether to pause when Shrewd detects problem and when a debugger is available.
+	 * The default value is true.
+	 */
+	debug: boolean;
 }
 
 /**

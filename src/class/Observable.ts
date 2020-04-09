@@ -11,6 +11,11 @@ abstract class Observable {
 
 	private static _id: number = 0;
 
+	/**
+	 * Whether under the current scope, the given `Observable` can be written.
+	 * 
+	 * This method is intentionally made static to prevent overriding.
+	 */
 	public static $isWritable(observable: Observable) {
 		if(Global.$isConstructing || !observable.$hasSubscriber) return true;
 		if(Global.$isRenderingProperty && !Global.$isAccessible(observable)) {
@@ -28,6 +33,8 @@ abstract class Observable {
 
 	/**
 	 * Notify all subscribers.
+	 * 
+	 * This method is intentionally made static to prevent overriding.
 	 */
 	public static $publish(observable: Observable) {
 		Core.$option.hook.write(observable.$id);
