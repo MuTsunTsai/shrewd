@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.0-beta.12
+ * shrewd v0.0.0-beta.13
  * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */

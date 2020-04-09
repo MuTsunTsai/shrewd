@@ -83,8 +83,6 @@
             this._vue = new Vue({ data: { shrewd: {} } });
         }
         read(id) {
-            if (!(id in this._vue.shrewd))
-                this.write(id);
             this._vue.shrewd[id];
         }
         write(id) {
@@ -104,30 +102,37 @@
         static $commit() {
             Global.$pushState({ $isCommitting: true });
             try {
-                for (let observer of Core._queue) {
+                for (let observer of Core._renderQueue) {
                     Observer.$render(observer);
                 }
             } finally {
+                for (let member of Core._initializeQueue) {
+                    member.$initialize();
+                }
+                Core._initializeQueue.clear();
                 Observer.$clearPending();
-                Core._queue.clear();
+                Core._renderQueue.clear();
                 Global.$restore();
-                for (let shrewd of Core._terminate) {
+                for (let shrewd of Core._terminateQueue) {
                     shrewd.$terminate();
                 }
-                Core._terminate.clear();
+                Core._terminateQueue.clear();
                 Core.$option.hook.gc();
             }
+        }
+        static $register(target) {
+            Core._initializeQueue.add(target);
         }
         static _autoCommit() {
             Core.$commit();
             Core._promised = false;
         }
         static $unqueue(observer) {
-            Core._queue.delete(observer);
+            Core._renderQueue.delete(observer);
         }
         static $queue(observer) {
             if (!observer.$isRendering) {
-                Core._queue.add(observer);
+                Core._renderQueue.add(observer);
             }
             if (Core.$option.autoCommit && !Core._promised) {
                 let promise = Promise.resolve();
@@ -153,7 +158,7 @@
             if (HiddenProperty.$has(target, $shrewdObject)) {
                 let shrewd = target[$shrewdObject];
                 if (lazy) {
-                    Core._terminate.add(shrewd);
+                    Core._terminateQueue.add(shrewd);
                 } else {
                     shrewd.$terminate();
                 }
@@ -165,8 +170,9 @@
         autoCommit: true,
         debug: true
     };
-    Core._queue = new Set();
-    Core._terminate = new Set();
+    Core._renderQueue = new Set();
+    Core._terminateQueue = new Set();
+    Core._initializeQueue = new Set();
     Core._promised = false;
     class Decorators {
         static get(proto) {
@@ -187,7 +193,7 @@
                 if (!descriptor) {
                     return Decorators._setup(ObservablePropertyAdapter, a, b, undefined, d);
                 } else if (descriptor.get && !descriptor.set) {
-                    return Decorators._setup(ComputedPropertyAdapter, a, b, descriptor);
+                    return Decorators._setup(ComputedPropertyAdapter, a, b, descriptor, d);
                 } else if (typeof descriptor.value == 'function') {
                     return Decorators._setup(ReactiveMethodAdapter, a, b, descriptor, d);
                 }
@@ -570,8 +576,13 @@
     class DecoratedMemeber extends Observer {
         constructor(parent, descriptor) {
             super(descriptor.$name);
+            this._initialized = false;
             this._option = Object.assign(this._defaultOption, descriptor.$option);
             this._parent = parent;
+            Core.$register(this);
+        }
+        $initialize() {
+            this._initialized = true;
         }
         get _defaultOption() {
             return {};
@@ -586,10 +597,10 @@
                 return this.$terminateGet();
             } else {
                 Observer.$refer(this);
-                if (Global.$isCommitting) {
-                    return this.$commitGet();
+                if (!Global.$isCommitting && !this._initialized) {
+                    return this.$initialGet();
                 } else {
-                    return this.$manualGet();
+                    return this.$regularGet();
                 }
             }
         }
@@ -712,6 +723,8 @@
         constructor(parent, descriptor) {
             super(parent, descriptor);
             this._getter = descriptor.$method;
+            if (this._option.active)
+                this.$notified();
         }
         $render() {
             let value = this._getter.apply(this._parent);
@@ -720,12 +733,10 @@
                 Observable.$publish(this);
             }
         }
-        $manualGet() {
-            if (this._name == 'System.selections')
-                debugger;
-            return this._value;
+        $initialGet() {
+            return this.$regularGet();
         }
-        $commitGet() {
+        $regularGet() {
             this._determineStateAndRender();
             return this._value;
         }
@@ -776,13 +787,10 @@
                 super._outdate();
             }
         }
-        $manualGet() {
-            if (this.$state != ObserverState.$updated)
-                return this._inputValue;
-            else
-                return this._outputValue;
+        $initialGet() {
+            return this._inputValue;
         }
-        $commitGet() {
+        $regularGet() {
             if (this._option.renderer) {
                 this._determineStateAndRender();
             }
@@ -842,17 +850,13 @@
         get _defaultOption() {
             return { active: true };
         }
-        $manualGet() {
-            if (this.$state == ObserverState.$updated) {
-                return () => this._result;
-            } else {
-                return () => {
-                    this.$notified();
-                    return this._result;
-                };
-            }
+        $initialGet() {
+            return () => {
+                this.$notified();
+                return this._result;
+            };
         }
-        $commitGet() {
+        $regularGet() {
             return () => {
                 this._determineStateAndRender();
                 return this._result;
@@ -914,7 +918,8 @@
                 $key: this._name,
                 $name: this._name,
                 $constructor: ComputedProperty,
-                $method: this._descriptor.get
+                $method: this._descriptor.get,
+                $option: this._options
             };
         }
         $setup() {
