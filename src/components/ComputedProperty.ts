@@ -20,20 +20,16 @@ class ComputedProperty extends DecoratedMemeber {
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
-		this._getter = descriptor.$method!;
+		this._getter = descriptor.$method!
 		if(this._option.active) this.$notified();
 	}
 
 	protected $render() {
 		let value = this._getter.apply(this._parent);
-		if(value != this._value) {
+		if(value !== this._value) {
 			this._value = value;
 			Observable.$publish(this);
 		}
-	}
-
-	protected $initialGet() {
-		return this.$regularGet();
 	}
 
 	protected $regularGet() {

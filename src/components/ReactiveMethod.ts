@@ -20,13 +20,6 @@ class ReactiveMethod extends DecoratedMemeber {
 		return { active: true };
 	}
 
-	protected $initialGet() {
-		return () => {
-			this.$notified();
-			return this._result;
-		}
-	}
-
 	protected $regularGet() {
 		return () => {
 			this._determineStateAndRender();

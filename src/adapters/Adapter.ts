@@ -4,8 +4,6 @@ interface IAdapterConstructor {
 }
 
 interface IAdapter {
-	$precondition?(): boolean;
-
 	readonly $decoratorDescriptor: IDecoratorDescriptor;
 
 	$setup(): PropertyDescriptor | void;
@@ -29,7 +27,21 @@ abstract class Adapter implements IAdapter {
 		return this._proto.constructor.name + "." + this._prop.toString();
 	}
 
-	public abstract get $decoratorDescriptor(): IDecoratorDescriptor;
+	public get $decoratorDescriptor(): IDecoratorDescriptor {
+		return {
+			$key: this._prop.toString(),
+			$class: this._proto.constructor.name,
+			$constructor: this._constructor,
+			$method: this._method,
+			$option: this._options
+		};
+	}
 
-	public abstract $setup(): PropertyDescriptor | void;
+	protected get _method(): Function | undefined {
+		return undefined;
+	}
+
+	protected abstract get _constructor(): IDecoratedMemberConstructor;
+
+	public $setup(): PropertyDescriptor | void {}
 }

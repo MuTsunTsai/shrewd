@@ -2,7 +2,7 @@ import { shrewd, commit } from "../../dist/shrewd";
 
 export = function() {
 	
-	class A {
+	@shrewd class A {
 		public n = "";
 		@shrewd public value = 1;
 		@shrewd log(): any {
@@ -11,7 +11,7 @@ export = function() {
 		}
 	}
 
-	class B extends A {
+	@shrewd class B extends A {
 		@shrewd log() {
 			// 下層方法唯一參照到的就是上層方法；只要上層方法被執行，就會通知下層方法去執行
 			this.n += "2"

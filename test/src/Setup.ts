@@ -7,7 +7,7 @@ export = function() {
 
 	option.debug = false;
 
-	class A {
+	@shrewd class A {
 		@shrewd public get value() { return 1; }
 		public set value(v) { }
 	}

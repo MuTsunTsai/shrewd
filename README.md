@@ -23,13 +23,13 @@ Shrewd is also a reactive framework that can be used for building apps or state-
 	Like most front-end packages, Shrewd has zero dependencies and can be used directly on webpages as a global variable without importing modules.
 
 - Simple and intuitive\
-	Shrewd has very few APIs and can be picked up in minutes. Like Vue.js, Shrewd also allows you to write dependencies in natural-looking scripts, without a bunch of pipings.
+	Shrewd has very few APIs and can be picked up in minutes. Like frameworks such as Vue.js, Shrewd also allows you to write dependencies in natural-looking scripts, without a bunch of pipings. Shrewd will monitor the scripts and gather the dependencies for you.
 
 - Efficiency\
 	Shrewd performs only the necessary calculations and rendering. Propagation of changes stops at any variable that remains unchanged, and resulting values are cached until its references have changed. Shrewd also make sure that it performs the propagation in the correct order so that nothing will be updated twice in the same committing stage.
 
 - Prevents cyclic dependencies\
-	The design of Shrewd makes it less likely to create cyclic dependency among data, and when there is one, Shrewd detects and provides readable debug messages that help programmers to fix the problem.
+	Highly complicated system means the chances of accidentally creating cyclic dependencies are high. The design of Shrewd APIs makes it less likely to create cyclic dependency among data, and when there is one, Shrewd detects and provides readable debug messages that help programmers to fix the problem.
 
 - Third-party framework support\
 	Shrewd provides hooks that enables it to communicate with other reactive frameworks, and it has a built-in hook for Vue.js.
@@ -40,29 +40,33 @@ We shall demonstrate the basics of Shrewd using the following simple example. On
 
 ```ts
 // There is only one decorator for all: "shrewd".
+// Shrewd will automatically select the proper overloading.
 const { shrewd } = Shrewd;
 
-// You can then use it in any class in your project.
-class App {
+// You can then use it on any class in your project to make the class reactive.
+// You don't need to add @shrewd on abstract classes;
+// just make sure that it is added to all final concrete classes.
+@shrewd class App {
 	
 	// Use it on a field, and it becomes an ObservableProperty.
 	@shrewd public number = 0;
 
 	// Use it on a getter, and it becomes a ComputedProperty.
 	@shrewd public get remainder() {
+		// In this example, "this.remainder" depends on "this.number";
 		return this.number % 5;
 	}
 
 	// Use it on a method, and it becomes a ReactiveMethod.
 	@shrewd public reaction() {
 		console.log(this.remainder);
+		// Now "this.reaction" depends on "this.remainder".
+		// If the latter changes, "this.reaction" will re-run itself.
 	}
 }
 
+// After the consturction, Shrewd will automatically start all ReactiveMethods.
 var app = new App();
-
-// Once ran, a ReactiveMethod re-run itself whenever something it depends on changes.
-app.reaction();
 ```
 
 Transpile the TypeScript code above into `app.js` (you'll need to add `shrewd.d.ts` to the project, and enables the `experimentalDecorators` option), and use it in a webpage like this:
@@ -114,7 +118,7 @@ ObservableProperties can only be changed manually, and setting their values insi
 However, we made an exception to this rule, so that an ObservableProperty can update itself based on something else. One can also add a validation rule to it so that it accepts only certain values.
 
 ```ts
-class App {
+@shrewd class App {
 	@shrewd public nonNegative = false;
 
 	@shrewd({
@@ -149,14 +153,14 @@ One important feature of a ComputedProperty is that it will perform recalculatio
 
 ReactiveMethod re-runs itself automatically during the next committing stage, if and only if one of its references has changed. It could return a value so that other reactions may depend on it, but unlike ComputedProperties, it always re-runs itself regardless of the absence of observers.
 
-ReactiveMethods needs to be called manually in order to start it (one may do so inside the constructor of the class if so desired), and it will run for the first time in the very next comitting stage.
+After the construction of a class decorated with `@shrewd` decorator, all its ReactiveMethods will start automatically.
 
 ## Dynamically constructed objects
 
 It is commonly the case that one set of objects are created and destroyed based on another set of objects. In the example below, we establish a one-to-one correspondence between a set of numbers and instances of class `C`:
 
 ```ts
-class C {
+@shrewd class C {
 	constructor(value: number) {
 		this.value = value;
 		this.name = value.toString();
@@ -169,11 +173,7 @@ class C {
 	...
 }
 
-class App {
-	constructor() {
-		this.render();
-	}
-
+@shrewd class App {
 	@shrewd public set: Set<number> = new Set();
 
 	private _map: Map<number, C> = new Map();
@@ -182,7 +182,7 @@ class App {
 	@shrewd public get map() {
 		for(let n of this.set) {
 			if(!this._map.has(n)) {
-				this._map.set(n, Shrewd.construct(C, n));
+				this._map.set(n, new C(n));
 			}
 		}
 		for(let c of this._map.values()) {
@@ -204,29 +204,25 @@ class App {
 }
 ```
 
-In order to construct new instances of class `C` inside the ComputedProperty `map` without violating the rule that "ObservableProperties cannot be set inside a ComputedProperty", Shrewd provides a method
-```ts
-Shrewd.construct(constructor: Function, ...params: any[])
-```
-that allows one to construct new objects without worries. It creates an isolated scope so that any action that takes place during the construction of the object will not be related to the ComputedProperty.
-
 If an object is no longer needed in the future, make sure to call
 ```ts
 Shrewd.terminate(target: object)
 ```
 to terminate it (which stops all its reactive features). Without doing so, the object may not be garbage-collected and causes memory leaks.
 
+## Initialization
+
+In order to make sure that all dependencies are already injected into our reactive object before its reactions are executed, Shrewd initializes the reactions only after the object has been fully constructed. If any reactions are accessed during the construction, it will simply behaved the same way as if they are not reactive.
 
 ## Comparison
 
 | | `ObservableProperty` | `ComputedProperty` | `ReactiveMethod` |
 | --- | --- | --- | --- |
-| Setting in manual stage | Runs validation when applicable. | --- | --- |
-| Getting in manual stage | Returns the last-known value before rendering. | Recomputes as needed, and returns new value. | Returns the last-known value without executing. Triggers itself if not updated. |
-| Comitting stage | Renders the property when applicable, and returns the value after rendering. | Recomputes as needed, and returns new value. | Executes the method when triggered, and returns the new result. |
+| Setting | Runs validation when applicable. Only allowed in manual stage. | --- | --- |
+| Initialization | Runs validation when applicable; if not validated, the value will become `undefined`. | Computes once to get its initial value. | Executes once. |
+| Getting | Renders the property when applicable, and returns the value after rendering. | Recomputes as needed, and returns new value. | Executes the method when triggered or called manually, and returns the new result. |
 | Triggers further reaction ... | ...if the return value has changed. | ...if the return value has changed. | ...in any case. |
 | After terminated | Can be get or set like normal properties, without validation or rendering. | Returns the last-known value without executing. | Returns the last-known value without executing. |
-
 
 ## Cyclic dependency detection
 

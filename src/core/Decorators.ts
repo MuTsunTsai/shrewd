@@ -23,6 +23,9 @@ class Decorators {
 		};
 	}
 
+	/** `@shrewd` decorator for class */
+	public static $shrewd<T extends new (...args: any[]) => {}>(constructor: T): T;
+
 	/** `@shrewd` decorator with options. */
 	public static $shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
 
@@ -41,8 +44,12 @@ class Decorators {
 	 */
 	public static $shrewd(a: object, b?: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<any>) {
 		if(typeof b == "undefined") {
-			return ((proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor) =>
-				Decorators.$shrewd(proto, prop, descriptor, a)) as PropertyDecorator;
+			if(typeof a == "function") {
+				return Decorators._shrewdClass(a as any);
+			} else {
+				return ((proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor) =>
+					Decorators.$shrewd(proto, prop, descriptor, a)) as PropertyDecorator;
+			}
 		} else if(typeof b == "string") {
 			let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
 			if(!descriptor) { // ObservableProperty
@@ -58,12 +65,40 @@ class Decorators {
 		if(Core.$option.debug) debugger;
 	}
 
+	private static _shrewdClass<T extends new (...args: any[]) => {}>(constructor: T): T {
+		let result: any;
+		let name = constructor.name;
+		// We use eval to preserve the name of the class in our proxied class,
+		// in order to provide better console debugging experience.
+		// This of course is inefficient, but since class decorators will only apply once,
+		// the cost is insignificant.
+		eval(`result = class ${name} extends constructor {
+			constructor(...args) {
+				Global.$pushState({
+					$isConstructing: true,
+					$isCommitting: false,
+					$target: null
+				});
+				Observer.$trace.push("construct ${name}");
+				try {
+					super(...args);
+					if(this.constructor == result) {
+						new ShrewdObject(this);
+					}
+				} finally {
+					Observer.$trace.pop();
+					Global.$restore();
+				}
+			}
+		}`);
+		return result;
+	}
+
 	private static _setup(
 		ctor: IAdapterConstructor,
 		proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, option?: IDecoratorOptions<any>
 	): PropertyDescriptor | void {
 		var adapter = new ctor(proto, prop, descriptor, option);
-		if(adapter.$precondition && !adapter.$precondition()) return;
 		Decorators.get(proto).push(adapter.$decoratorDescriptor);
 		return adapter.$setup();
 	}

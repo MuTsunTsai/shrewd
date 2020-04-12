@@ -6,7 +6,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 const { shrewd } = Shrewd;
-class App {
+let App = class App {
     constructor() {
         this.number = 0;
     }
@@ -16,7 +16,7 @@ class App {
     reaction() {
         console.log(this.remainder);
     }
-}
+};
 __decorate([
     shrewd
 ], App.prototype, "number", void 0);
@@ -26,5 +26,7 @@ __decorate([
 __decorate([
     shrewd
 ], App.prototype, "reaction", null);
+App = __decorate([
+    shrewd
+], App);
 var app = new App();
-app.reaction();

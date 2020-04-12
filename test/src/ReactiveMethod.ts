@@ -2,10 +2,7 @@ import { shrewd, commit } from "../../dist/shrewd";
 
 export = function() {
 	
-	class A {
-		constructor() {
-			this.log(); // 自我啟動
-		}
+	@shrewd class A {
 
 		public n = 0;
 
@@ -22,8 +19,7 @@ export = function() {
 	}
 
 	var a = new A();
-	commit();
-	console.assert(a.n === 1, "初次執行");
+	console.assert(a.n === 1, "初次執行", a.n);
 
 	a.value = 1;
 	commit();

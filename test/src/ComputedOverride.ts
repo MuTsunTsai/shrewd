@@ -1,8 +1,10 @@
-import { shrewd, commit } from "../../dist/shrewd";
+import { shrewd, commit, option } from "../../dist/shrewd";
 
 export = function() {
 
-	class A {
+	option.debug = true;
+
+	@shrewd class A {
 		@shrewd public num: number = 0;
 		@shrewd public get value() {
 			n += "1";
@@ -10,7 +12,7 @@ export = function() {
 		}
 	}
 
-	class B extends A {
+	@shrewd class B extends A {
 		@shrewd public get value() {
 			n += "2";
 			return super.value;
@@ -23,10 +25,9 @@ export = function() {
 		}
 	}
 
-	var b = new B(), n = "";
-	b.log();
-	commit();
-	console.assert(n == "3214", "第一次執行因為還沒有建立參照關係，是 top-down 的", n);
+	var n = "";
+	var b = new B();
+	console.assert(n == "2134", "初始化的時候是依照定義的順序執行", n);
 
 	n = "";
 	b.num = 1;

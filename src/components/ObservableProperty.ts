@@ -40,16 +40,30 @@ class ObservableProperty extends DecoratedMemeber {
 		}
 	}
 
-
 	private _inputValue: any;
 	private _outputValue: any;
+	private _initialized: boolean = false;
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
+		this._inputValue = (parent as any)[descriptor.$key];
 		Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
 		if(!this._option.renderer) {
 			this._update();
 		}
+	}
+
+	public get $internalKey() {
+		return this._descriptor.$key.toString();
+	}
+
+	public $initialize() {
+		if(this._initialized) return;
+		if(this._option.validator && !this._option.validator.apply(this._parent, [this._inputValue])) {
+			this._inputValue = undefined;
+		}
+		this._confirm(this._inputValue);
+		this._initialized = true;
 	}
 
 	protected _outdate() {
@@ -59,12 +73,9 @@ class ObservableProperty extends DecoratedMemeber {
 		}
 	}
 
-	protected $initialGet() {
-		return this._inputValue;
-	}
-
 	protected $regularGet() {
-		if(this._option.renderer) {
+		if(!this._initialized) this.$initialize();
+		else if(this._option.renderer) {
 			this._determineStateAndRender();
 		}
 		return this._outputValue;
@@ -84,12 +95,16 @@ class ObservableProperty extends DecoratedMemeber {
 				// Notify client that the value has been changed back.
 				return Core.$option.hook.write(this.$id);
 			}
-			this._inputValue = Helper.$wrap(value);
-			if(this._option.renderer) {
-				this.$notified();
-			} else {
-				this.$publish(this._inputValue);
-			}
+			this._confirm(value);
+		}
+	}
+
+	private _confirm(value: any) {
+		this._inputValue = Helper.$wrap(value);
+		if(this._option.renderer) {
+			this.$render();
+		} else {
+			this.$publish(this._inputValue);
 		}
 	}
 

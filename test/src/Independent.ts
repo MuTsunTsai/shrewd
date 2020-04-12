@@ -2,13 +2,13 @@ import { shrewd, commit } from "../../dist/shrewd";
 
 export = function() {
 
-	class A {
+	@shrewd class A {
 		@shrewd public value = 1;
 		@shrewd public lookAtValue = true;
 
-		@shrewd public get c1() {
-			t += "1";
-			return this.value;
+		@shrewd log() {
+			t += "3";
+			if(this.lookAtValue) this.c2;
 		}
 
 		@shrewd public get c2() {
@@ -16,16 +16,14 @@ export = function() {
 			return this.c1;
 		}
 
-		@shrewd log() {
-			t += "3";
-			if(this.lookAtValue) this.c2;
+		@shrewd public get c1() {
+			t += "1";
+			return this.value;
 		}
 	}
 
 	var t = "";
 	var a = new A();
-	a.log();
-	commit();
 	console.assert(t == "321", "初始執行", t);
 
 	t = "";

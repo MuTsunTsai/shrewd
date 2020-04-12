@@ -2,7 +2,7 @@ import { shrewd, commit } from "../../dist/shrewd";
 
 export = function() {
 
-	class A {
+	@shrewd class A {
 		@shrewd public switch = true;
 		@shrewd public get a(): number {
 			return this.switch ? 1 : this.b;
@@ -16,8 +16,6 @@ export = function() {
 	}
 
 	let a = new A();
-	a.log();
-	commit();
 	console.assert(a.b == 1, "初始值", a.b);
 
 	a.switch = false;

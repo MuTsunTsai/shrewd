@@ -10,17 +10,21 @@ abstract class DecoratedMemeber extends Observer {
 
 	protected _option: IDecoratorOptions<any>;
 
+	protected _descriptor: IDecoratorDescriptor;
+
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
-		super(descriptor.$name);
+		super(descriptor.$class + "." + descriptor.$key.toString());
+		this._descriptor = descriptor;
 		this._option = Object.assign(this._defaultOption, descriptor.$option);
 		this._parent = parent;
-		Core.$register(this);
 	}
 
-	private _initialized: boolean = false;
+	public get $internalKey() {
+		return this._descriptor.$class + "." + this._descriptor.$key.toString();
+	}
 
 	public $initialize() {
-		this._initialized = true;
+		this._determineStateAndRender();
 	}
 
 	protected get _defaultOption(): IDecoratorOptions<any> {
@@ -41,15 +45,9 @@ abstract class DecoratedMemeber extends Observer {
 			return this.$terminateGet();
 		} else {
 			Observer.$refer(this);
-			if(!Global.$isCommitting && !this._initialized) {
-				return this.$initialGet();
-			} else {
-				return this.$regularGet();
-			}
+			return this.$regularGet();
 		}
 	}
-
-	protected abstract $initialGet(): any;
 
 	protected abstract $regularGet(): any;
 

@@ -2,7 +2,7 @@ import { shrewd, commit } from "../../dist/shrewd";
 
 export = function() {
 	
-	class A {
+	@shrewd class A {
 
 		@shrewd public max = 10;
 

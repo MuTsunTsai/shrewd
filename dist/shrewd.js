@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.0-beta.12
+ * shrewd v0.0.0-beta.13
  * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -14,17 +14,6 @@
     }
 }(this, function () {
     'use strict';
-    class Adapter {
-        constructor(proto, prop, descriptor, options) {
-            this._proto = proto;
-            this._prop = prop;
-            this._descriptor = descriptor;
-            this._options = options;
-        }
-        get _name() {
-            return this._proto.constructor.name + '.' + this._prop.toString();
-        }
-    }
     class Observable {
         constructor() {
             this._subscribers = new Set();
@@ -106,10 +95,6 @@
                     Observer.$render(observer);
                 }
             } finally {
-                for (let member of Core._initializeQueue) {
-                    member.$initialize();
-                }
-                Core._initializeQueue.clear();
                 Observer.$clearPending();
                 Core._renderQueue.clear();
                 Global.$restore();
@@ -120,8 +105,18 @@
                 Core.$option.hook.gc();
             }
         }
-        static $register(target) {
-            Core._initializeQueue.add(target);
+        static $queueInitialization(member) {
+            Core._initializeQueue.add(member);
+        }
+        static $initialize() {
+            if (Core._initializing)
+                return;
+            Core._initializing = true;
+            for (let member of Core._initializeQueue) {
+                Core._initializeQueue.delete(member);
+                member.$initialize();
+            }
+            Core._initializing = false;
         }
         static _autoCommit() {
             Core.$commit();
@@ -138,20 +133,6 @@
                 let promise = Promise.resolve();
                 promise.then(Core._autoCommit);
                 Core._promised = true;
-            }
-        }
-        static $construct(constructor, ...args) {
-            Global.$pushState({
-                $isConstructing: true,
-                $isCommitting: false,
-                $target: null
-            });
-            Observer.$trace.push('construct ' + constructor.name);
-            try {
-                return new constructor(...args);
-            } finally {
-                Observer.$trace.pop();
-                Global.$restore();
             }
         }
         static $terminate(target, lazy = false) {
@@ -174,6 +155,7 @@
     Core._terminateQueue = new Set();
     Core._initializeQueue = new Set();
     Core._promised = false;
+    Core._initializing = false;
     class Decorators {
         static get(proto) {
             if (HiddenProperty.$has(proto, $shrewdDecorators)) {
@@ -187,7 +169,11 @@
         }
         static $shrewd(a, b, c, d) {
             if (typeof b == 'undefined') {
-                return (proto, prop, descriptor) => Decorators.$shrewd(proto, prop, descriptor, a);
+                if (typeof a == 'function') {
+                    return Decorators._shrewdClass(a);
+                } else {
+                    return (proto, prop, descriptor) => Decorators.$shrewd(proto, prop, descriptor, a);
+                }
             } else if (typeof b == 'string') {
                 let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
                 if (!descriptor) {
@@ -202,10 +188,32 @@
             if (Core.$option.debug)
                 debugger;
         }
+        static _shrewdClass(constructor) {
+            let result;
+            let name = constructor.name;
+            eval(`result = class ${ name } extends constructor {
+			constructor(...args) {
+				Global.$pushState({
+					$isConstructing: true,
+					$isCommitting: false,
+					$target: null
+				});
+				Observer.$trace.push("construct ${ name }");
+				try {
+					super(...args);
+					if(this.constructor == result) {
+						new ShrewdObject(this);
+					}
+				} finally {
+					Observer.$trace.pop();
+					Global.$restore();
+				}
+			}
+		}`);
+            return result;
+        }
         static _setup(ctor, proto, prop, descriptor, option) {
             var adapter = new ctor(proto, prop, descriptor, option);
-            if (adapter.$precondition && !adapter.$precondition())
-                return;
             Decorators.get(proto).push(adapter.$decoratorDescriptor);
             return adapter.$setup();
         }
@@ -220,10 +228,15 @@
             while (proto) {
                 if (HiddenProperty.$has(proto, $shrewdDecorators)) {
                     let decorators = proto[$shrewdDecorators];
-                    for (let decorator of decorators)
-                        this._setup(decorator);
+                    for (let decorator of decorators) {
+                        let member = new decorator.$constructor(this._parent, decorator);
+                        this._members.set(member.$internalKey, member);
+                    }
                 }
                 proto = Object.getPrototypeOf(proto);
+            }
+            for (let member of this._members.values()) {
+                Core.$queueInitialization(member);
             }
         }
         static get(target) {
@@ -231,9 +244,6 @@
                 return target[$shrewdObject];
             else
                 return new ShrewdObject(target);
-        }
-        _setup(decorator) {
-            this._members.set(decorator.$key, new decorator.$constructor(this._parent, decorator));
         }
         $terminate() {
             if (this._isTerminated)
@@ -308,39 +318,6 @@
             default:
                 return this.$method(...args);
             }
-        }
-    }
-    class ObservablePropertyAdapter extends Adapter {
-        precondition() {
-            let descriptor = Object.getOwnPropertyDescriptor(this._proto, this._prop);
-            if (descriptor) {
-                console.warn(`Setup error at ${ this._proto.constructor.name }[${ this._prop.toString() }]. ` + 'Decorated property is not a field.');
-                if (Core.$option.debug)
-                    debugger;
-                return false;
-            }
-            return true;
-        }
-        get $decoratorDescriptor() {
-            return {
-                $key: this._prop,
-                $name: this._name,
-                $constructor: ObservableProperty,
-                $option: this._options
-            };
-        }
-        $setup() {
-            var proto = this._proto, prop = this._prop;
-            Object.defineProperty(proto, prop, {
-                get() {
-                    ShrewdObject.get(this);
-                    return this[prop];
-                },
-                set(value) {
-                    ShrewdObject.get(this);
-                    this[prop] = value;
-                }
-            });
         }
     }
     var ObserverState;
@@ -481,6 +458,8 @@
             }
         }
         _onCyclicDependencyFound() {
+            if (Core.$option.debug)
+                debugger;
             let last = Observer.$trace.indexOf(this);
             let cycle = [
                 this,
@@ -490,8 +469,6 @@
             cycle.push(this);
             let trace = cycle.map(o => typeof o == 'string' ? o : o._name).join(' => ');
             console.warn('Cyclic dependency detected: ' + trace + '\nAll these reactions will be terminated.');
-            if (Core.$option.debug)
-                debugger;
         }
         _update() {
             this._state = ObserverState.$updated;
@@ -575,14 +552,16 @@
     Helper._proxyMap = new WeakMap();
     class DecoratedMemeber extends Observer {
         constructor(parent, descriptor) {
-            super(descriptor.$name);
-            this._initialized = false;
+            super(descriptor.$class + '.' + descriptor.$key.toString());
+            this._descriptor = descriptor;
             this._option = Object.assign(this._defaultOption, descriptor.$option);
             this._parent = parent;
-            Core.$register(this);
+        }
+        get $internalKey() {
+            return this._descriptor.$class + '.' + this._descriptor.$key.toString();
         }
         $initialize() {
-            this._initialized = true;
+            this._determineStateAndRender();
         }
         get _defaultOption() {
             return {};
@@ -597,11 +576,7 @@
                 return this.$terminateGet();
             } else {
                 Observer.$refer(this);
-                if (!Global.$isCommitting && !this._initialized) {
-                    return this.$initialGet();
-                } else {
-                    return this.$regularGet();
-                }
+                return this.$regularGet();
             }
         }
     }
@@ -728,13 +703,10 @@
         }
         $render() {
             let value = this._getter.apply(this._parent);
-            if (value != this._value) {
+            if (value !== this._value) {
                 this._value = value;
                 Observable.$publish(this);
             }
-        }
-        $initialGet() {
-            return this.$regularGet();
         }
         $regularGet() {
             this._determineStateAndRender();
@@ -747,6 +719,8 @@
     class ObservableProperty extends DecoratedMemeber {
         constructor(parent, descriptor) {
             super(parent, descriptor);
+            this._initialized = false;
+            this._inputValue = parent[descriptor.$key];
             Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
             if (!this._option.renderer) {
                 this._update();
@@ -782,16 +756,27 @@
                 }
             }
         }
+        get $internalKey() {
+            return this._descriptor.$key.toString();
+        }
+        $initialize() {
+            if (this._initialized)
+                return;
+            if (this._option.validator && !this._option.validator.apply(this._parent, [this._inputValue])) {
+                this._inputValue = undefined;
+            }
+            this._confirm(this._inputValue);
+            this._initialized = true;
+        }
         _outdate() {
             if (this._option.renderer) {
                 super._outdate();
             }
         }
-        $initialGet() {
-            return this._inputValue;
-        }
         $regularGet() {
-            if (this._option.renderer) {
+            if (!this._initialized)
+                this.$initialize();
+            else if (this._option.renderer) {
                 this._determineStateAndRender();
             }
             return this._outputValue;
@@ -808,12 +793,15 @@
                 if (this._option.validator && !this._option.validator.apply(this._parent, [value])) {
                     return Core.$option.hook.write(this.$id);
                 }
-                this._inputValue = Helper.$wrap(value);
-                if (this._option.renderer) {
-                    this.$notified();
-                } else {
-                    this.$publish(this._inputValue);
-                }
+                this._confirm(value);
+            }
+        }
+        _confirm(value) {
+            this._inputValue = Helper.$wrap(value);
+            if (this._option.renderer) {
+                this.$render();
+            } else {
+                this.$publish(this._inputValue);
             }
         }
         $render() {
@@ -849,12 +837,6 @@
         }
         get _defaultOption() {
             return { active: true };
-        }
-        $initialGet() {
-            return () => {
-                this.$notified();
-                return this._result;
-            };
         }
         $regularGet() {
             return () => {
@@ -901,7 +883,6 @@
         shrewd: Decorators.$shrewd,
         symbol: $shrewdObject,
         commit: Core.$commit,
-        construct: Core.$construct,
         terminate: Core.$terminate,
         hook: {
             default: DefaultHook,
@@ -912,44 +893,78 @@
     if (typeof window !== 'undefined' && window.Vue) {
         Core.$option.hook = new VueHook();
     }
-    class ComputedPropertyAdapter extends Adapter {
+    class Adapter {
+        constructor(proto, prop, descriptor, options) {
+            this._proto = proto;
+            this._prop = prop;
+            this._descriptor = descriptor;
+            this._options = options;
+        }
+        get _name() {
+            return this._proto.constructor.name + '.' + this._prop.toString();
+        }
         get $decoratorDescriptor() {
             return {
-                $key: this._name,
-                $name: this._name,
-                $constructor: ComputedProperty,
-                $method: this._descriptor.get,
+                $key: this._prop.toString(),
+                $class: this._proto.constructor.name,
+                $constructor: this._constructor,
+                $method: this._method,
                 $option: this._options
             };
         }
+        get _method() {
+            return undefined;
+        }
         $setup() {
-            var descriptor = this._descriptor, name = this._name;
-            descriptor.get = function () {
-                let member = ShrewdObject.get(this).$getMember(name);
-                return member.$getter();
+        }
+    }
+    class ComputedPropertyAdapter extends Adapter {
+        get _constructor() {
+            return ComputedProperty;
+        }
+        get _method() {
+            return this._descriptor.get;
+        }
+        $setup() {
+            let name = this._name;
+            let method = this._method;
+            this._descriptor.get = function () {
+                if (HiddenProperty.$has(this, $shrewdObject)) {
+                    let member = this[$shrewdObject].$getMember(name);
+                    return member.$getter();
+                } else {
+                    return method.apply(this);
+                }
             };
-            return descriptor;
+            return this._descriptor;
+        }
+    }
+    class ObservablePropertyAdapter extends Adapter {
+        get _constructor() {
+            return ObservableProperty;
         }
     }
     class ReactiveMethodAdapter extends Adapter {
-        get $decoratorDescriptor() {
-            return {
-                $key: this._name,
-                $name: this._name,
-                $constructor: ReactiveMethod,
-                $method: this._descriptor.value,
-                $option: this._options
-            };
+        get _constructor() {
+            return ReactiveMethod;
+        }
+        get _method() {
+            return this._descriptor.value;
         }
         $setup() {
-            let descriptor = this._descriptor, name = this._name;
-            delete descriptor.value;
-            delete descriptor.writable;
-            descriptor.get = function () {
-                let member = ShrewdObject.get(this).$getMember(name);
-                return member.$getter();
+            let name = this._name;
+            let method = this._method;
+            delete this._descriptor.value;
+            delete this._descriptor.writable;
+            this._descriptor.get = function () {
+                if (HiddenProperty.$has(this, $shrewdObject)) {
+                    let member = this[$shrewdObject].$getMember(name);
+                    return member.$getter();
+                } else {
+                    return method.bind(this);
+                }
             };
-            return descriptor;
+            return this._descriptor;
         }
     }
     class Global {
@@ -959,6 +974,8 @@
         }
         static $restore() {
             Global._state = Global._history.pop();
+            if (Global._history.length == 0)
+                Core.$initialize();
         }
         static get $isCommitting() {
             return Global._state.$isCommitting;

@@ -2,7 +2,7 @@ import { shrewd, commit, option } from "../../dist/shrewd";
 
 export = function() {
 
-	class A {
+	@shrewd class A {
 		@shrewd public switch = true;
 		@shrewd public get a(): number {
 			return this.switch ? 1 : this.c;
@@ -20,8 +20,6 @@ export = function() {
 	}
 
 	let a = new A();
-	a.log();
-	commit();
 	console.assert(a.c == 2, "初始值", a.c);
 
 	option.debug = false;

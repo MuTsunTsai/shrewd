@@ -1,5 +1,4 @@
 // Level 0
-/// <reference path="adapters/Adapter.ts" />
 /// <reference path="class/Observable.ts" />
 /// <reference path="hook/DefaultHook.ts" />
 /// <reference path="hook/VueHook.ts" />
@@ -10,7 +9,6 @@
 /// <reference path="helpers/CollectionProxyHandler.ts" />
 
 // Level 1
-/// <reference path="adapters/ObservablePropertyAdapter.ts" />
 /// <reference path="class/Observer.ts" />
 /// <reference path="helpers/Helper.ts" />
 
@@ -35,7 +33,6 @@ const Shrewd = {
 	symbol: $shrewdObject,
 
 	commit: Core.$commit,
-	construct: Core.$construct,
 	terminate: Core.$terminate,
 
 	hook: {

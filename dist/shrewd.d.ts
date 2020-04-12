@@ -34,19 +34,14 @@ interface IDecoratorOptions<T> {
 	
 	/** Renderer function for ObservableProperty. */
 	renderer?: (value: T) => T;
-
-	/**
-	 * If set to true, the corresponding reaction will always execute regardless of lack of observers.
-	 * The default value is false for ObservableProperty and ComputedProperty,
-	 * and is true for ReactiveProperty.
-	 */
-	active?: boolean;
 }
 
 /**
- * The shrewd decorator turns a field into an ObservableProperty,
+ * The shrewd decorator makes a class reactive,
+ * and it turns a field into an ObservableProperty,
  * a get accessor into a ComputedProperty, and a method into a ReactiveMethod.
  */
+export function shrewd<T extends new (...args: any[]) => {}>(constructor: T): T;
 export function shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
 export function shrewd(target: object, prop: PropertyKey): void;
 export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
@@ -64,12 +59,6 @@ export function commit(): void;
  * Any changes made before the termination will still propagate in the committing stage.
  */
 export function terminate(target: object): void;
-
-/**
- * Construct a Shrewd object. Inside a ComputedProperty or a ReactiveMethod, to dynamically construct
- * instances of classes decorated by Shrewd, one must do so through this method.
- */
-export function construct<T, A extends any[]>(constructor: new (...args: A) => T, ...args: A): T;
 
 /**
  * Built-in hooks.

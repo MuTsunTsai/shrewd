@@ -2,7 +2,7 @@ import { shrewd, commit } from "../../dist/shrewd";
 
 export = function() {
 
-	class A {
+	@shrewd class A {
 		@shrewd public value: { [key: string]: any } = {
 			prop: 1
 		};

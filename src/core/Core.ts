@@ -20,11 +20,14 @@ class Core {
 	/** Objects to be terminated. */
 	private static readonly _terminateQueue: Set<ShrewdObject> = new Set();
 
-	/** Objects to be initialized. */
+	/** Reactions to be initialized. */
 	private static readonly _initializeQueue: Set<DecoratedMemeber> = new Set();
 
 	/** Whether there is auto-commit in the current stack. */
 	private static _promised: boolean = false;
+
+	/** A flag for preventing nested initialization. */
+	private static _initializing: boolean = false;
 
 	public static $commit() {
 		Global.$pushState({ $isCommitting: true });
@@ -35,12 +38,6 @@ class Core {
 				Observer.$render(observer);
 			}
 		} finally {
-			// Initializing
-			for(let member of Core._initializeQueue) {
-				member.$initialize();
-			}
-			Core._initializeQueue.clear();
-
 			// Finish comitting.
 			Observer.$clearPending();
 			Core._renderQueue.clear();
@@ -56,8 +53,18 @@ class Core {
 		}
 	}
 
-	public static $register(target: DecoratedMemeber) {
-		Core._initializeQueue.add(target);
+	public static $queueInitialization(member: DecoratedMemeber) {
+		Core._initializeQueue.add(member);
+	}
+
+	public static $initialize() {
+		if(Core._initializing) return;
+		Core._initializing = true;
+		for(let member of Core._initializeQueue) {
+			Core._initializeQueue.delete(member);
+			member.$initialize();
+		}
+		Core._initializing = false;
 	}
 
 	/** Auto-commit runs after finishing the current stack (but before any setTimeout). */
@@ -81,21 +88,6 @@ class Core {
 			let promise = Promise.resolve();
 			promise.then(Core._autoCommit);
 			Core._promised = true;
-		}
-	}
-
-	public static $construct<T, A extends any[]>(constructor: new (...args: A) => T, ...args: A): T {
-		Global.$pushState({
-			$isConstructing: true,
-			$isCommitting: false,
-			$target: null
-		});
-		Observer.$trace.push("construct " + constructor.name);
-		try {
-			return new constructor(...args);
-		} finally {
-			Observer.$trace.pop();
-			Global.$restore();
 		}
 	}
 

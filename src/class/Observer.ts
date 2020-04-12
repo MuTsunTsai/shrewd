@@ -203,6 +203,8 @@ abstract class Observer extends Observable {
 	}
 
 	private _onCyclicDependencyFound() {
+		if(Core.$option.debug) debugger;
+
 		// Find the smallest cycle.
 		let last = Observer.$trace.indexOf(this);
 		let cycle = [this, ...Observer.$trace.slice(last + 1)];
@@ -214,7 +216,6 @@ abstract class Observer extends Observable {
 		cycle.push(this);
 		let trace = cycle.map(o => typeof o == "string" ? o : o._name).join(" => ");
 		console.warn("Cyclic dependency detected: " + trace + "\nAll these reactions will be terminated.");
-		if(Core.$option.debug) debugger;
 	}
 
 	protected _update() {

@@ -67,12 +67,21 @@ gulp.task('updateDTS', () =>
 );
 
 gulp.task('updateExample', () => (
-	gulp.src('dist/shrewd.js').pipe(gulp.dest('example/dist/')),
+	gulp.src('dist/shrewd.js*').pipe(gulp.dest('example/dist/')),
 	gulp.src('dist/shrewd.d.ts').pipe(gulp.dest('example/src/'))
 ));
+
+var exampleProject = ts.createProject('example/src/tsconfig.json');
+
+gulp.task('buildExample', () =>
+	exampleProject.src()
+		.pipe(ifAnyNewer("example/dist"))
+		.pipe(exampleProject())
+		.pipe(gulp.dest('example/dist'))
+);
 
 gulp.task('preTest', gulp.series('buildMain', 'buildTest'));
 
 gulp.task('build', gulp.series('buildMain', 'buildMin'));
 
-gulp.task('default', gulp.series('build', 'buildTest', 'updateDTS', 'updateExample'));
+gulp.task('default', gulp.series('build', 'buildTest', 'updateDTS', 'updateExample', 'buildExample'));
