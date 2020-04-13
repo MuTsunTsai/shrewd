@@ -80,8 +80,8 @@ gulp.task('buildExample', () =>
 		.pipe(gulp.dest('example/dist'))
 );
 
-gulp.task('preTest', gulp.series('buildMain', 'buildTest'));
-
 gulp.task('build', gulp.series('buildMain', 'buildMin'));
+
+gulp.task('preTest', gulp.series('build', 'buildTest'));
 
 gulp.task('default', gulp.series('build', 'buildTest', 'updateDTS', 'updateExample', 'buildExample'));

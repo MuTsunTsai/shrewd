@@ -1,11 +1,12 @@
-import { shrewd, commit } from "../../dist/shrewd";
+import { shrewd, commit } from "shrewd";
 
 export = function() {
 	
 	@shrewd class A {
 		@shrewd({
 			renderer(this: A, arr: number[]) {
-				// 如果開啟下面這一行，程式將會發出警告
+				// 如果開啟下面這一行，編譯器將會發出警告，因為 this 並沒有 prop 這個屬性。
+				// 這表示 TypeScript 正確認得 this 的類型（雖然在這個測試例子中這無關緊要）。
 				// this.prop = 1;
 				let j = 0;
 				for(let i = 0; i < arr.length; i++) {

@@ -65,32 +65,44 @@ class Decorators {
 		if(Core.$option.debug) debugger;
 	}
 
-	private static _shrewdClass<T extends new (...args: any[]) => {}>(constructor: T): T {
+	private static _shrewdClass<T extends new (...args: any[]) => {}>(ctor: T): T {
 		let result: any;
-		let name = constructor.name;
+		let name = ctor.name;
+
+		// The following two sagments are extracted to allow mangling during minify.
+		let start = () => {
+			Global.$pushState({
+				$isConstructing: true,
+				$isCommitting: false,
+				$target: null
+			});
+			Observer.$trace.push(`construct ${name}`);
+		};
+		let finish = () => {
+			Observer.$trace.pop();
+			Global.$restore();
+		};
+
 		// We use eval to preserve the name of the class in our proxied class,
 		// in order to provide better console debugging experience.
 		// This of course is inefficient, but since class decorators will only apply once,
 		// the cost is insignificant.
-		eval(`result = class ${name} extends constructor {
+		eval(`result=class ${name} extends ctor{constructor(...a){start();try{super(...a);if(this.constructor==result)new ShrewdObject(this);}finally{finish();}}}`);
+		/*
+		result = class ${name} extends constructor {
 			constructor(...args) {
-				Global.$pushState({
-					$isConstructing: true,
-					$isCommitting: false,
-					$target: null
-				});
-				Observer.$trace.push("construct ${name}");
+				start();
 				try {
 					super(...args);
 					if(this.constructor == result) {
 						new ShrewdObject(this);
 					}
 				} finally {
-					Observer.$trace.pop();
-					Global.$restore();
+					finish();
 				}
 			}
-		}`);
+		}
+		*/
 		return result;
 	}
 

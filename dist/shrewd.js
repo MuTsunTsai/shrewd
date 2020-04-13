@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.0-beta.13
+ * shrewd v0.0.0
  * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -188,28 +188,22 @@
             if (Core.$option.debug)
                 debugger;
         }
-        static _shrewdClass(constructor) {
+        static _shrewdClass(ctor) {
             let result;
-            let name = constructor.name;
-            eval(`result = class ${ name } extends constructor {
-			constructor(...args) {
-				Global.$pushState({
-					$isConstructing: true,
-					$isCommitting: false,
-					$target: null
-				});
-				Observer.$trace.push("construct ${ name }");
-				try {
-					super(...args);
-					if(this.constructor == result) {
-						new ShrewdObject(this);
-					}
-				} finally {
-					Observer.$trace.pop();
-					Global.$restore();
-				}
-			}
-		}`);
+            let name = ctor.name;
+            let start = () => {
+                Global.$pushState({
+                    $isConstructing: true,
+                    $isCommitting: false,
+                    $target: null
+                });
+                Observer.$trace.push(`construct ${ name }`);
+            };
+            let finish = () => {
+                Observer.$trace.pop();
+                Global.$restore();
+            };
+            eval(`result=class ${ name } extends ctor{constructor(...a){start();try{super(...a);if(this.constructor==result)new ShrewdObject(this);}finally{finish();}}}`);
             return result;
         }
         static _setup(ctor, proto, prop, descriptor, option) {
@@ -238,12 +232,6 @@
             for (let member of this._members.values()) {
                 Core.$queueInitialization(member);
             }
-        }
-        static get(target) {
-            if (HiddenProperty.$has(target, $shrewdObject))
-                return target[$shrewdObject];
-            else
-                return new ShrewdObject(target);
         }
         $terminate() {
             if (this._isTerminated)
@@ -729,11 +717,11 @@
         static $interceptor(key) {
             return ObservableProperty._interceptor[key] = ObservableProperty._interceptor[key] || {
                 get() {
-                    let member = ShrewdObject.get(this).$getMember(key);
+                    let member = this[$shrewdObject].$getMember(key);
                     return member.$getter();
                 },
                 set(value) {
-                    let member = ShrewdObject.get(this).$getMember(key);
+                    let member = this[$shrewdObject].$getMember(key);
                     member.$setter(value);
                 }
             };
@@ -748,7 +736,7 @@
                         ObservableProperty.$setAccessible(child);
                 }
             } else if (HiddenProperty.$has(target, $shrewdObject)) {
-                for (let obp of ShrewdObject.get(target).$observables) {
+                for (let obp of target[$shrewdObject].$observables) {
                     if (!Global.$isAccessible(obp)) {
                         Global.$setAccessible(obp);
                         ObservableProperty.$setAccessible(obp._outputValue);

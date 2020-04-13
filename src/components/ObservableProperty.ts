@@ -12,12 +12,12 @@ class ObservableProperty extends DecoratedMemeber {
 	private static _interceptor: any = {};
 	public static $interceptor(key: PropertyKey): PropertyDescriptor {
 		return ObservableProperty._interceptor[key] = ObservableProperty._interceptor[key] || {
-			get() {
-				let member = ShrewdObject.get(this).$getMember(key);
+			get(this: IShrewdObjectParent) {
+				let member = this[$shrewdObject].$getMember(key);
 				return member.$getter();
 			},
-			set(value: any) {
-				let member = ShrewdObject.get(this).$getMember<ObservableProperty>(key);
+			set(this: IShrewdObjectParent, value: any) {
+				let member = this[$shrewdObject].$getMember<ObservableProperty>(key);
 				member.$setter(value);
 			}
 		};
@@ -31,7 +31,7 @@ class ObservableProperty extends DecoratedMemeber {
 				for(let child of target[$observableHelper].$child) ObservableProperty.$setAccessible(child);
 			}
 		} else if(HiddenProperty.$has(target, $shrewdObject)) {
-			for(let obp of ShrewdObject.get(target).$observables) {
+			for(let obp of target[$shrewdObject].$observables) {
 				if(!Global.$isAccessible(obp)) {
 					Global.$setAccessible(obp);
 					ObservableProperty.$setAccessible(obp._outputValue);

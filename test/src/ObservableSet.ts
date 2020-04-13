@@ -1,5 +1,4 @@
-import { shrewd, commit } from "../../dist/shrewd";
-
+import { shrewd, commit } from "shrewd";
 export = function() {
 
 	@shrewd class A {

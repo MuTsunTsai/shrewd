@@ -1,4 +1,4 @@
-import { shrewd, commit, option } from "../../dist/shrewd";
+import { shrewd, commit, option } from "shrewd";
 
 export = function() {
 

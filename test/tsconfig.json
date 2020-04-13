@@ -6,7 +6,11 @@
 		"removeComments": true,
 		"strict": true,
 		"preserveConstEnums": true,
-		"experimentalDecorators": true
+		"experimentalDecorators": true,
+		"baseUrl": ".",
+		"paths": {
+			"shrewd": ["../dist/shrewd.d.ts"]
+		}
 	},
 	"include": [
 		"./src/**/*.ts"

@@ -7,11 +7,6 @@ interface IShrewdObjectParent {
 
 class ShrewdObject {
 
-	public static get(target: object): ShrewdObject {
-		if(HiddenProperty.$has(target, $shrewdObject)) return target[$shrewdObject];
-		else return new ShrewdObject(target);
-	}
-
 	constructor(parent: object) {
 		this._parent = HiddenProperty.$add(parent, $shrewdObject, this);
 		let proto = Object.getPrototypeOf(this._parent);

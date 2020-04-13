@@ -1,4 +1,4 @@
-import { shrewd, option } from "../../dist/shrewd";
+import { shrewd, option } from "shrewd";
 
 export = function() {
 
