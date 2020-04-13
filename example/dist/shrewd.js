@@ -233,12 +233,6 @@
                 Core.$queueInitialization(member);
             }
         }
-        static get(target) {
-            if (HiddenProperty.$has(target, $shrewdObject))
-                return target[$shrewdObject];
-            else
-                return new ShrewdObject(target);
-        }
         $terminate() {
             if (this._isTerminated)
                 return;
@@ -723,11 +717,11 @@
         static $interceptor(key) {
             return ObservableProperty._interceptor[key] = ObservableProperty._interceptor[key] || {
                 get() {
-                    let member = ShrewdObject.get(this).$getMember(key);
+                    let member = this[$shrewdObject].$getMember(key);
                     return member.$getter();
                 },
                 set(value) {
-                    let member = ShrewdObject.get(this).$getMember(key);
+                    let member = this[$shrewdObject].$getMember(key);
                     member.$setter(value);
                 }
             };
@@ -742,7 +736,7 @@
                         ObservableProperty.$setAccessible(child);
                 }
             } else if (HiddenProperty.$has(target, $shrewdObject)) {
-                for (let obp of ShrewdObject.get(target).$observables) {
+                for (let obp of target[$shrewdObject].$observables) {
                     if (!Global.$isAccessible(obp)) {
                         Global.$setAccessible(obp);
                         ObservableProperty.$setAccessible(obp._outputValue);
