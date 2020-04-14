@@ -9,24 +9,27 @@
 
 ## Introduction
 
-Reactive-programming frameworks has become popular as they allow programmers to focus on how data affect each other, not worrying about how to handle the propagation of state changes. In recent years, major front-end frameworks such as [Vue.js](https://vuejs.org), [React.js](https://reactjs.org/), [Angular](https://angular.io/), etc. all embrace this concept and have their built-in reactive state-container, while other state-containers such as [Redux](https://redux.js.org/), [Vuex](https://vuex.vuejs.org/), [NgRx](https://ngrx.io/), [MobX](https://mobx.js.org), etc. provides independent support for reactive states.
+Reactive-programming frameworks has become popular as they allow programmers to focus on how data affect each other, not worrying about how to handle the propagation of state changes. In recent years, major front-end frameworks such as [Vue.js](https://vuejs.org), [React.js](https://reactjs.org/), [Angular](https://angular.io/), [Blazor](https://blazor.net/) etc. all embrace this concept and have their built-in reactive state-containers, while other state-containers such as [Redux](https://redux.js.org/), [Vuex](https://vuex.vuejs.org/), [NgRx](https://ngrx.io/), [MobX](https://mobx.js.org), etc. provides independent support for reactive states.
 
 Shrewd is also a reactive framework that can be used for building apps or state-containers for other frameworks. It is designed particularly with the following focuses:
 
-- Built for complex system\
-	Shrewd is meant for data systems that are highly complicated and may have numerous variables depending on each other in dynamic ways. It allows programmers to organize those variables in objects, and assign their dependencies in intuitive ways.
-
-- TypeScript oriented\
-	Shrewd is both developed with TypeScript and for TypeScript.
-
-- Front-end oriented\
-	Like most front-end packages, Shrewd has zero dependencies and can be used directly on webpages as a global variable without importing modules.
+- Built for complex systems\
+	Shrewd is meant for data systems that are highly complicated and may have numerous variables depending on each other. It allows programmers to organize those variables in objects, and assign their dependencies in intuitive ways.
 
 - Simple and intuitive\
 	Shrewd has very few APIs and can be picked up in minutes. Like frameworks such as Vue.js, Shrewd also allows you to write dependencies in natural-looking scripts, without a bunch of pipings. Shrewd will monitor the scripts and gather the dependencies for you.
 
 - Efficiency\
 	Shrewd performs only the necessary calculations and rendering. Propagation of changes stops at any variable that remains unchanged, and resulting values are cached until its references have changed. Shrewd also make sure that it performs the propagation in the correct order so that nothing will be updated twice in the same committing stage.
+
+- Built for dynamic systems\
+	Shrewd is perfect for systems in which dependencies could change based on other variables. No matter how the dependency digraph has changed, as long as it remains acyclic, Shrewd will propagate the changes in the correct order, and make sure that dependent variables are notified only when their current dependencies have changed.
+
+- TypeScript oriented\
+	Shrewd is both developed with TypeScript and for TypeScript.
+
+- Front-end oriented\
+	Like most front-end packages, Shrewd has zero package-dependencies and can be used directly on webpages as a global variable without importing modules.
 
 - Prevents cyclic dependencies\
 	Highly complicated system means the chances of accidentally creating cyclic dependencies are high. The design of Shrewd APIs makes it less likely to create cyclic dependency among data, and when there is one, Shrewd detects and provides readable debug messages that help programmers to fix the problem.
@@ -218,7 +221,7 @@ In order to make sure that all dependencies are already injected into our reacti
 
 | | `ObservableProperty` | `ComputedProperty` | `ReactiveMethod` |
 | --- | --- | --- | --- |
-| Setting | Runs validation when applicable. Only allowed in manual stage. | --- | --- |
+| Setting | Runs validation when applicable. Only allowed in manual stage or within constructors. | --- | --- |
 | Initialization | Runs validation when applicable; if not validated, the value will become `undefined`. | Computes once to get its initial value. | Executes once. |
 | Getting | Renders the property when applicable, and returns the value after rendering. | Recomputes as needed, and returns new value. | Executes the method when triggered or called manually, and returns the new result. |
 | Triggers further reaction ... | ...if the return value has changed. | ...if the return value has changed. | ...in any case. |
@@ -229,7 +232,7 @@ In order to make sure that all dependencies are already injected into our reacti
 In larger projects where dependencies of data are complicated, it is easy to accidentally design a data flow that has cyclic dependencies. Shrewd can help us to catch such dependency and show us how to fix it. Consider the following example:
 
 ```ts
-class A {
+@shrewd class A {
 	@shrewd public switch = true;
 
 	@shrewd public get a(): number {
@@ -298,7 +301,7 @@ You can create your own hook to make Shrewd work with any framework of your choi
 
 ```ts
 interface IHook {
-	/** Trigger a "read" operation to record dependency. */
+	/** Trigger a "read" operation to record dependencies. */
 	read(id: number): void;
 
 	/** Trigger a "write" operation to notify changes. */
@@ -321,7 +324,7 @@ And then install it by:
 Shrewd.option.hook = myHookInstance;
 ```
 
-In the methods `read`, `write` and `sub`, the parameter `id` is the internal id for a Shrewd Observable object. You can then manage the dependency from your framework to Shrewd based on this id. You'll also need to implement the `gc` method to prevent memory leaks.
+In the methods `read`, `write` and `sub`, the parameter `id` is the internal id for a Shrewd Observable object. You can then manage the dependencies from your framework to Shrewd based on this id. You'll also need to implement the `gc` method to prevent memory leaks.
 
 # Let us hear you!
 
