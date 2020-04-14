@@ -3,7 +3,7 @@
 > A reactive framework designed for building front-end applications that involves complex dependencies among states.
 
 [![npm version](https://img.shields.io/npm/v/shrewd.svg?logo=npm)](https://www.npmjs.com/package/shrewd)
-![npm downloads](https://img.shields.io/npm/dt/shrewd?logo=npm)
+[![npm downloads](https://img.shields.io/npm/dt/shrewd?logo=npm)](https://www.npmjs.com/package/shrewd)
 [![GitHub package version](https://img.shields.io/github/package-json/v/MuTsunTsai/shrewd.svg?logo=github&label=Github)](https://github.com/MuTsunTsai/shrewd)
 ![license](https://img.shields.io/npm/l/shrewd.svg)
 
@@ -251,7 +251,6 @@ In larger projects where dependencies of data are complicated, it is easy to acc
 }
 
 let a = new A();
-a.log();
 ```
 
 In the beginning, nothing is wrong. But once we set `a.switch=false` in the console, cyclic dependency appears. In this particular case, the following message will appear in the console,

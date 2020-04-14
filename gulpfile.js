@@ -60,8 +60,8 @@ gulp.task('buildTest', () =>
 		.pipe(gulp.dest('test/tests'))
 );
 
-gulp.task('updateDTS', () =>
-	gulp.src('dist/shrewd.d.ts')
+gulp.task('updateVer', () =>
+	gulp.src(['dist/shrewd.d.ts', 'dist/shrewd.js', 'dist/shrewd.min.js'])
 		.pipe(replace(/\/\*\*\s[\s\S]+?\s\*\//, header))
 		.pipe(gulp.dest('dist/'))
 );
@@ -84,4 +84,4 @@ gulp.task('build', gulp.series('buildMain', 'buildMin'));
 
 gulp.task('preTest', gulp.series('build', 'buildTest'));
 
-gulp.task('default', gulp.series('build', 'buildTest', 'updateDTS', 'updateExample', 'buildExample'));
+gulp.task('default', gulp.series('build', 'buildTest', 'updateVer', 'updateExample', 'buildExample'));
