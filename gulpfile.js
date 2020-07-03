@@ -1,20 +1,21 @@
-var gulp = require('gulp');
-var ts = require('gulp-typescript');
-var rename = require('gulp-rename');
-var wrapJS = require("gulp-wrap-js");
-var terser = require('gulp-terser');
-var replace = require('gulp-replace');
-var ifAnyNewer = require('gulp-if-any-newer');
-var sourcemaps = require('gulp-sourcemaps');
+let gulp = require('gulp');
+let ts = require('gulp-typescript');
+let rename = require('gulp-rename');
+let wrapJS = require("gulp-wrap-js");
+let terser = require('gulp-terser');
+let replace = require('gulp-replace');
+let ifAnyNewer = require('gulp-if-any-newer');
+let clean = require('gulp-dest-clean');
+let sourcemaps = require('gulp-sourcemaps');
 
-var pkg = require('./package.json');
-var header = `/**
+let pkg = require('./package.json');
+let header = `/**
  * ${pkg.name} v${pkg.version}
  * (c) 2019-${new Date().getFullYear()} Mu-Tsun Tsai
  * Released under the MIT License.
  */`;
 
-var terserOption = {
+let terserOption = {
 	"mangle": {
 		"properties": {
 			"regex": /^[$_]/
@@ -26,10 +27,11 @@ var terserOption = {
 };
 
 let project = ts.createProject('src/tsconfig.json');
+let projectDest = 'dist';
 
 gulp.task('buildMain', () =>
 	project.src()
-		.pipe(ifAnyNewer("dist", { filter: 'shrewd.js' }))
+		.pipe(ifAnyNewer(projectDest, { filter: 'shrewd.js' }))
 		.pipe(sourcemaps.init())
 		.pipe(project())
 		.pipe(wrapJS(`${header};(function(root,factory){if(typeof define==='function'&&define.amd)
@@ -37,27 +39,29 @@ gulp.task('buildMain', () =>
 			else{root.Shrewd=factory();}}(this,function(){ %= body % ;return Shrewd;}));`
 		))
 		.pipe(sourcemaps.write('.', { includeContent: false, sourceRoot: '../src' }))
-		.pipe(gulp.dest('dist/'))
+		.pipe(gulp.dest(projectDest))
 );
 
 gulp.task('buildMin', () =>
-	gulp.src('dist/shrewd.js')
+	gulp.src(projectDest + '/shrewd.js')
 		.pipe(sourcemaps.init({ loadMaps: true }))
 		.pipe(terser(terserOption))
 		.pipe(rename({ suffix: '.min' }))
 		.pipe(sourcemaps.write('.', { includeContent: false }))
-		.pipe(gulp.dest('dist/'))
+		.pipe(gulp.dest(projectDest))
 );
 
-var testProject = ts.createProject('test/tsconfig.json');
+let testProject = ts.createProject('test/tsconfig.json');
+let testDest = "test/tests";
 
 gulp.task('buildTest', () =>
 	testProject.src()
-		.pipe(ifAnyNewer("test/tests"))
+		.pipe(ifAnyNewer(testDest))
 		.pipe(sourcemaps.init())
 		.pipe(testProject())
 		.pipe(sourcemaps.write({ includeContent: false, sourceRoot: '../src' }))
-		.pipe(gulp.dest('test/tests'))
+		.pipe(clean(testDest))
+		.pipe(gulp.dest(testDest))
 );
 
 gulp.task('updateVer', () =>
@@ -71,7 +75,7 @@ gulp.task('updateExample', () => (
 	gulp.src('dist/shrewd.d.ts').pipe(gulp.dest('example/src/'))
 ));
 
-var exampleProject = ts.createProject('example/src/tsconfig.json');
+let exampleProject = ts.createProject('example/src/tsconfig.json');
 
 gulp.task('buildExample', () =>
 	exampleProject.src()

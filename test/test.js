@@ -19,15 +19,30 @@ console.assert = (a, ...obj) => {
 	if(!a) throw true;
 };
 
-// Start tests.
-for(let test in Tests) {
-	try {
-		Tests[test]();
-	} catch(e) {
-		if(e instanceof Error) console.error(e);
-		console.log(`\x1b[31m${test} : failed\x1b[0m`);
-		pass = false;
-		break;
-	}
+function log(s) {
+	process.stdout.clearLine();
+	process.stdout.cursorTo(0);
+	process.stdout.write(s);
 }
-if(pass) console.log("\x1b[32mAll tests succeeded.\x1b[0m");
+
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function run() {
+	for(let test in Tests) {
+		try {
+			log(`Testing: \x1b[32m${test}\x1b[0m`)
+			Tests[test]();
+			await sleep(25); // To provide better feedback that the tests are really running.
+		} catch(e) {
+			if(e instanceof Error) console.error(e);
+			log(`\x1b[31m${test} : failed\x1b[0m`);
+			pass = false;
+			break;
+		}
+	}
+	if(pass) log("\x1b[32mAll tests succeeded.\x1b[0m");
+}
+
+run();
