@@ -158,6 +158,16 @@ ReactiveMethod re-runs itself automatically during the next committing stage, if
 
 After the construction of a class decorated with `@shrewd` decorator, all its ReactiveMethods will start automatically.
 
+## Termination
+
+If an object is no longer needed in the future, we can manually call
+```ts
+Shrewd.terminate(target: object)
+```
+to terminate all its reactions. Without doing so, the object may not be garbage-collected and causes memory leaks. Once terminated, a reaction will only return its last known return value, without performing anything. 
+
+In some cases, reactions will terminate automatically. One such case is that if a ComputedProperty realizes that it no longer depends on any reactive values (possibly due to changes of some non-reactive values, or termination of its dependent values), it would automatically terminates itself, since in that case nothing can trigger its further update. Another case that leads to automatic termination is cyclic dependency (explained later).
+
 ## Dynamically constructed objects
 
 It is commonly the case that one set of objects are created and destroyed based on another set of objects. In the example below, we establish a one-to-one correspondence between a set of numbers and instances of class `C`:
@@ -207,12 +217,6 @@ It is commonly the case that one set of objects are created and destroyed based 
 }
 ```
 
-If an object is no longer needed in the future, make sure to call
-```ts
-Shrewd.terminate(target: object)
-```
-to terminate it (which stops all its reactive features). Without doing so, the object may not be garbage-collected and causes memory leaks.
-
 ## Initialization
 
 In order to make sure that all dependencies are already injected into our reactive object before its reactions are executed, Shrewd initializes the reactions only after the object has been fully constructed. If any reactions are accessed during the construction, it will simply behaved the same way as if they are not reactive.
@@ -260,7 +264,7 @@ Cyclic dependency detected: A.a => A.c => A.b => A.a
 All these reactions will be terminated.
 ```
 
-so that not only we know that our code went wrong, but we can also trace exactly what causes the cyclic dependency to fix it. Whenever Shrewd detects cyclic dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing uncatched errors. Once terminated, reactions will only return their last known return value, without performing anything.
+so that not only we know that our code went wrong, but we can also trace exactly what causes the cyclic dependency to fix it. Whenever Shrewd detects cyclic dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing uncatched errors.
 
 ## Use Shrewd with Vue.js
 
@@ -324,6 +328,32 @@ Shrewd.option.hook = myHookInstance;
 ```
 
 In the methods `read`, `write` and `sub`, the parameter `id` is the internal id for a Shrewd Observable object. You can then manage the dependencies from your framework to Shrewd based on this id. You'll also need to implement the `gc` method to prevent memory leaks.
+
+# Caveats
+
+## Proxied constructor
+
+Since version 0.0.4, Shrewd uses Proxy [<sup>1</sup>](#1) in the class decorator. This leads to the result that the classname variables eventually stand for Proxy objects instead of the actual constructor functions. For example:
+
+```ts
+@shrewd class A {}
+
+var a = new A();
+
+console.log(a.constructor == A);
+// false; A became a Proxy, and is no longer the actual constructor.
+```
+
+You can, however, use one of the following comparisons instead:
+
+```ts
+console.log(a.constructor == A.prototype.constructor); // true; comparing constructor functions
+console.log(a.constructor.prototype == A.prototype); // true; comparing prototype objects
+console.log(a instanceof A); // true; based on prototype comparison
+```
+
+<a class="anchor" id="1"><sup>1</sup></a>
+<small>The alternative is using extension classes, but a major downside of this approach is that the only way to preserve the object classname in the debugger console is to declare the extension using some form of the `eval()` function, which is generally considered undesirable (for example, it could violate the content-security-policy (CSP) setting of your server).</small>
 
 # Let us hear you!
 

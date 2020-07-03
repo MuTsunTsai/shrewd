@@ -1,14 +1,14 @@
 
+declare const Vue: any;
+
 //////////////////////////////////////////////////////////////////
 /**
- * VueClient uses a very simple idea to establish the dependencies
+ * `VueHook` uses a very simple idea to establish the dependencies
  * from any Vue instance to Shrewd. Each Observable gets an dummy
  * field in an isolated Vue instance, and the reading or writing
  * to those dummy fields trigger the corresponding mechanism in Vue.
  */
 //////////////////////////////////////////////////////////////////
-
-declare const Vue: any;
 
 class VueHook implements IHook {
 

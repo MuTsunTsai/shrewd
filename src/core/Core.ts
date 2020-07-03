@@ -73,11 +73,11 @@ class Core {
 		Core._promised = false;
 	}
 
-	public static $unqueue(observer: Observer) {
+	public static $dequeue(observer: Observer) {
 		Core._renderQueue.delete(observer);
 	}
 
-	public static $queue(observer: Observer) {
+	public static $enqueue(observer: Observer) {
 		// There's no need to add rendering Observers again.
 		if(!observer.$isRendering) {
 			Core._renderQueue.add(observer);

@@ -1,6 +1,6 @@
 
 /**
- * Default Client does absolutely nothing.
+ * `DefaultHook` is an `IHook` that does absolutely nothing.
  */
 class DefaultHook implements IHook {
 	public read(id: number): void { }

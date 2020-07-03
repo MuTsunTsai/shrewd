@@ -52,11 +52,11 @@ class Decorators {
 			}
 		} else if(typeof b == "string") {
 			let descriptor = c || Object.getOwnPropertyDescriptor(a, b);
-			if(!descriptor) { // ObservableProperty
+			if(!descriptor) {
 				return Decorators._setup(ObservablePropertyAdapter, a, b, undefined, d);
-			} else if(descriptor.get && !descriptor.set) { // ComputedProperty
+			} else if(descriptor.get && !descriptor.set) {
 				return Decorators._setup(ComputedPropertyAdapter, a, b, descriptor, d);
-			} else if(typeof (descriptor.value) == "function") { // ReactiveMethod
+			} else if(typeof (descriptor.value) == "function") {
 				return Decorators._setup(ReactiveMethodAdapter, a, b, descriptor, d);
 			}
 		}
@@ -66,45 +66,34 @@ class Decorators {
 	}
 
 	private static _shrewdClass<T extends new (...args: any[]) => {}>(ctor: T): T {
-		let result: any;
-		let name = ctor.name;
+		var proxy = new Proxy<T>(ctor, Decorators._shrewdProxyHandler);
+		Decorators._proxies.add(proxy);
+		return proxy;
+	}
 
-		// The following two sagments are extracted to allow mangling during minify.
-		let start = () => {
+	private static _proxies = new WeakSet();
+
+	private static _shrewdProxyHandler: ProxyHandler<Function> = {
+		construct(target: Function, args: any[], newTarget: any): object {
+			if(!Decorators._proxies.has(newTarget)) {
+				console.warn(`Class [${newTarget.name}] is derived form @shrewd class [${target.name}], but it is not decorated with @shrewd.`);
+			}
 			Global.$pushState({
 				$isConstructing: true,
 				$isCommitting: false,
 				$target: null
 			});
-			Observer.$trace.push(`construct ${name}`);
-		};
-		let finish = () => {
-			Observer.$trace.pop();
-			Global.$restore();
-		};
-
-		// We use eval to preserve the name of the class in our proxied class,
-		// in order to provide better console debugging experience.
-		// This of course is inefficient, but since class decorators will only apply once,
-		// the cost is insignificant.
-		eval(`result=class ${name} extends ctor{constructor(...a){start();try{super(...a);if(this.constructor==result)new ShrewdObject(this);}finally{finish();}}}`);
-		/*
-		result = class ${name} extends constructor {
-			constructor(...args) {
-				start();
-				try {
-					super(...args);
-					if(this.constructor == result) {
-						new ShrewdObject(this);
-					}
-				} finally {
-					finish();
-				}
+			Observer.$trace.push(`construct ${target.name}`);
+			try {
+				let self = Reflect.construct(target, args, newTarget);
+				if(self.constructor == target) new ShrewdObject(self);
+				return self;
+			} finally {
+				Observer.$trace.pop();
+				Global.$restore();
 			}
 		}
-		*/
-		return result;
-	}
+	};
 
 	private static _setup(
 		ctor: IAdapterConstructor,

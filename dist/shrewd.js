@@ -122,10 +122,10 @@
             Core.$commit();
             Core._promised = false;
         }
-        static $unqueue(observer) {
+        static $dequeue(observer) {
             Core._renderQueue.delete(observer);
         }
-        static $queue(observer) {
+        static $enqueue(observer) {
             if (!observer.$isRendering) {
                 Core._renderQueue.add(observer);
             }
@@ -189,22 +189,9 @@
                 debugger;
         }
         static _shrewdClass(ctor) {
-            let result;
-            let name = ctor.name;
-            let start = () => {
-                Global.$pushState({
-                    $isConstructing: true,
-                    $isCommitting: false,
-                    $target: null
-                });
-                Observer.$trace.push(`construct ${ name }`);
-            };
-            let finish = () => {
-                Observer.$trace.pop();
-                Global.$restore();
-            };
-            eval(`result=class ${ name } extends ctor{constructor(...a){start();try{super(...a);if(this.constructor==result)new ShrewdObject(this);}finally{finish();}}}`);
-            return result;
+            var proxy = new Proxy(ctor, Decorators._shrewdProxyHandler);
+            Decorators._proxies.add(proxy);
+            return proxy;
         }
         static _setup(ctor, proto, prop, descriptor, option) {
             var adapter = new ctor(proto, prop, descriptor, option);
@@ -212,6 +199,29 @@
             return adapter.$setup();
         }
     }
+    Decorators._proxies = new WeakSet();
+    Decorators._shrewdProxyHandler = {
+        construct(target, args, newTarget) {
+            if (!Decorators._proxies.has(newTarget)) {
+                console.warn(`Class [${ newTarget.name }] is derived form @shrewd class [${ target.name }], but it is not decorated with @shrewd.`);
+            }
+            Global.$pushState({
+                $isConstructing: true,
+                $isCommitting: false,
+                $target: null
+            });
+            Observer.$trace.push(`construct ${ target.name }`);
+            try {
+                let self = Reflect.construct(target, args, newTarget);
+                if (self.constructor == target)
+                    new ShrewdObject(self);
+                return self;
+            } finally {
+                Observer.$trace.pop();
+                Global.$restore();
+            }
+        }
+    };
     const $shrewdObject = Symbol('ShrewdObject');
     class ShrewdObject {
         constructor(parent) {
@@ -345,7 +355,7 @@
                 observable._isActive = observable.checkActive();
                 if (!observable.$isActive) {
                     let oldReferences = new Set(observable._reference);
-                    Core.$unqueue(observable);
+                    Core.$dequeue(observable);
                     for (let ref of oldReferences) {
                         Observer.$checkDeadEnd(ref);
                     }
@@ -358,10 +368,10 @@
                 $target: observer
             });
             observer._isRendering = true;
-            Core.$unqueue(observer);
+            Core.$dequeue(observer);
             try {
                 let oldReferences = new Set(observer._reference);
-                observer.$clearReference();
+                observer._clearReference();
                 let result = observer.$render();
                 observer._update();
                 if (!observer._isTerminated) {
@@ -389,19 +399,19 @@
             this._pend();
             this._outdate();
             if (this.$isActive) {
-                Core.$queue(this);
+                Core.$enqueue(this);
             }
         }
         $terminate() {
             if (this._isTerminated)
                 return;
-            Core.$unqueue(this);
+            Core.$dequeue(this);
             Observer._pending.delete(this);
             this._isTerminated = true;
             this._onTerminate();
         }
         _onTerminate() {
-            this.$clearReference();
+            this._clearReference();
             for (let subscriber of this.$subscribers) {
                 subscriber._reference.delete(this);
                 this.$unsubscribe(subscriber);
@@ -488,10 +498,13 @@
                     observable.activate();
             }
         }
-        $clearReference() {
+        _clearReference() {
             for (let observable of this._reference)
                 observable.$unsubscribe(this);
             this._reference.clear();
+        }
+        get $hasReferences() {
+            return this._reference.size > 0;
         }
         get $isTerminated() {
             return this._isTerminated;
@@ -695,9 +708,13 @@
                 this._value = value;
                 Observable.$publish(this);
             }
+            if (!this.$hasReferences)
+                this.$terminate();
         }
         $regularGet() {
             this._determineStateAndRender();
+            if (!this.$hasReferences)
+                this.$terminate();
             return this._value;
         }
         $terminateGet() {

@@ -1,8 +1,8 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * IHook classes are the bridges between Shrewd and other reactive
- * frameworks, such as Vue. They allow Shrewd to be used as
+ * `IHook` interface is the bridge between Shrewd and other reactive
+ * frameworks, such as Vue.js. They allow Shrewd to be used as
  * state store in those frameworks.
  */
 //////////////////////////////////////////////////////////////////

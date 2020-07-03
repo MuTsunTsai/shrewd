@@ -43,7 +43,7 @@ abstract class Observer extends Observable {
 			observable._isActive = observable.checkActive();
 			if(!observable.$isActive) {
 				let oldReferences = new Set(observable._reference);
-				Core.$unqueue(observable);
+				Core.$dequeue(observable);
 				for(let ref of oldReferences) {
 					Observer.$checkDeadEnd(ref);
 				}
@@ -59,13 +59,13 @@ abstract class Observer extends Observable {
 			$target: observer
 		});
 		observer._isRendering = true;
-		Core.$unqueue(observer);
+		Core.$dequeue(observer);
 
 		try {
 
 			// Clear all references.
 			let oldReferences = new Set(observer._reference);
-			observer.$clearReference();
+			observer._clearReference();
 
 			// Execute the rendering method.
 			let result = observer.$render();
@@ -128,20 +128,20 @@ abstract class Observer extends Observable {
 		this._pend();
 		this._outdate();
 		if(this.$isActive) {
-			Core.$queue(this);
+			Core.$enqueue(this);
 		}
 	}
 
 	public $terminate() {
 		if(this._isTerminated) return;
-		Core.$unqueue(this);
+		Core.$dequeue(this);
 		Observer._pending.delete(this);
 		this._isTerminated = true;
 		this._onTerminate();
 	}
 
 	protected _onTerminate() {
-		this.$clearReference();
+		this._clearReference();
 		for(let subscriber of this.$subscribers) {
 			subscriber._reference.delete(this);
 			this.$unsubscribe(subscriber);
@@ -254,10 +254,14 @@ abstract class Observer extends Observable {
 
 	protected abstract $render(): any;
 
-	protected $clearReference() {
+	private _clearReference(): void {
 		for(let observable of this._reference) observable.$unsubscribe(this);
 		this._reference.clear();
 	}
 
-	protected get $isTerminated() { return this._isTerminated; }
+	protected get $hasReferences(): boolean {
+		return this._reference.size > 0;
+	}
+
+	protected get $isTerminated(): boolean { return this._isTerminated; }
 }

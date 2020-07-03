@@ -30,10 +30,12 @@ class ComputedProperty extends DecoratedMemeber {
 			this._value = value;
 			Observable.$publish(this);
 		}
+		if(!this.$hasReferences) this.$terminate();
 	}
 
 	protected $regularGet() {
 		this._determineStateAndRender();
+		if(!this.$hasReferences) this.$terminate();
 		return this._value;
 	}
 

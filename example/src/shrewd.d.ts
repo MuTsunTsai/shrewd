@@ -28,10 +28,10 @@ interface IHook {
  * Enable strict mode in TypeScript to allow type checking for this interface.
  */
 interface IDecoratorOptions<T> {
-	
+
 	/** Validator for ObservableProperty. */
 	validator?: (value: T) => boolean;
-	
+
 	/** Renderer function for ObservableProperty. */
 	renderer?: (value: T) => T;
 }

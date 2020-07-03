@@ -28,10 +28,10 @@ interface IHook {
  * Enable strict mode in TypeScript to allow type checking for this interface.
  */
 interface IDecoratorOptions<T> {
-	
+
 	/** Validator for ObservableProperty. */
 	validator?: (value: T) => boolean;
-	
+
 	/** Renderer function for ObservableProperty. */
 	renderer?: (value: T) => T;
 }
@@ -41,7 +41,7 @@ interface IDecoratorOptions<T> {
  * and it turns a field into an ObservableProperty,
  * a get accessor into a ComputedProperty, and a method into a ReactiveMethod.
  */
-export function shrewd<T extends new (...args: any[]) => {}>(constructor: T): T;
+export function shrewd<T extends Function>(constructor: T): T; // we use "Function" here to make it compatible with abstract classes.
 export function shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
 export function shrewd(target: object, prop: PropertyKey): void;
 export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
