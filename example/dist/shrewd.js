@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.3
+ * shrewd v0.0.4
  * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -708,6 +708,8 @@
                 this._value = value;
                 Observable.$publish(this);
             }
+            if (!this.$hasReferences)
+                this.$terminate();
         }
         $regularGet() {
             this._determineStateAndRender();

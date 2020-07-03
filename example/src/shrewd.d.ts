@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.3
+ * shrewd v0.0.4
  * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -41,7 +41,7 @@ interface IDecoratorOptions<T> {
  * and it turns a field into an ObservableProperty,
  * a get accessor into a ComputedProperty, and a method into a ReactiveMethod.
  */
-export function shrewd<T extends new (...args: any[]) => {}>(constructor: T): T;
+export function shrewd<T extends Function>(constructor: T): T; // we use "Function" here to make it compatible with abstract classes.
 export function shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
 export function shrewd(target: object, prop: PropertyKey): void;
 export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
