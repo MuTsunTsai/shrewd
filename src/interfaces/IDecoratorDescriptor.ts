@@ -12,5 +12,5 @@ interface IDecoratorDescriptor {
 	$method?: Function;
 
 	/** Options for this DecoratedMember. */
-	$option?: IDecoratorOptions<any>;
+	$option?: IDecoratorOptions;
 }

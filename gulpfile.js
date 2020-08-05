@@ -5,7 +5,6 @@ let wrapJS = require("gulp-wrap-js");
 let terser = require('gulp-terser');
 let replace = require('gulp-replace');
 let ifAnyNewer = require('gulp-if-any-newer');
-let clean = require('gulp-dest-clean');
 let sourcemaps = require('gulp-sourcemaps');
 
 let pkg = require('./package.json');
@@ -60,7 +59,6 @@ gulp.task('buildTest', () =>
 		.pipe(sourcemaps.init())
 		.pipe(testProject())
 		.pipe(sourcemaps.write({ includeContent: false, sourceRoot: '../src' }))
-		.pipe(clean(testDest))
 		.pipe(gulp.dest(testDest))
 );
 

@@ -1,5 +1,5 @@
 
-class ComputedPropertyAdapter extends Adapter {
+class ComputedPropertyAdapter extends Adapter<ComputedProperty> {
 
 	protected _descriptor!: PropertyDescriptor;
 

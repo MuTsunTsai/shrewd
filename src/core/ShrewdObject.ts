@@ -46,9 +46,11 @@ class ShrewdObject {
 
 	public get $observables() {
 		let result = [];
-		for(let member of this._members.values())
-			if(member instanceof ObservableProperty)
+		for(let member of this._members.values()) {
+			if(member instanceof ObservableProperty) {
 				result.push(member);
+			}
+		}
 		return result;
 	}
 }

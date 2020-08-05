@@ -1,13 +1,10 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * The static Decorators class contains various decorators for decorating class members.
- * 
- * Because member decorators act on prototypes instead of on instances,
- * and has no control over the constructor (as in a class decorator),
- * these decorators cannot modify individual instances, and instead,
- * they set up initializers on the prototype so that instances gets initialized
- * when those members are first accessed.
+ * The static `Decorators` class used to contain various decorators
+ * for decorating class members, but now it only contains one overloaded
+ * decorator (i.e. `shrewd`) for all scenarios. The adapter classes
+ * now control the actual setup of `DecoratedMember`s.
  */
 //////////////////////////////////////////////////////////////////
 

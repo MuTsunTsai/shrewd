@@ -9,7 +9,13 @@ interface IAdapter {
 	$setup(): PropertyDescriptor | void;
 }
 
-abstract class Adapter implements IAdapter {
+//////////////////////////////////////////////////////////////////
+/**
+ * An `Adapter` prepares an `IDecoratorDescriptor` for a given member.
+ */
+//////////////////////////////////////////////////////////////////
+
+abstract class Adapter<T extends DecoratedMemeber> implements IAdapter {
 
 	protected _proto: object;
 	protected _prop: PropertyKey;
@@ -41,7 +47,7 @@ abstract class Adapter implements IAdapter {
 		return undefined;
 	}
 
-	protected abstract get _constructor(): IDecoratedMemberConstructor;
+	protected abstract get _constructor(): IDecoratedMemberConstructor<T>;
 
 	public $setup(): PropertyDescriptor | void {}
 }

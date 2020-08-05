@@ -1,5 +1,5 @@
 
-class ReactiveMethodAdapter extends Adapter {
+class ReactiveMethodAdapter extends Adapter<ReactiveMethod> {
 
 	protected _descriptor!: PropertyDescriptor;
 

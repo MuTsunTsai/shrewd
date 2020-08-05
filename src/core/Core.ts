@@ -5,6 +5,13 @@ interface IShrewdOption {
 	debug: boolean;
 }
 
+//////////////////////////////////////////////////////////////////
+/**
+ * The static `Core` class contains methods for controlling the
+ * commission process, which indeed is the core of Shrewd.
+ */
+//////////////////////////////////////////////////////////////////
+
 class Core {
 
 	/** Shrewd global options. */

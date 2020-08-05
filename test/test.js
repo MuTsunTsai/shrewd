@@ -20,9 +20,14 @@ console.assert = (a, ...obj) => {
 };
 
 function log(s) {
-	process.stdout.clearLine();
-	process.stdout.cursorTo(0);
-	process.stdout.write(s);
+	if(process.stdout.isTTY) {
+		process.stdout.clearLine();
+		process.stdout.cursorTo(0);
+		process.stdout.write(s);
+	} else {
+		// Fallback log for non-TTY console
+		console.log(s);
+	}
 }
 
 function sleep(ms) {
@@ -34,7 +39,9 @@ async function run() {
 		try {
 			log(`Testing: \x1b[32m${test}\x1b[0m`)
 			Tests[test]();
-			await sleep(25); // To provide better feedback that the tests are really running.
+
+			// To provide better feedback that the tests are really running.
+			if(process.stdout.isTTY) await sleep(25);
 		} catch(e) {
 			if(e instanceof Error) console.error(e);
 			log(`\x1b[31m${test} : failed\x1b[0m`);
