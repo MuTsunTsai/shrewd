@@ -9,8 +9,7 @@
 			"request": "launch",
 			"name": "Launch Program",
 			"preLaunchTask": "Gulp preTest",
-			"console": "internalConsole",
-			"internalConsoleOptions": "openOnSessionStart",
+			"console": "integratedTerminal",
 			"program": "${workspaceFolder}/test/test.js",
 			"sourceMaps": true,
 		}

@@ -19,14 +19,16 @@ console.assert = (a, ...obj) => {
 	if(!a) throw true;
 };
 
+// To enable this feature, use `"console": "integratedTerminal"` in launch.json.
+let isTTY = process.stdout.isTTY;
+
 function log(s) {
-	if(process.stdout.isTTY) {
+	if(isTTY) {
 		process.stdout.clearLine();
 		process.stdout.cursorTo(0);
 		process.stdout.write(s);
 	} else {
-		// Fallback log for non-TTY console
-		console.log(s);
+		console.log(s); // Fallback log for non-TTY console
 	}
 }
 
@@ -39,9 +41,7 @@ async function run() {
 		try {
 			log(`Testing: \x1b[32m${test}\x1b[0m`)
 			Tests[test]();
-
-			// To provide better feedback that the tests are really running.
-			if(process.stdout.isTTY) await sleep(25);
+			if(isTTY) await sleep(25); // To provide better feedback that the tests are really running.
 		} catch(e) {
 			if(e instanceof Error) console.error(e);
 			log(`\x1b[31m${test} : failed\x1b[0m`);
@@ -49,7 +49,7 @@ async function run() {
 			break;
 		}
 	}
-	if(pass) log("\x1b[32mAll tests succeeded.\x1b[0m");
+	if(pass) log("\x1b[32mAll tests succeeded.\x1b[0m\n");
 }
 
 run();

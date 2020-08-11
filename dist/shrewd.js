@@ -29,7 +29,7 @@
                 return false;
             }
             if (!Global.$isRenderingProperty && Global.$isCommitting) {
-                console.warn('Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty. For constructing new Shrewd objects, use Shrewd.construct() method.');
+                console.warn('Writing into Observables is not allowed inside a ComputedProperty or a ReactiveMethod. For self-correcting behavior, use the renderer option of the ObservableProperty.');
                 if (Core.$option.debug)
                     debugger;
                 return false;
