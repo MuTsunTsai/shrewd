@@ -58,30 +58,40 @@
     Observable._id = 0;
     class DefaultHook {
         read(id) {
+            return false;
         }
         write(id) {
         }
         gc() {
+            return [];
         }
         sub(id) {
             return false;
         }
     }
     class VueHook {
-        constructor() {
-            this._vue = new Vue({ data: { shrewd: {} } });
+        constructor(vue) {
+            this._Vue = vue || Vue;
+            if (!this._Vue)
+                throw new Error('Global Vue not found; you need to pass a Vue constructor to VueHook.');
+            this._vue = new this._Vue({ data: { shrewd: {} } });
         }
         read(id) {
-            this._vue.shrewd[id];
+            let t = this._vue.shrewd[id];
+            return t && t.__ob__.dep.subs.length > 0;
         }
         write(id) {
-            Vue.set(this._vue.shrewd, id, {});
+            this._Vue.set(this._vue.shrewd, id, {});
         }
         gc() {
+            let result = [];
             for (let id in this._vue.shrewd) {
-                if (this._vue.shrewd[id].__ob__.dep.subs.length == 0)
-                    Vue.delete(this._vue.shrewd, id);
+                if (this._vue.shrewd[id].__ob__.dep.subs.length == 0) {
+                    this._Vue.delete(this._vue.shrewd, id);
+                    result.push(Number(id));
+                }
             }
+            return result;
         }
         sub(id) {
             return id in this._vue.shrewd && this._vue.shrewd[id].__ob__.dep.subs.length > 0;
@@ -102,7 +112,11 @@
                     shrewd.$terminate();
                 }
                 Core._terminateQueue.clear();
-                Core.$option.hook.gc();
+                for (let id of Core.$option.hook.gc()) {
+                    let ob = Observer._map.get(id);
+                    if (ob)
+                        Observer.$checkDeadEnd(ob);
+                }
             }
         }
         static $queueInitialization(member) {
@@ -333,6 +347,7 @@
             this._isRendering = false;
             this._state = ObserverState.$outdated;
             this._isTerminated = false;
+            Observer._map.set(this.$id, this);
             this._name = name;
         }
         static $clearPending() {
@@ -346,7 +361,8 @@
         static $refer(observable) {
             if (observable instanceof Observer && observable._isTerminated)
                 return;
-            Core.$option.hook.read(observable.$id);
+            if (Core.$option.hook.read(observable.$id) && observable instanceof Observer)
+                observable.activate();
             let target = Global.$target;
             if (target && target != observable && !target._isTerminated) {
                 target._reference.add(observable);
@@ -354,8 +370,7 @@
         }
         static $checkDeadEnd(observable) {
             if (observable instanceof Observer && !observable._isTerminated) {
-                observable._isActive = observable.checkActive();
-                if (!observable.$isActive) {
+                if (!(observable._isActive = observable.checkActive())) {
                     let oldReferences = new Set(observable._reference);
                     Core.$dequeue(observable);
                     for (let ref of oldReferences) {
@@ -408,6 +423,7 @@
             if (this._isTerminated)
                 return;
             Core.$dequeue(this);
+            Observer._map.delete(this.$id);
             Observer._pending.delete(this);
             this._isTerminated = true;
             this._onTerminate();
@@ -513,6 +529,7 @@
         }
     }
     Observer._pending = new Set();
+    Observer._map = new Map();
     Observer.$trace = [];
     const $observableHelper = Symbol('Observable Helper');
     class Helper extends Observable {

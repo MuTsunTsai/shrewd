@@ -11,9 +11,12 @@ abstract class Observer extends Observable {
 	// Static member
 	/////////////////////////////////////////////////////
 
-	private static _pending: Set<Observer> = new Set();
+	private static readonly _pending: Set<Observer> = new Set();
 
-	public static $trace: (Observer | string)[] = [];
+	/** A map from id to instance */
+	public static readonly _map: Map<number, Observer> = new Map();
+
+	public static readonly $trace: (Observer | string)[] = [];
 
 	public static $clearPending() {
 		for(let pending of Observer._pending) {
@@ -29,7 +32,7 @@ abstract class Observer extends Observable {
 	/** Side-record dependencies. */
 	public static $refer(observable: Observable) {
 		if(observable instanceof Observer && observable._isTerminated) return;
-		Core.$option.hook.read(observable.$id);
+		if(Core.$option.hook.read(observable.$id) && observable instanceof Observer) observable.activate();
 		let target = Global.$target;
 		if(target && target != observable && !target._isTerminated) {
 			target._reference.add(observable);
@@ -40,8 +43,7 @@ abstract class Observer extends Observable {
 	// ReactiveMethods are exceptions; they are always active regardlessly.
 	public static $checkDeadEnd(observable: Observable) {
 		if(observable instanceof Observer && !observable._isTerminated) {
-			observable._isActive = observable.checkActive();
-			if(!observable.$isActive) {
+			if(!(observable._isActive = observable.checkActive())) {
 				let oldReferences = new Set(observable._reference);
 				Core.$dequeue(observable);
 				for(let ref of oldReferences) {
@@ -116,6 +118,7 @@ abstract class Observer extends Observable {
 
 	constructor(name: string) {
 		super();
+		Observer._map.set(this.$id, this);
 		this._name = name;
 	}
 
@@ -135,6 +138,7 @@ abstract class Observer extends Observable {
 	public $terminate() {
 		if(this._isTerminated) return;
 		Core.$dequeue(this);
+		Observer._map.delete(this.$id);
 		Observer._pending.delete(this);
 		this._isTerminated = true;
 		this._onTerminate();
@@ -234,6 +238,8 @@ abstract class Observer extends Observable {
 	protected get $isActive(): boolean {
 		return this._isActive = this._isActive != undefined ? this._isActive : this.checkActive();
 	}
+
+	/** Cached value of `$isActive`. */
 	private _isActive?: boolean;
 
 	protected checkActive() {

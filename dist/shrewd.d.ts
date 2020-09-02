@@ -8,8 +8,12 @@
  *  Provides connection to 3rd party reactive frameworks.
  */
 interface IHook {
-	/** Trigger a "read" operation to record dependency. */
-	read(id: number): void;
+	/**
+	 * Trigger a "read" operation to record dependency.
+	 * 
+	 * Returns whether a dependency is established.
+	 */
+	read(id: number): boolean;
 
 	/** Trigger a "write" operation to notify changes. */
 	write(id: number): void;
@@ -17,11 +21,20 @@ interface IHook {
 	/**
 	 * Garbage collection; clearing up unsubscribed entries.
 	 * This method is called at the end of each committing stage.
+	 * 
+	 * Returns an array of id's that were cleaned-up.
 	 */
-	gc(): void;
+	gc(): number[];
 
 	/** If the given Observable has 3rd party subscribers. */
 	sub(id: number): boolean;
+}
+
+/**
+ * A constructor of an IHook.
+ */
+interface IHookConstructor {
+	new(...args: any): IHook;
 }
 
 /**
@@ -66,10 +79,10 @@ export function terminate(target: object): void;
 export const hook: {
 
 	/** The default hook that does nothing. */
-	default: IHook,
+	default: IHookConstructor,
 
 	/** Hook for Vue.js. */
-	vue: IHook
+	vue: IHookConstructor
 };
 
 interface IShrewdOption {
@@ -97,5 +110,10 @@ interface IShrewdOption {
  * Shrewd global options.
  */
 export const option: IShrewdOption;
+
+/**
+ * ShrewdObject symbol, for debug purpose.
+ */
+export const symbol: Symbol;
 
 export as namespace Shrewd;

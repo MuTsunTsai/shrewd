@@ -7,9 +7,10 @@
 		"strict": true,
 		"preserveConstEnums": true,
 		"experimentalDecorators": true,
+		"esModuleInterop": true, // We need this to import Vue
 		"baseUrl": ".",
 		"paths": {
-			"shrewd": ["../dist/shrewd.d.ts"]
+			"shrewd": ["../dist/shrewd.d.ts"],
 		}
 	},
 	"include": [

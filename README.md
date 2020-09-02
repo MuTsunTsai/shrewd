@@ -304,8 +304,12 @@ You can create your own hook to make Shrewd work with any framework of your choi
 
 ```ts
 interface IHook {
-	/** Trigger a "read" operation to record dependencies. */
-	read(id: number): void;
+	/**
+	 * Trigger a "read" operation to record dependency.
+	 * 
+	 * Returns whether a dependency is established.
+	 */
+	read(id: number): boolean;
 
 	/** Trigger a "write" operation to notify changes. */
 	write(id: number): void;
@@ -313,8 +317,10 @@ interface IHook {
 	/**
 	 * Garbage collection; clearing up unsubscribed entries.
 	 * This method is called at the end of each committing stage.
+	 * 
+	 * Returns an array of id's that were cleaned-up.
 	 */
-	gc(): void;
+	gc(): number[];
 
 	/** If the given Observable has 3rd party subscribers. */
 	sub(id: number): boolean;

@@ -56,7 +56,10 @@ class Core {
 			}
 			Core._terminateQueue.clear();
 
-			Core.$option.hook.gc();
+			for(let id of Core.$option.hook.gc()) {
+				let ob = Observer._map.get(id);
+				if(ob) Observer.$checkDeadEnd(ob);
+			}
 		}
 	}
 

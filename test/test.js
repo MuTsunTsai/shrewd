@@ -1,11 +1,20 @@
 
+// Some Test depends on the internal names.
+const useMinify = false;
+
 // Override "require" function to redirect alias.
 const Module = require('module');
 const originalRequire = Module.prototype.require;
 Module.prototype.require = function() {
-	if(arguments[0] == "shrewd") arguments[0] = "../../dist/shrewd.min";
+	if(arguments[0] == "shrewd") arguments[0] = "../../dist/shrewd" + (useMinify ? ".min" : "");
 	return originalRequire.apply(this, arguments);
 };
+
+// Setup jsdom for Vue testing.
+require("jsdom-global")();
+
+// Silence Vue warning.
+console.info = () => { }
 
 // Load all tests.
 const requireDir = require('require-dir');
@@ -39,12 +48,12 @@ function sleep(ms) {
 async function run() {
 	for(let test in Tests) {
 		try {
-			log(`Testing: \x1b[32m${test}\x1b[0m`)
-			Tests[test]();
+			log(`Testing: \x1b[32m${test}\x1b[0m `)
+			await Tests[test](useMinify);
 			if(isTTY) await sleep(25); // To provide better feedback that the tests are really running.
 		} catch(e) {
 			if(e instanceof Error) console.error(e);
-			log(`\x1b[31m${test} : failed\x1b[0m`);
+			log(`\x1b[31m${test} : failed\x1b[0m `);
 			pass = false;
 			break;
 		}
