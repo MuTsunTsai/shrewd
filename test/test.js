@@ -5,8 +5,9 @@ const useMinify = false;
 // Override "require" function to redirect alias.
 const Module = require('module');
 const originalRequire = Module.prototype.require;
+const shrewdPath = process.cwd() + "/dist/shrewd" + (useMinify ? ".min" : "");
 Module.prototype.require = function() {
-	if(arguments[0] == "shrewd") arguments[0] = "../../dist/shrewd" + (useMinify ? ".min" : "");
+	if(arguments[0] == "shrewd") arguments[0] = shrewdPath;
 	return originalRequire.apply(this, arguments);
 };
 
@@ -45,20 +46,21 @@ function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const Color = require('ansi-colors');
 async function run() {
 	for(let test in Tests) {
 		try {
-			log(`Testing: \x1b[32m${test}\x1b[0m `)
+			log(Color.cyan(`Testing: ${test} `))
 			await Tests[test](useMinify);
 			if(isTTY) await sleep(25); // To provide better feedback that the tests are really running.
 		} catch(e) {
 			if(e instanceof Error) console.error(e);
-			log(`\x1b[31m${test} : failed\x1b[0m `);
+			log(Color.bold.red(`${test} : failed `));
 			pass = false;
 			break;
 		}
 	}
-	if(pass) log("\x1b[32mAll tests succeeded.\x1b[0m\n");
+	if(pass) log(Color.bold.green("All tests succeeded.\n"));
 }
 
 run();
