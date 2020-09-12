@@ -132,6 +132,7 @@ class ObservableProperty extends DecoratedMemeber {
 
 	protected _onTerminate() {
 		delete this._inputValue;
+		// @ts-ignore
 		delete this._option;
 		super._onTerminate();
 	}

@@ -30,7 +30,7 @@ let projectDest = 'dist';
 
 gulp.task('buildMain', () =>
 	project.src()
-		.pipe(ifAnyNewer(projectDest, { filter: 'shrewd.js' }))
+		//.pipe(ifAnyNewer(projectDest, { filter: 'shrewd.js' }))
 		.pipe(sourcemaps.init())
 		.pipe(project())
 		.pipe(wrapJS(`${header};(function(root,factory){if(typeof define==='function'&&define.amd)

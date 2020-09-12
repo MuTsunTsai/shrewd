@@ -362,7 +362,7 @@
             if (observable instanceof Observer && observable._isTerminated)
                 return;
             if (Core.$option.hook.read(observable.$id) && observable instanceof Observer)
-                observable.activate();
+                observable._activate();
             let target = Global.$target;
             if (target && target != observable && !target._isTerminated) {
                 target._reference.add(observable);
@@ -370,7 +370,7 @@
         }
         static $checkDeadEnd(observable) {
             if (observable instanceof Observer && !observable._isTerminated) {
-                if (!(observable._isActive = observable.checkActive())) {
+                if (!(observable._isActive = observable.$checkActive())) {
                     let oldReferences = new Set(observable._reference);
                     Core.$dequeue(observable);
                     for (let ref of oldReferences) {
@@ -396,7 +396,7 @@
                         oldReferences.delete(observable);
                         observable.$subscribe(observer);
                         if (observer.$isActive && observable instanceof Observer) {
-                            observable.activate();
+                            observable._activate();
                         }
                     }
                 }
@@ -496,9 +496,9 @@
             return this._state;
         }
         get $isActive() {
-            return this._isActive = this._isActive != undefined ? this._isActive : this.checkActive();
+            return this._isActive = this._isActive != undefined ? this._isActive : this.$checkActive();
         }
-        checkActive() {
+        $checkActive() {
             if (Core.$option.hook.sub(this.$id))
                 return true;
             for (let subscriber of this.$subscribers) {
@@ -507,13 +507,13 @@
             }
             return false;
         }
-        activate() {
+        _activate() {
             if (this.$isActive)
                 return;
             this._isActive = true;
             for (let observable of this._reference) {
                 if (observable instanceof Observer)
-                    observable.activate();
+                    observable._activate();
             }
         }
         _clearReference() {
@@ -586,10 +586,10 @@
         get _defaultOption() {
             return {};
         }
-        checkActive() {
+        $checkActive() {
             if (this._option.active)
                 return true;
-            return super.checkActive();
+            return super.$checkActive();
         }
         $getter() {
             if (this.$isTerminated) {

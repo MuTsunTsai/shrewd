@@ -32,7 +32,7 @@ abstract class Observer extends Observable {
 	/** Side-record dependencies. */
 	public static $refer(observable: Observable) {
 		if(observable instanceof Observer && observable._isTerminated) return;
-		if(Core.$option.hook.read(observable.$id) && observable instanceof Observer) observable.activate();
+		if(Core.$option.hook.read(observable.$id) && observable instanceof Observer) observable._activate();
 		let target = Global.$target;
 		if(target && target != observable && !target._isTerminated) {
 			target._reference.add(observable);
@@ -43,7 +43,7 @@ abstract class Observer extends Observable {
 	// ReactiveMethods are exceptions; they are always active regardlessly.
 	public static $checkDeadEnd(observable: Observable) {
 		if(observable instanceof Observer && !observable._isTerminated) {
-			if(!(observable._isActive = observable.checkActive())) {
+			if(!(observable._isActive = observable.$checkActive())) {
 				let oldReferences = new Set(observable._reference);
 				Core.$dequeue(observable);
 				for(let ref of oldReferences) {
@@ -79,7 +79,7 @@ abstract class Observer extends Observable {
 					oldReferences.delete(observable);
 					observable.$subscribe(observer);
 					if(observer.$isActive && observable instanceof Observer) {
-						observable.activate();
+						observable._activate();
 					}
 				}
 			}
@@ -236,13 +236,13 @@ abstract class Observer extends Observable {
 
 	/** Whether the current `Observer` is active (i.e. has any subscriber) */
 	protected get $isActive(): boolean {
-		return this._isActive = this._isActive != undefined ? this._isActive : this.checkActive();
+		return this._isActive = this._isActive != undefined ? this._isActive : this.$checkActive();
 	}
 
 	/** Cached value of `$isActive`. */
 	private _isActive?: boolean;
 
-	protected checkActive() {
+	protected $checkActive() {
 		if(Core.$option.hook.sub(this.$id)) return true;
 		for(let subscriber of this.$subscribers) {
 			if(subscriber.$isActive) return true;
@@ -250,11 +250,11 @@ abstract class Observer extends Observable {
 		return false;
 	}
 
-	private activate() {
+	private _activate() {
 		if(this.$isActive) return;
 		this._isActive = true;
 		for(let observable of this._reference) {
-			if(observable instanceof Observer) observable.activate();
+			if(observable instanceof Observer) observable._activate();
 		}
 	}
 

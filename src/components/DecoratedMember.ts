@@ -31,9 +31,9 @@ abstract class DecoratedMemeber extends Observer {
 		return {};
 	}
 
-	protected checkActive(): boolean {
+	protected $checkActive(): boolean {
 		if(this._option.active) return true;
-		return super.checkActive();
+		return super.$checkActive();
 	}
 
 	/** The parent object of this `DecoratedMember`. */
