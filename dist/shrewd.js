@@ -248,7 +248,9 @@
                     let decorators = proto[$shrewdDecorators];
                     for (let decorator of decorators) {
                         let member = new decorator.$constructor(this._parent, decorator);
-                        this._members.set(member.$internalKey, member);
+                        if (!this._members.has(member.$internalKey)) {
+                            this._members.set(member.$internalKey, member);
+                        }
                     }
                 }
                 proto = Object.getPrototypeOf(proto);
