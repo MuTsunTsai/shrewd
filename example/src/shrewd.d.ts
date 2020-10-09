@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.5
+ * shrewd v0.0.6
  * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -50,13 +50,25 @@ interface IDecoratorOptions<T> {
 }
 
 /**
- * The shrewd decorator makes a class reactive,
- * and it turns a field into an ObservableProperty,
- * a get accessor into a ComputedProperty, and a method into a ReactiveMethod.
+ * The `@shrewd` decorator makes a class reactive,
+ * and it turns a field into an `ObservableProperty`,
+ * a get accessor into a `ComputedProperty`, and a method into a `ReactiveMethod`.
  */
-export function shrewd<T extends Function>(constructor: T): T; // we use "Function" here to make it compatible with abstract classes.
+
+// For classes.
+ export function shrewd<
+	// We use `Function` here to make it compatible with abstract classes,
+	// although one doesn't have to add the @shrewd decorator on such classes.
+	T extends Function
+>(constructor: T): T;
+
+// For `ObservableProperty` with options.
 export function shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
+
+// For `ObservableProperty`.
 export function shrewd(target: object, prop: PropertyKey): void;
+
+// For `ComputedProperty` and `ReactiveMethod`.
 export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
 
 /**

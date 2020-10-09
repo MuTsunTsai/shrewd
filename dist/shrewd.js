@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.5
+ * shrewd v0.0.6
  * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -88,11 +88,9 @@
                 this._writes.add(id);
         }
         precommit() {
-            if (!Core.$option.autoCommit) {
-                for (let id of this._writes)
-                    this._Vue.set(this._vue.shrewd, id, {});
-                this._writes.clear();
-            }
+            for (let id of this._writes)
+                this._Vue.set(this._vue.shrewd, id, {});
+            this._writes.clear();
         }
         gc() {
             let result = [];
