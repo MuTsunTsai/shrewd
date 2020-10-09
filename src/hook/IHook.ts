@@ -8,6 +8,13 @@
 //////////////////////////////////////////////////////////////////
 
 interface IHook {
+
+	/** Callback before committing. */
+	precommit?(): void;
+
+	/** Callback after committing and gc. */
+	postcommit?(): void;
+
 	/**
 	 * Trigger a "read" operation to record dependency.
 	 * 

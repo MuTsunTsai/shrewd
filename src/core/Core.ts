@@ -37,8 +37,9 @@ class Core {
 	private static _initializing: boolean = false;
 
 	public static $commit() {
-		Global.$pushState({ $isCommitting: true });
+		if(Core.$option.hook.precommit) Core.$option.hook.precommit();
 
+		Global.$pushState({ $isCommitting: true });
 		try {
 			// Start comitting.
 			for(let observer of Core._renderQueue) {
@@ -61,6 +62,8 @@ class Core {
 				if(ob) Observer.$checkDeadEnd(ob);
 			}
 		}
+
+		if(Core.$option.hook.postcommit) Core.$option.hook.postcommit();
 	}
 
 	public static $queueInitialization(member: DecoratedMemeber) {
@@ -95,8 +98,7 @@ class Core {
 
 		// Setup auto-commit.
 		if(Core.$option.autoCommit && !Core._promised) {
-			let promise = Promise.resolve();
-			promise.then(Core._autoCommit);
+			Promise.resolve().then(Core._autoCommit);
 			Core._promised = true;
 		}
 	}

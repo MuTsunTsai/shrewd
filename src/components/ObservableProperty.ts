@@ -102,27 +102,37 @@ class ObservableProperty extends DecoratedMemeber {
 	private _confirm(value: any) {
 		this._inputValue = Helper.$wrap(value);
 		if(this._option.renderer) {
-			this.$render();
+			this.$prerendering();
+			try {
+				this.$postrendering(this.$renderer());
+			} finally {
+				this.$cleanup();
+			}
 		} else {
 			this.$publish(this._inputValue);
 		}
 	}
 
-	public $render() {
+	public $prerendering() {
 		Global.$pushState({
 			$isRenderingProperty: true,
 			$accessibles: new Set()
-		})
+		});
+		ObservableProperty.$setAccessible(this._inputValue);
+	}
 
-		try {
-			ObservableProperty.$setAccessible(this._inputValue);
-			let value = this._option.renderer!.apply(this._parent, [this._inputValue]);
-			if(value !== this._outputValue) {
-				this.$publish(Helper.$wrap(value));
-			}
-		} finally {
-			Global.$restore();
+	public get $renderer() {
+		return this._option.renderer!.bind(this._parent, this._inputValue);
+	}
+
+	public $postrendering(result: any) {
+		if(result !== this._outputValue) {
+			this.$publish(Helper.$wrap(result));
 		}
+	}
+
+	public $cleanup() {
+		Global.$restore();
 	}
 
 	private $publish(value: any) {

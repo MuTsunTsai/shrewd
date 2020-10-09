@@ -8,7 +8,7 @@
 
 class ReactiveMethod extends DecoratedMemeber {
 
-	private _method: Function;
+	private readonly _method: Function;
 	private _result: any;
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
@@ -20,21 +20,24 @@ class ReactiveMethod extends DecoratedMemeber {
 		return { active: true };
 	}
 
-	protected $regularGet() {
+	public get $renderer() {
+		return this._method.bind(this._parent);
+	}
+
+	protected $regularGet(): () => any {
 		return () => {
 			this._determineStateAndRender();
 			return this._result;
 		}
 	}
 
-	protected $terminateGet() {
+	protected $terminateGet(): () => any {
 		return () => this._result;
 	}
 
-	protected $render() {
-		this._result = this._method.apply(this._parent);
+	public $postrendering(result: any) {
+		this._result = result;
 		// ReactiveMethods always publish themselves regardless of return value.
 		Observable.$publish(this);
-		return this._result;
 	}
 }

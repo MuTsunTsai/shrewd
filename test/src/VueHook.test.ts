@@ -67,5 +67,24 @@ export = async function(useMinify: boolean) {
 		console.assert(!ac._isActive, "a.c 因此非活躍", ac._isActive);
 	}
 
+	w.vm.switch = true;
+	await Vue.nextTick();
+	console.assert(w.text() == "5" && d_count == 5, "重新執行計算");
+	a.n = 4;
+	await Vue.nextTick();
+	console.assert(w.text() == "6" && d_count == 6, "即時沒有執行認可，Vue 下一次渲染也會手動呼叫 a.c 的值");
+
+	let oldSetting = option.autoCommit;
+	option.autoCommit = false;
+	await Vue.nextTick(); // 先把之前一輪的自動認可執行掉
+
+	a.n = 5;
+	await Vue.nextTick();
+	console.assert(w.text() == "6", "關閉自動認可之後，VueHook 的行為也會改成不會立即通知更新");
+	commit();
+	await Vue.nextTick();
+	console.assert(w.text() == "7", "認可之後，Vue 才會渲染出正確的值");
+
 	option.hook = oldHook;
+	option.autoCommit = oldSetting;
 }

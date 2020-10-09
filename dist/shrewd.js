@@ -71,7 +71,8 @@
     }
     class VueHook {
         constructor(vue) {
-            this._Vue = vue || Vue;
+            this._writes = new Set();
+            this._Vue = vue || typeof window != 'undefined' && window.Vue;
             if (!this._Vue)
                 throw new Error('Global Vue not found; you need to pass a Vue constructor to VueHook.');
             this._vue = new this._Vue({ data: { shrewd: {} } });
@@ -81,7 +82,17 @@
             return t && t.__ob__.dep.subs.length > 0;
         }
         write(id) {
-            this._Vue.set(this._vue.shrewd, id, {});
+            if (Core.$option.autoCommit)
+                this._Vue.set(this._vue.shrewd, id, {});
+            else
+                this._writes.add(id);
+        }
+        precommit() {
+            if (!Core.$option.autoCommit) {
+                for (let id of this._writes)
+                    this._Vue.set(this._vue.shrewd, id, {});
+                this._writes.clear();
+            }
         }
         gc() {
             let result = [];
@@ -99,6 +110,8 @@
     }
     class Core {
         static $commit() {
+            if (Core.$option.hook.precommit)
+                Core.$option.hook.precommit();
             Global.$pushState({ $isCommitting: true });
             try {
                 for (let observer of Core._renderQueue) {
@@ -118,6 +131,8 @@
                         Observer.$checkDeadEnd(ob);
                 }
             }
+            if (Core.$option.hook.postcommit)
+                Core.$option.hook.postcommit();
         }
         static $queueInitialization(member) {
             Core._initializeQueue.add(member);
@@ -144,8 +159,7 @@
                 Core._renderQueue.add(observer);
             }
             if (Core.$option.autoCommit && !Core._promised) {
-                let promise = Promise.resolve();
-                promise.then(Core._autoCommit);
+                Promise.resolve().then(Core._autoCommit);
                 Core._promised = true;
             }
         }
@@ -391,7 +405,13 @@
             try {
                 let oldReferences = new Set(observer._reference);
                 observer._clearReference();
-                let result = observer.$render();
+                observer.$prerendering();
+                try {
+                    let result = observer.$renderer();
+                    observer.$postrendering(result);
+                } finally {
+                    observer.$cleanup();
+                }
                 observer._update();
                 if (!observer._isTerminated) {
                     for (let observable of observer._reference) {
@@ -405,7 +425,6 @@
                 for (let observable of oldReferences) {
                     Observer.$checkDeadEnd(observable);
                 }
-                return result;
             } finally {
                 observer._isRendering = false;
                 Global.$restore();
@@ -448,7 +467,7 @@
                 }
             }
         }
-        _determineStateAndRender(force = false) {
+        _determineStateAndRender() {
             if (this._isRendering)
                 this._onCyclicDependencyFound();
             if (this._state == ObserverState.$updated)
@@ -465,7 +484,7 @@
                         }
                     }
                 }
-                if (this._state == ObserverState.$outdated || force) {
+                if (this._state == ObserverState.$outdated) {
                     Observer.$render(this);
                 } else {
                     Observer._pending.delete(this);
@@ -517,6 +536,12 @@
                 if (observable instanceof Observer)
                     observable._activate();
             }
+        }
+        $prerendering() {
+        }
+        $postrendering(result) {
+        }
+        $cleanup() {
         }
         _clearReference() {
             for (let observable of this._reference)
@@ -723,10 +748,12 @@
             if (this._option.active)
                 this.$notified();
         }
-        $render() {
-            let value = this._getter.apply(this._parent);
-            if (value !== this._value) {
-                this._value = value;
+        get $renderer() {
+            return this._getter.bind(this._parent);
+        }
+        $postrendering(result) {
+            if (result !== this._value) {
+                this._value = result;
                 Observable.$publish(this);
             }
             if (!this.$hasReferences)
@@ -825,25 +852,33 @@
         _confirm(value) {
             this._inputValue = Helper.$wrap(value);
             if (this._option.renderer) {
-                this.$render();
+                this.$prerendering();
+                try {
+                    this.$postrendering(this.$renderer());
+                } finally {
+                    this.$cleanup();
+                }
             } else {
                 this.$publish(this._inputValue);
             }
         }
-        $render() {
+        $prerendering() {
             Global.$pushState({
                 $isRenderingProperty: true,
                 $accessibles: new Set()
             });
-            try {
-                ObservableProperty.$setAccessible(this._inputValue);
-                let value = this._option.renderer.apply(this._parent, [this._inputValue]);
-                if (value !== this._outputValue) {
-                    this.$publish(Helper.$wrap(value));
-                }
-            } finally {
-                Global.$restore();
+            ObservableProperty.$setAccessible(this._inputValue);
+        }
+        get $renderer() {
+            return this._option.renderer.bind(this._parent, this._inputValue);
+        }
+        $postrendering(result) {
+            if (result !== this._outputValue) {
+                this.$publish(Helper.$wrap(result));
             }
+        }
+        $cleanup() {
+            Global.$restore();
         }
         $publish(value) {
             this._outputValue = value;
@@ -864,6 +899,9 @@
         get _defaultOption() {
             return { active: true };
         }
+        get $renderer() {
+            return this._method.bind(this._parent);
+        }
         $regularGet() {
             return () => {
                 this._determineStateAndRender();
@@ -873,10 +911,9 @@
         $terminateGet() {
             return () => this._result;
         }
-        $render() {
-            this._result = this._method.apply(this._parent);
+        $postrendering(result) {
+            this._result = result;
             Observable.$publish(this);
-            return this._result;
         }
     }
     class ArrayProxyHandler extends ObjectProxyHandler {
@@ -905,17 +942,18 @@
         }
     }
     ArrayHelper._handler = new ArrayProxyHandler();
-    const Shrewd = {
-        shrewd: Decorators.$shrewd,
-        symbol: $shrewdObject,
-        commit: Core.$commit,
-        terminate: Core.$terminate,
-        hook: {
+    var Shrewd;
+    (function (Shrewd) {
+        Shrewd.shrewd = Decorators.$shrewd;
+        Shrewd.symbol = $shrewdObject;
+        Shrewd.commit = Core.$commit;
+        Shrewd.terminate = Core.$terminate;
+        Shrewd.hook = {
             default: DefaultHook,
             vue: VueHook
-        },
-        option: Core.$option
-    };
+        };
+        Shrewd.option = Core.$option;
+    }(Shrewd || (Shrewd = {})));
     if (typeof window !== 'undefined' && window.Vue) {
         Core.$option.hook = new VueHook();
     }

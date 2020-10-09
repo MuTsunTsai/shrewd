@@ -37,7 +37,7 @@ abstract class DecoratedMemeber extends Observer {
 	}
 
 	/** The parent object of this `DecoratedMember`. */
-	protected _parent: IShrewdObjectParent;
+	protected readonly _parent: IShrewdObjectParent;
 
 	/** The thing to return when calling "get" on this member. */
 	public $getter() {

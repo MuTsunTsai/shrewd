@@ -28,20 +28,17 @@ interface Window {
 	Vue?: any;
 }
 
-const Shrewd = {
-	shrewd: Decorators.$shrewd,
-	symbol: $shrewdObject,
-
-	commit: Core.$commit,
-	terminate: Core.$terminate,
-
-	hook: {
+namespace Shrewd {
+	export const shrewd = Decorators.$shrewd;
+	export const symbol = $shrewdObject;
+	export const commit = Core.$commit;
+	export const terminate = Core.$terminate;
+	export const hook = {
 		default: DefaultHook,
 		vue: VueHook
-	},
-
-	option: Core.$option,
-};
+	};
+	export const option = Core.$option;
+}
 
 if(typeof window !== 'undefined' && window.Vue) {
 	Core.$option.hook = new VueHook();

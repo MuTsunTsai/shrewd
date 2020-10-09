@@ -24,10 +24,13 @@ class ComputedProperty extends DecoratedMemeber {
 		if(this._option.active) this.$notified();
 	}
 
-	protected $render() {
-		let value = this._getter.apply(this._parent);
-		if(value !== this._value) {
-			this._value = value;
+	public get $renderer() {
+		return this._getter.bind(this._parent);
+	}
+
+	public $postrendering(result: any) {
+		if(result !== this._value) {
+			this._value = result;
 			Observable.$publish(this);
 		}
 		if(!this.$hasReferences) this.$terminate();

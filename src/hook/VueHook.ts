@@ -1,5 +1,7 @@
 
-declare const Vue: any;
+interface Window {
+	Vue?: any;
+}
 
 //////////////////////////////////////////////////////////////////
 /**
@@ -16,7 +18,7 @@ class VueHook implements IHook {
 	 * @param vue The `Vue` Constructor to use; if unspecified, it will try to use the global `Vue` variable.
 	 */
 	constructor(vue?: any) {
-		this._Vue = vue || Vue;
+		this._Vue = vue || typeof window != "undefined" && window.Vue;
 		if(!this._Vue) throw new Error("Global Vue not found; you need to pass a Vue constructor to VueHook.");
 		this._vue = new this._Vue({
 			data: {
@@ -31,13 +33,24 @@ class VueHook implements IHook {
 	/** Isolated Vue instance for tracking dependencies. */
 	private _vue: any;
 
+	/** Pending writes. */
+	private _writes: Set<number> = new Set();
+
 	public read(id: number): boolean {
 		let t = this._vue.shrewd[id];
 		return t && t.__ob__.dep.subs.length > 0;
 	}
 
 	public write(id: number) {
-		this._Vue.set(this._vue.shrewd, id, {});
+		if(Core.$option.autoCommit) this._Vue.set(this._vue.shrewd, id, {});
+		else this._writes.add(id);
+	}
+
+	public precommit() {
+		if(!Core.$option.autoCommit) {
+			for(let id of this._writes) this._Vue.set(this._vue.shrewd, id, {});
+			this._writes.clear();
+		}
 	}
 
 	public gc() {

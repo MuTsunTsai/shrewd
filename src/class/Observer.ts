@@ -53,7 +53,7 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	public static $render(observer: Observer): any {
+	public static $render(observer: Observer): void {
 
 		// Push new state.
 		Global.$pushState({
@@ -70,7 +70,13 @@ abstract class Observer extends Observable {
 			observer._clearReference();
 
 			// Execute the rendering method.
-			let result = observer.$render();
+			observer.$prerendering();
+			try {
+				let result = observer.$renderer();
+				observer.$postrendering(result);
+			} finally {
+				observer.$cleanup();
+			}
 			observer._update();
 
 			// Make subscription based on the side-recording result.
@@ -88,8 +94,6 @@ abstract class Observer extends Observable {
 			for(let observable of oldReferences) {
 				Observer.$checkDeadEnd(observable);
 			}
-
-			return result;
 
 		} finally {
 			// Restore state.
@@ -172,7 +176,7 @@ abstract class Observer extends Observable {
 	 * by recursively determine the states of all its dependencies, and if it is outdated,
 	 * render it.
 	 */
-	protected _determineStateAndRender(force: boolean = false) {
+	protected _determineStateAndRender() {
 
 		// Cyclic dependency found.
 		if(this._isRendering) this._onCyclicDependencyFound();
@@ -195,7 +199,7 @@ abstract class Observer extends Observable {
 				}
 			}
 
-			if(this._state == ObserverState.$outdated || force) {
+			if(this._state == ObserverState.$outdated) {
 				Observer.$render(this);
 			} else {
 				Observer._pending.delete(this);
@@ -258,7 +262,13 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	protected abstract $render(): any;
+	public $prerendering() { }
+
+	public abstract get $renderer(): () => any;
+
+	public $postrendering(result: any) { }
+
+	public $cleanup() { }
 
 	private _clearReference(): void {
 		for(let observable of this._reference) observable.$unsubscribe(this);
