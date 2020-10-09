@@ -47,10 +47,8 @@ class VueHook implements IHook {
 	}
 
 	public precommit() {
-		if(!Core.$option.autoCommit) {
-			for(let id of this._writes) this._Vue.set(this._vue.shrewd, id, {});
-			this._writes.clear();
-		}
+		for(let id of this._writes) this._Vue.set(this._vue.shrewd, id, {});
+		this._writes.clear();
 	}
 
 	public gc() {
