@@ -59,9 +59,13 @@ class ObservableProperty extends DecoratedMemeber {
 
 	public $initialize() {
 		if(this._initialized) return;
-		this._validate();
-		if(this._option.renderer) this._determineStateAndRender(); // Perform initial rendering
-		else this._outputValue = this._inputValue;
+		this._initialValidation();
+		if(this._option.renderer) {
+			// Perform initial rendering to establish dependencies.
+			this._determineStateAndRender();
+		} else {
+			this._outputValue = this._inputValue;
+		}
 		this._initialized = true;
 	}
 
@@ -72,8 +76,9 @@ class ObservableProperty extends DecoratedMemeber {
 		}
 	}
 
-	private _validate() {
-		if(this._option.validator && !this._option.validator.apply(this._parent, [this._inputValue])) {
+	/** Validation used before and during initialization */
+	private _initialValidation() {
+		if(!(this._option.validator?.apply(this._parent, [this._inputValue]) ?? true)) {
 			this._inputValue = undefined;
 		}
 		this._inputValue = Helper.$wrap(this._inputValue);
@@ -81,8 +86,9 @@ class ObservableProperty extends DecoratedMemeber {
 
 	protected $regularGet() {
 		if(!this._initialized) {
-			// Before initializing, perform only the validation but not the rendering.
-			this._validate();
+			// Before initialized, perform only the validation but not the rendering,
+			// and dependencies are not established.
+			this._initialValidation();
 			return this._inputValue;
 		} else if(this._option.renderer) {
 			this._determineStateAndRender();
@@ -100,13 +106,17 @@ class ObservableProperty extends DecoratedMemeber {
 			return;
 		}
 		if(Observable.$isWritable(this) && value !== this._inputValue) {
-			if(this._option.validator && !this._option.validator.apply(this._parent, [value])) {
+			if(!(this._option.validator?.apply(this._parent, [value]) ?? true)) {
 				// Notify client that the value has been changed back.
 				return Core.$option.hook.write(this.$id);
 			}
 			this._inputValue = Helper.$wrap(value);
 			if(this._option.renderer) {
-				// Perform a quick rendering based on the data before commit, without updating dependencies.
+				/**
+				 * Perform a quick rendering based on the data before commit, without updating dependencies.
+				 * This part is the same as the core of `Observer.$render`,
+				 * and we do not reuse the code in order to flatten the execution stack.
+				 */
 				this.$prerendering();
 				try {
 					this.$postrendering(this.$renderer());

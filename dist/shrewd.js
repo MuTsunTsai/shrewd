@@ -815,11 +815,12 @@
         $initialize() {
             if (this._initialized)
                 return;
-            this._validate();
-            if (this._option.renderer)
+            this._initialValidation();
+            if (this._option.renderer) {
                 this._determineStateAndRender();
-            else
+            } else {
                 this._outputValue = this._inputValue;
+            }
             this._initialized = true;
         }
         _outdate() {
@@ -827,15 +828,16 @@
                 super._outdate();
             }
         }
-        _validate() {
-            if (this._option.validator && !this._option.validator.apply(this._parent, [this._inputValue])) {
+        _initialValidation() {
+            var _a, _b;
+            if (!((_b = (_a = this._option.validator) === null || _a === void 0 ? void 0 : _a.apply(this._parent, [this._inputValue])) !== null && _b !== void 0 ? _b : true)) {
                 this._inputValue = undefined;
             }
             this._inputValue = Helper.$wrap(this._inputValue);
         }
         $regularGet() {
             if (!this._initialized) {
-                this._validate();
+                this._initialValidation();
                 return this._inputValue;
             } else if (this._option.renderer) {
                 this._determineStateAndRender();
@@ -846,12 +848,13 @@
             return this._outputValue;
         }
         $setter(value) {
+            var _a, _b;
             if (this.$isTerminated) {
                 this._outputValue = value;
                 return;
             }
             if (Observable.$isWritable(this) && value !== this._inputValue) {
-                if (this._option.validator && !this._option.validator.apply(this._parent, [value])) {
+                if (!((_b = (_a = this._option.validator) === null || _a === void 0 ? void 0 : _a.apply(this._parent, [value])) !== null && _b !== void 0 ? _b : true)) {
                     return Core.$option.hook.write(this.$id);
                 }
                 this._inputValue = Helper.$wrap(value);
