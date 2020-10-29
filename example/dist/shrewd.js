@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.7
+ * shrewd v0.0.8
  * (c) 2019-2020 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -815,10 +815,11 @@
         $initialize() {
             if (this._initialized)
                 return;
-            if (this._option.validator && !this._option.validator.apply(this._parent, [this._inputValue])) {
-                this._inputValue = undefined;
-            }
-            this._confirm(this._inputValue);
+            this._validate();
+            if (this._option.renderer)
+                this._determineStateAndRender();
+            else
+                this._outputValue = this._inputValue;
             this._initialized = true;
         }
         _outdate() {
@@ -826,10 +827,17 @@
                 super._outdate();
             }
         }
+        _validate() {
+            if (this._option.validator && !this._option.validator.apply(this._parent, [this._inputValue])) {
+                this._inputValue = undefined;
+            }
+            this._inputValue = Helper.$wrap(this._inputValue);
+        }
         $regularGet() {
-            if (!this._initialized)
-                this.$initialize();
-            else if (this._option.renderer) {
+            if (!this._initialized) {
+                this._validate();
+                return this._inputValue;
+            } else if (this._option.renderer) {
                 this._determineStateAndRender();
             }
             return this._outputValue;
@@ -846,20 +854,17 @@
                 if (this._option.validator && !this._option.validator.apply(this._parent, [value])) {
                     return Core.$option.hook.write(this.$id);
                 }
-                this._confirm(value);
-            }
-        }
-        _confirm(value) {
-            this._inputValue = Helper.$wrap(value);
-            if (this._option.renderer) {
-                this.$prerendering();
-                try {
-                    this.$postrendering(this.$renderer());
-                } finally {
-                    this.$cleanup();
+                this._inputValue = Helper.$wrap(value);
+                if (this._option.renderer) {
+                    this.$prerendering();
+                    try {
+                        this.$postrendering(this.$renderer());
+                    } finally {
+                        this.$cleanup();
+                    }
+                } else {
+                    this.$publish(this._inputValue);
                 }
-            } else {
-                this.$publish(this._inputValue);
             }
         }
         $prerendering() {
