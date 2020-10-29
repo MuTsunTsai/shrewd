@@ -262,6 +262,8 @@
                         let member = new decorator.$constructor(this._parent, decorator);
                         if (!this._members.has(member.$internalKey)) {
                             this._members.set(member.$internalKey, member);
+                        } else {
+                            member.$terminate();
                         }
                     }
                 }

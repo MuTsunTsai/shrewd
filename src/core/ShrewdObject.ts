@@ -20,6 +20,8 @@ class ShrewdObject {
 					// only the last override will get initialized.
 					if(!this._members.has(member.$internalKey)) {
 						this._members.set(member.$internalKey, member);
+					} else {
+						member.$terminate(); // For garbage collecting
 					}
 				}
 			}
