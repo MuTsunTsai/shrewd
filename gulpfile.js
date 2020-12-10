@@ -17,7 +17,8 @@ let header = `/**
 let terserOption = {
 	"mangle": {
 		"properties": {
-			"regex": /^[$_]/
+			"regex": /^[$_]/,
+			"reserved": "__ob__"
 		}
 	},
 	"output": {
