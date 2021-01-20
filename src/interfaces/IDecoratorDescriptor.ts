@@ -1,5 +1,5 @@
 interface IDecoratorDescriptor {
-	/** The constructor used for this memeber. */
+	/** The constructor used for this member. */
 	$constructor: IDecoratedMemberConstructor;
 
 	/** Name of the parent class. */

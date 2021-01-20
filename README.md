@@ -68,7 +68,7 @@ const { shrewd } = Shrewd;
 	}
 }
 
-// After the consturction, Shrewd will automatically start all ReactiveMethods.
+// After the construction, Shrewd will automatically start all ReactiveMethods.
 var app = new App();
 ```
 
@@ -264,7 +264,7 @@ Cyclic dependency detected: A.a => A.c => A.b => A.a
 All these reactions will be terminated.
 ```
 
-so that not only we know that our code went wrong, but we can also trace exactly what causes the cyclic dependency to fix it. Whenever Shrewd detects cyclic dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing uncatched errors.
+so that not only we know that our code went wrong, but we can also trace exactly what causes the cyclic dependency to fix it. Whenever Shrewd detects cyclic dependency, it will terminate all reactions involved in the cycle, and try its best to continue without throwing uncaught errors.
 
 ## Use Shrewd with Vue.js
 
@@ -339,7 +339,7 @@ In the methods `read`, `write` and `sub`, the parameter `id` is the internal id 
 
 ## Proxied constructor
 
-Since version 0.0.4, Shrewd uses Proxy [<sup>1</sup>](#1) in the class decorator. This leads to the result that the classname variables eventually stand for Proxy objects instead of the actual constructor functions. For example:
+Since version 0.0.4, Shrewd uses Proxy [<sup>1</sup>](#1) in the class decorator. This leads to the result that the class name variables eventually stand for Proxy objects instead of the actual constructor functions. For example:
 
 ```ts
 @shrewd class A {}
@@ -359,7 +359,7 @@ console.log(a instanceof A); // true; based on prototype comparison
 ```
 
 <a class="anchor" id="1"><sup>1</sup></a>
-<small>The alternative is using extension classes, but a major downside of this approach is that the only way to preserve the object classname in the debugger console is to declare the extension using some form of the `eval()` function, which is generally considered undesirable (for example, it could violate the content-security-policy (CSP) setting of your server).</small>
+<small>The alternative is using extension classes, but a major downside of this approach is that the only way to preserve the object class name in the debugger console is to declare the extension using some form of the `eval()` function, which is generally considered undesirable (for example, it could violate the content-security-policy (CSP) setting of your server).</small>
 
 # Let us hear you!
 

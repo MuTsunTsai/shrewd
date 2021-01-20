@@ -39,15 +39,15 @@ class ShrewdObject {
 	private _isTerminated: boolean = false;
 
 	/** All DecoratedMembers owned by this ShrewdObject */
-	private _members: Map<PropertyKey, DecoratedMemeber> = new Map();
+	private _members: Map<PropertyKey, DecoratedMember> = new Map();
 
 	public $terminate() {
 		if(this._isTerminated) return;
-		for(let memeber of this._members.values()) memeber.$terminate();
+		for(let member of this._members.values()) member.$terminate();
 		this._isTerminated = true;
 	}
 
-	public $getMember<T extends DecoratedMemeber>(key: PropertyKey) {
+	public $getMember<T extends DecoratedMember>(key: PropertyKey) {
 		return this._members.get(key) as T;
 	}
 

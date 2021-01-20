@@ -6,7 +6,7 @@ const { shrewd } = Shrewd;
 // You don't need to add @shrewd on abstract classes;
 // just make sure that it is added to all final concrete classes.
 @shrewd class App {
-	
+
 	// Use it on a field, and it becomes an ObservableProperty.
 	@shrewd public number = 0;
 
@@ -24,5 +24,5 @@ const { shrewd } = Shrewd;
 	}
 }
 
-// After the consturction, Shrewd will automatically start all ReactiveMethods.
+// After the construction, Shrewd will automatically start all ReactiveMethods.
 var app = new App();

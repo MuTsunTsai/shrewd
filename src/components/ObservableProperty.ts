@@ -6,7 +6,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-class ObservableProperty extends DecoratedMemeber {
+class ObservableProperty extends DecoratedMember {
 
 	// Reuse interceptor by its key to save memory.
 	private static _interceptor: any = {};

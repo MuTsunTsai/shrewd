@@ -6,7 +6,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-abstract class DecoratedMemeber extends Observer {
+abstract class DecoratedMember extends Observer {
 
 	protected _option: IDecoratorOptions<any>;
 

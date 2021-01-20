@@ -15,7 +15,7 @@ interface IAdapter {
  */
 //////////////////////////////////////////////////////////////////
 
-abstract class Adapter<T extends DecoratedMemeber> implements IAdapter {
+abstract class Adapter<T extends DecoratedMember> implements IAdapter {
 
 	protected _proto: object;
 	protected _prop: PropertyKey;

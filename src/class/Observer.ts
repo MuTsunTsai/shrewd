@@ -20,7 +20,7 @@ abstract class Observer extends Observable {
 
 	public static $clearPending() {
 		for(let pending of Observer._pending) {
-			// If a pending, active Observer does not get updated after the comitting stage,
+			// If a pending, active Observer does not get updated after the committing stage,
 			// then it must be in fact updated.
 			if(pending._state == ObserverState.$pending && pending.$isActive) {
 				pending._update();
@@ -39,16 +39,18 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	// Check reference dead-ends; clear references of Observers that has no subscription.
+	// Check reference dead-ends; inactivate Observers that has no subscription.
 	// ReactiveMethods are exceptions; they are always active regardlessly.
 	public static $checkDeadEnd(observable: Observable) {
-		if(observable instanceof Observer && !observable._isTerminated) {
-			if(!(observable._isActive = observable.$checkActive())) {
-				let oldReferences = new Set(observable._reference);
-				Core.$dequeue(observable);
-				for(let ref of oldReferences) {
-					Observer.$checkDeadEnd(ref);
-				}
+		if(
+			observable instanceof Observer
+			&& !observable._isTerminated
+			&& observable._isActive // This condition helps skipping Observers already checked.
+			&& !(observable._isActive = observable.$checkActive())
+		) {
+			Core.$dequeue(observable);
+			for(let ref of observable._reference) {
+				Observer.$checkDeadEnd(ref);
 			}
 		}
 	}
@@ -171,7 +173,7 @@ abstract class Observer extends Observable {
 
 	/**
 	 * This is the entry point of the reaction process.
-	 * 
+	 *
 	 * Inside the method it will determine whether the current `Observer` is outdated
 	 * by recursively determine the states of all its dependencies, and if it is outdated,
 	 * render it.

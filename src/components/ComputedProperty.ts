@@ -3,17 +3,17 @@
 /**
  * A ComputedProperty is a value depending on Observables;
  * its value cannot be set manually.
- * 
+ *
  * Once calculated, it would not repeat its calculation until
  * any of its references has changed.
- * 
+ *
  * Active ComputedProperties recalculate and propagate changes
  * automatically, whereas inactive ones will recalculate only when
  * the property is accessed.
  */
 //////////////////////////////////////////////////////////////////
 
-class ComputedProperty extends DecoratedMemeber {
+class ComputedProperty extends DecoratedMember {
 
 	private _getter: Function;
 	private _value: any;

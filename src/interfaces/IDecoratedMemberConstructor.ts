@@ -1,4 +1,4 @@
 
-interface IDecoratedMemberConstructor<T extends DecoratedMemeber = DecoratedMemeber> {
+interface IDecoratedMemberConstructor<T extends DecoratedMember = DecoratedMember> {
 	new(target: IShrewdObjectParent, descriptor: IDecoratorDescriptor): T;
 }

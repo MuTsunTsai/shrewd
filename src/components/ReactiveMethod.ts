@@ -2,11 +2,11 @@
 //////////////////////////////////////////////////////////////////
 /**
  * A ReactiveMethod runs automatically whenever any of its references
- * has changed. It would only run once during the comitting stage.
+ * has changed. It would only run once during the committing stage.
  */
 //////////////////////////////////////////////////////////////////
 
-class ReactiveMethod extends DecoratedMemeber {
+class ReactiveMethod extends DecoratedMember {
 
 	private readonly _method: Function;
 	private _result: any;

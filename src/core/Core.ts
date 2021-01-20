@@ -28,7 +28,7 @@ class Core {
 	private static readonly _terminateQueue: Set<ShrewdObject> = new Set();
 
 	/** Reactions to be initialized. */
-	private static readonly _initializeQueue: Set<DecoratedMemeber> = new Set();
+	private static readonly _initializeQueue: Set<DecoratedMember> = new Set();
 
 	/** Whether there is auto-commit in the current stack. */
 	private static _promised: boolean = false;
@@ -41,12 +41,12 @@ class Core {
 
 		Global.$pushState({ $isCommitting: true });
 		try {
-			// Start comitting.
+			// Start committing.
 			for(let observer of Core._renderQueue) {
 				Observer.$render(observer);
 			}
 		} finally {
-			// Finish comitting.
+			// Finish committing.
 			Observer.$clearPending();
 			Core._renderQueue.clear();
 			Global.$restore();
@@ -66,7 +66,7 @@ class Core {
 		if(Core.$option.hook.postcommit) Core.$option.hook.postcommit();
 	}
 
-	public static $queueInitialization(member: DecoratedMemeber) {
+	public static $queueInitialization(member: DecoratedMember) {
 		Core._initializeQueue.add(member);
 	}
 
