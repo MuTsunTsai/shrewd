@@ -14,7 +14,7 @@ abstract class Helper<T extends object> extends Observable {
 
 	/**
 	 * Wrap native Arrays, Sets, Maps, and Objects into reactive objects.
-	 * 
+	 *
 	 * Only strict native objects are supported here, meaning that their prototype
 	 * must be immediately the native prototype, not even derived prototypes.
 	 */
@@ -34,6 +34,13 @@ abstract class Helper<T extends object> extends Observable {
 			}
 		}
 		return value;
+	}
+
+	/** Help garbage collection */
+	public static $clear(value: any): void {
+		// Get original object
+		if(Helper.$hasHelper(value)) value = value[$observableHelper]._target;
+		if(Helper._proxyMap.has(value)) Helper._proxyMap.delete(value);
 	}
 
 	public static $hasHelper(value: any): value is IHelperParent<any> {

@@ -45,4 +45,9 @@ class ComputedProperty extends DecoratedMember {
 	protected $terminateGet() {
 		return this._value;
 	}
+
+	protected _onTerminate() {
+		Helper.$clear(this._value);
+		super._onTerminate();
+	}
 }

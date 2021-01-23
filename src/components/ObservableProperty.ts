@@ -157,6 +157,8 @@ class ObservableProperty extends DecoratedMember {
 	}
 
 	protected _onTerminate() {
+		Helper.$clear(this._inputValue);
+		Helper.$clear(this._outputValue);
 		delete this._inputValue;
 		// @ts-ignore
 		delete this._option;

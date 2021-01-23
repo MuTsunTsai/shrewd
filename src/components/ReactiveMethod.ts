@@ -40,4 +40,9 @@ class ReactiveMethod extends DecoratedMember {
 		// ReactiveMethods always publish themselves regardless of return value.
 		Observable.$publish(this);
 	}
+
+	protected _onTerminate() {
+		Helper.$clear(this._result);
+		super._onTerminate();
+	}
 }
