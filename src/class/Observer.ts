@@ -55,7 +55,11 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	public static $render(observer: Observer): void {
+	public static $render(observer: Observer, backtrack = false): void {
+		if(backtrack) {
+			observer._backtrack();
+			if(observer._isTerminated) return;
+		}
 
 		// Push new state.
 		Global.$pushState({
@@ -80,6 +84,8 @@ abstract class Observer extends Observable {
 				observer.$cleanup();
 			}
 			observer._update();
+
+			if(Core.$option.debug) observer.trigger.clear();
 
 			// Make subscription based on the side-recording result.
 			if(!observer._isTerminated) {
@@ -133,9 +139,11 @@ abstract class Observer extends Observable {
 		return this._isRendering;
 	}
 
-	public $notified() {
+	private trigger: Set<Observable> = new Set();
+
+	public $notified(by?: Observable) {
 		this._pend();
-		this._outdate();
+		this._outdate(by);
 		if(this.$isActive) {
 			Core.$enqueue(this);
 		}
@@ -187,19 +195,7 @@ abstract class Observer extends Observable {
 		Observer.$trace.push(this);
 
 		try {
-			// Gather references that are not updated.
-			for(let ref of this._reference) {
-				if(ref instanceof Observer) {
-					// Found potential cyclic dependency; but it might just be dynamic dependency.
-					// The only way to be certain is to actually execute it.
-					if(ref._isRendering) {
-						Observer.$render(this);
-						break;
-					} else if(ref._state != ObserverState.$updated) {
-						ref._determineStateAndRender();
-					}
-				}
-			}
+			this._backtrack();
 
 			if(this._state == ObserverState.$outdated) {
 				Observer.$render(this);
@@ -209,6 +205,23 @@ abstract class Observer extends Observable {
 			}
 		} finally {
 			Observer.$trace.pop();
+		}
+	}
+
+	/** Backtrack all dependencies */
+	private _backtrack() {
+		// Gather references that are not updated.
+		for(let ref of this._reference) {
+			if(ref instanceof Observer) {
+				// Found potential cyclic dependency; but it might just be dynamic dependency.
+				// The only way to be certain is to actually execute it.
+				if(ref._isRendering) {
+					Observer.$render(this);
+					break;
+				} else if(ref._state != ObserverState.$updated) {
+					ref._determineStateAndRender();
+				}
+			}
 		}
 	}
 
@@ -232,7 +245,8 @@ abstract class Observer extends Observable {
 		this._state = ObserverState.$updated;
 	}
 
-	protected _outdate() {
+	protected _outdate(by?: Observable) {
+		if(by) this.trigger.add(by);
 		this._state = ObserverState.$outdated;
 	}
 

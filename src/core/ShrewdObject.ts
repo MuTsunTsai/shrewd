@@ -47,7 +47,10 @@ class ShrewdObject {
 		this._isTerminated = true;
 	}
 
-	public $getMember<T extends DecoratedMember>(key: PropertyKey) {
+	public $getMember<T extends DecoratedMember>(): IterableIterator<T>;
+	public $getMember<T extends DecoratedMember>(key?: PropertyKey): T;
+	public $getMember<T extends DecoratedMember>(key?: PropertyKey) {
+		if(!key) return this._members.values();
 		return this._members.get(key) as T;
 	}
 

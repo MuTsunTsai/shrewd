@@ -25,7 +25,7 @@ class Global {
 
 	private static _history: IState[] = [];
 
-	
+
 
 	public static $pushState(state: Partial<IState>) {
 		Global._history.push(Global._state);
@@ -36,7 +36,7 @@ class Global {
 		Global._state = Global._history.pop()!;
 
 		// After all stacked scopes are cleared, start initializing reactions.
-		if(Global._history.length == 0) Core.$initialize();
+		if(Global._history.length == 0) Core.$initializeAll();
 	}
 
 	/** Whether currently in committing stage. */

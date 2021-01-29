@@ -46,7 +46,7 @@ class ObservableProperty extends DecoratedMember {
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
-		this._inputValue = (parent as any)[descriptor.$key];
+		this._outputValue = this._inputValue = (parent as any)[descriptor.$key];
 		Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
 		if(!this._option.renderer) {
 			this._update();
@@ -69,10 +69,10 @@ class ObservableProperty extends DecoratedMember {
 		this._initialized = true;
 	}
 
-	protected _outdate() {
+	protected _outdate(by?: Observable) {
 		// Without a renderer, the ObservableProperty is always updated.
 		if(this._option.renderer) {
-			super._outdate();
+			super._outdate(by);
 		}
 	}
 

@@ -13,7 +13,7 @@ abstract class Observable {
 
 	/**
 	 * Whether under the current scope, the given `Observable` can be written.
-	 * 
+	 *
 	 * This method is intentionally made static to prevent overriding.
 	 */
 	public static $isWritable(observable: Observable) {
@@ -33,13 +33,14 @@ abstract class Observable {
 
 	/**
 	 * Notify all subscribers.
-	 * 
+	 *
 	 * This method is intentionally made static to prevent overriding.
 	 */
 	public static $publish(observable: Observable) {
 		Core.$option.hook.write(observable.$id);
 		for(let observer of observable._subscribers) {
-			observer.$notified();
+			if(Core.$option.debug) observer.$notified(observable);
+			else observer.$notified();
 		}
 	}
 

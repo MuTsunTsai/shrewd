@@ -18,7 +18,7 @@ class Core {
 	public static $option: IShrewdOption = {
 		hook: new DefaultHook(),
 		autoCommit: true,
-		debug: true
+		debug: false
 	}
 
 	/** Notified, to-be-rendered Observers. */
@@ -43,7 +43,7 @@ class Core {
 		try {
 			// Start committing.
 			for(let observer of Core._renderQueue) {
-				Observer.$render(observer);
+				Observer.$render(observer, true);
 			}
 		} finally {
 			// Finish committing.
@@ -70,10 +70,24 @@ class Core {
 		Core._initializeQueue.add(member);
 	}
 
-	public static $initialize() {
+	public static $initializeAll() {
 		if(Core._initializing) return;
 		Core._initializing = true;
 		for(let member of Core._initializeQueue) {
+			Core._initializeQueue.delete(member);
+			member.$initialize();
+		}
+		Core._initializing = false;
+	}
+
+	public static $initialize(target: IShrewdObjectParent) {
+		if(!target[$shrewdObject]) {
+			Decorators.$immediateInit.add(target);
+			return;
+		}
+		if(Core._initializing) return;
+		Core._initializing = true;
+		for(let member of target[$shrewdObject].$getMember()) {
 			Core._initializeQueue.delete(member);
 			member.$initialize();
 		}

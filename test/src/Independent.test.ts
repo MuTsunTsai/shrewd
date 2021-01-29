@@ -32,10 +32,10 @@ export = function() {
 	console.assert(t == "123", "認可", t);
 
 	t = "";
-	a.value = 1;
 	a.lookAtValue = false;
+	a.value = 1;
 	commit();
-	console.assert(t == "13", "順序會使得 a.log 先被執行，而使 a.c2 不活躍", t);
+	console.assert(t == "123", "仍然會依照上次已知的相依性的順序執行", t);
 
 	t = "";
 	a.value = 2;

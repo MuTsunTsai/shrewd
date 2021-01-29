@@ -84,6 +84,10 @@ class Decorators {
 			try {
 				let self = Reflect.construct(target, args, newTarget);
 				if(self.constructor == target) new ShrewdObject(self);
+				if(Decorators.$immediateInit.has(self)) {
+					Decorators.$immediateInit.delete(self);
+					Core.$initialize(self);
+				}
 				return self;
 			} finally {
 				Observer.$trace.pop();
@@ -91,6 +95,8 @@ class Decorators {
 			}
 		}
 	};
+
+	public static $immediateInit: Set<any> = new Set();
 
 	private static _setup(
 		ctor: IAdapterConstructor,

@@ -1,4 +1,5 @@
 // Level 0
+/// <reference path="core/Comparer.ts" />
 /// <reference path="class/Observable.ts" />
 /// <reference path="hook/DefaultHook.ts" />
 /// <reference path="hook/VueHook.ts" />
@@ -33,11 +34,13 @@ namespace Shrewd {
 	export const symbol = $shrewdObject;
 	export const commit = Core.$commit;
 	export const terminate = Core.$terminate;
+	export const initialize = Core.$initialize;
 	export const hook = {
 		default: DefaultHook,
 		vue: VueHook
 	};
 	export const option = Core.$option;
+	export const comparer = Comparer;
 }
 
 if(typeof window !== 'undefined' && window.Vue) {

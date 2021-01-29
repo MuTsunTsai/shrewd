@@ -10,7 +10,7 @@
 interface IHook {
 	/**
 	 * Trigger a "read" operation to record dependency.
-	 * 
+	 *
 	 * Returns whether a dependency is established.
 	 */
 	read(id: number): boolean;
@@ -21,7 +21,7 @@ interface IHook {
 	/**
 	 * Garbage collection; clearing up unsubscribed entries.
 	 * This method is called at the end of each committing stage.
-	 * 
+	 *
 	 * Returns an array of id's that were cleaned-up.
 	 */
 	gc(): number[];
@@ -47,6 +47,9 @@ interface IDecoratorOptions<T> {
 
 	/** Renderer function for ObservableProperty. */
 	renderer?: (value: T) => T;
+
+	/** Comparer function */
+	comparer?: (oldValue: T, newValue: T) => boolean;
 }
 
 /**
@@ -84,6 +87,12 @@ export function commit(): void;
  * Any changes made before the termination will still propagate in the committing stage.
  */
 export function terminate(target: object): void;
+
+/**
+ * By default Shrewd will initialize each Shrewd object in the same order of their construction.
+ * If for some reason you need to initialize individual objects manually, you can call this method.
+ */
+export function initialize(target: object): void;
 
 /**
  * Built-in hooks.
@@ -127,5 +136,13 @@ export const option: IShrewdOption;
  * ShrewdObject symbol, for debug purpose.
  */
 export const symbol: Symbol;
+
+export namespace comparer {
+	/** Shallow compare two array; elements must match index-wise. */
+	export function array(oldValue: any[], newValue: any[]): boolean;
+
+	/** Shallow compare two array; element ordering is ignored. */
+	export function unorderedArray(oldValue: any[], newValue: any[]): boolean;
+}
 
 export as namespace Shrewd;

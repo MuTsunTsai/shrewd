@@ -22,6 +22,7 @@ class ComputedProperty extends DecoratedMember {
 		super(parent, descriptor);
 		this._getter = descriptor.$method!
 		if(this._option.active) this.$notified();
+		this._option.comparer ??= (ov, nv) => ov === nv;
 	}
 
 	public get $renderer() {
@@ -29,7 +30,7 @@ class ComputedProperty extends DecoratedMember {
 	}
 
 	public $postrendering(result: any) {
-		if(result !== this._value) {
+		if(!this._option.comparer!(this._value, result)) {
 			this._value = result;
 			Observable.$publish(this);
 		}
