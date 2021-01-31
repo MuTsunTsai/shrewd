@@ -30,7 +30,7 @@ class ComputedProperty extends DecoratedMember {
 	}
 
 	public $postrendering(result: any) {
-		if(!this._option.comparer!(this._value, result)) {
+		if(!this._option.comparer!.apply(this._parent, [this._value, result, this])) {
 			this._value = result;
 			Observable.$publish(this);
 		}

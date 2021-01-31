@@ -57,6 +57,8 @@ class Core {
 			}
 			Core._terminateQueue.clear();
 
+			if(Core.$option.debug) Observer.$clearTrigger();
+
 			for(let id of Core.$option.hook.gc()) {
 				let ob = Observer._map.get(id);
 				if(ob) Observer.$checkDeadEnd(ob);

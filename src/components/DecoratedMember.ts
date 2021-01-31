@@ -8,6 +8,10 @@
 
 abstract class DecoratedMember extends Observer {
 
+	public static $getParent(dm: DecoratedMember) {
+		return dm._parent.constructor.name;
+	}
+
 	protected _option: IDecoratorOptions<any>;
 
 	protected _descriptor: IDecoratorDescriptor;

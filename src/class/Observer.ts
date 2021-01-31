@@ -13,6 +13,8 @@ abstract class Observer extends Observable {
 
 	private static readonly _pending: Set<Observer> = new Set();
 
+	private static readonly _trigger: Set<Observer> = new Set();
+
 	/** A map from id to instance */
 	public static readonly _map: Map<number, Observer> = new Map();
 
@@ -27,6 +29,24 @@ abstract class Observer extends Observable {
 				Observer._pending.delete(pending);
 			}
 		}
+	}
+
+	public static $clearTrigger() {
+		for(let ob of Observer._trigger) ob.trigger.clear();
+		Observer._trigger.clear();
+	}
+
+	public static $debug(ob: Observer) {
+		let path: string[] = [ob._name];
+		while(ob.trigger.size) {
+			let next = ob.trigger.values().next().value as Observable;
+			if(!(next instanceof Observer)) break;
+			let msg = next._name
+			if(next instanceof DecoratedMember) msg += "(" + DecoratedMember.$getParent(next) + ")";
+			path.push(msg);
+			ob = next;
+		}
+		console.log(path);
 	}
 
 	/** Side-record dependencies. */
@@ -84,8 +104,6 @@ abstract class Observer extends Observable {
 				observer.$cleanup();
 			}
 			observer._update();
-
-			if(Core.$option.debug) observer.trigger.clear();
 
 			// Make subscription based on the side-recording result.
 			if(!observer._isTerminated) {
@@ -246,7 +264,10 @@ abstract class Observer extends Observable {
 	}
 
 	protected _outdate(by?: Observable) {
-		if(by) this.trigger.add(by);
+		if(by) {
+			Observer._trigger.add(this);
+			this.trigger.add(by);
+		}
 		this._state = ObserverState.$outdated;
 	}
 
