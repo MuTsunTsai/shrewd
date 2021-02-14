@@ -30,6 +30,12 @@ class Core {
 	/** Reactions to be initialized. */
 	private static readonly _initializeQueue: Set<DecoratedMember> = new Set();
 
+	/** `Observer`s that just lost a subscriber and might be dead. */
+	private static readonly _deadQueue: Set<Observer> = new Set();
+
+	/** `Observer`s that have passed dead-check in the current commission. */
+	public static readonly $deadChecked: Set<Observer> = new Set();
+
 	/** Whether there is auto-commit in the current stack. */
 	private static _promised: boolean = false;
 
@@ -59,13 +65,26 @@ class Core {
 
 			if(Core.$option.debug) Observer.$clearTrigger();
 
-			for(let id of Core.$option.hook.gc()) {
-				let ob = Observer._map.get(id);
-				if(ob) Observer.$checkDeadEnd(ob);
-			}
+			Core._deadCheck();
 		}
 
 		if(Core.$option.hook.postcommit) Core.$option.hook.postcommit();
+	}
+
+	private static _deadCheck() {
+		for(let ob of Core._deadQueue) {
+			Observer.$checkDeadEnd(ob);
+		}
+		Core._deadQueue.clear();
+		for(let id of Core.$option.hook.gc()) {
+			let ob = Observer._map.get(id);
+			if(ob) Observer.$checkDeadEnd(ob);
+		}
+		Core.$deadChecked.clear();
+	}
+
+	public static $queueDeadCheck(observable: Observable) {
+		if(observable instanceof Observer) Core._deadQueue.add(observable);
 	}
 
 	public static $queueInitialization(member: DecoratedMember) {

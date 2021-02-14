@@ -48,11 +48,11 @@ abstract class Observable {
 		this.$id = Observable._id++;
 	}
 
-	public $subscribe(observer: Observer) {
+	public $addSubscriber(observer: Observer) {
 		this._subscribers.add(observer);
 	}
 
-	public $unsubscribe(observer: Observer) {
+	public $removeSubscriber(observer: Observer) {
 		this._subscribers.delete(observer);
 	}
 

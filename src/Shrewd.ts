@@ -46,7 +46,7 @@ namespace Shrewd {
 			if(HiddenProperty.$has(target, $shrewdObject)) {
 				let member = target[$shrewdObject].$getMember(key);
 				if(!member) console.log("Member not found");
-				Observer.$debug(member);
+				else Observer.$debug(member);
 			} else if(target instanceof Observer) {
 				Observer.$debug(target);
 			}

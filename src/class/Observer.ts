@@ -59,18 +59,16 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	// Check reference dead-ends; inactivate Observers that has no subscription.
-	// ReactiveMethods are exceptions; they are always active regardlessly.
-	public static $checkDeadEnd(observable: Observable) {
-		if(
-			observable instanceof Observer
-			&& !observable._isTerminated
-			&& observable._isActive // This condition helps skipping Observers already checked.
-			&& !(observable._isActive = observable.$checkActive())
-		) {
-			Core.$dequeue(observable);
-			for(let ref of observable._reference) {
-				Observer.$checkDeadEnd(ref);
+	/**
+	 * Check reference dead-ends; inactivate Observers that has no subscription.
+	 */
+	public static $checkDeadEnd(observer: Observer) {
+		if(!Core.$deadChecked.has(observer)) {
+			Core.$deadChecked.add(observer);
+			if(!observer._isTerminated && !(observer._isActive = observer.$checkActive())) {
+				for(let ref of observer._reference) {
+					if(ref instanceof Observer) Observer.$checkDeadEnd(ref);
+				}
 			}
 		}
 	}
@@ -109,16 +107,16 @@ abstract class Observer extends Observable {
 			if(!observer._isTerminated) {
 				for(let observable of observer._reference) {
 					oldReferences.delete(observable);
-					observable.$subscribe(observer);
+					observable.$addSubscriber(observer);
 					if(observer.$isActive && observable instanceof Observer) {
 						observable._activate();
 					}
 				}
 			}
 
-			// Clean up dead-ends.
+			// Queue for dead-check
 			for(let observable of oldReferences) {
-				Observer.$checkDeadEnd(observable);
+				Core.$queueDeadCheck(observable);
 			}
 
 		} finally {
@@ -180,7 +178,7 @@ abstract class Observer extends Observable {
 		this._clearReference();
 		for(let subscriber of this.$subscribers) {
 			subscriber._reference.delete(this);
-			this.$unsubscribe(subscriber);
+			this.$removeSubscriber(subscriber);
 		}
 		this._update();
 		this._isRendering = false;
@@ -308,7 +306,7 @@ abstract class Observer extends Observable {
 	public $cleanup() { }
 
 	private _clearReference(): void {
-		for(let observable of this._reference) observable.$unsubscribe(this);
+		for(let observable of this._reference) observable.$removeSubscriber(this);
 		this._reference.clear();
 	}
 

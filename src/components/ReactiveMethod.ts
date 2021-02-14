@@ -17,6 +17,7 @@ class ReactiveMethod extends DecoratedMember {
 	}
 
 	protected get _defaultOption(): IDecoratorOptions<any> {
+		// ReactiveMethods are active by default
 		return { active: true };
 	}
 
