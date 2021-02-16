@@ -36,6 +36,9 @@ class VueHook implements IHook {
 	/** Pending writes. */
 	private _writes: Set<number> = new Set();
 
+	/** Newly created entries */
+	private _created: Set<number> = new Set();
+
 	public read(id: number): boolean {
 		let t = this._vue.shrewd[id];
 		return t && t.__ob__.dep.subs.length > 0;
@@ -54,7 +57,13 @@ class VueHook implements IHook {
 	public gc() {
 		let result: number[] = [];
 		for(let id in this._vue.shrewd) {
-			if(this._vue.shrewd[id].__ob__.dep.subs.length == 0) {
+			let n = Number(id);
+			if(!Core.$option.autoCommit && !this._created.has(n)) {
+				// If autoCommit is off, all entries will survive for at least one round,
+				// otherwise it is impossible for dependencies to establish.
+				this._created.add(n);
+			} else if(this._vue.shrewd[id].__ob__.dep.subs.length == 0) {
+				if(!Core.$option.autoCommit) this._created.delete(n);
 				this._Vue.delete(this._vue.shrewd, id);
 				result.push(Number(id));
 			}
