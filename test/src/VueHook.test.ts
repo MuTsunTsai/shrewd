@@ -62,14 +62,20 @@ export = async function(useMinify: boolean) {
 	console.assert(w.text() == "5" && d_count == 3, "確認計算尚未執行", d_count);
 	await Vue.nextTick();
 	console.assert(w.text() == "0" && d_count == 4, "關掉 Vue 的相依性");
+	commit();
 	if(!useMinify) {
 		console.assert(!option.hook.sub(ac.$id), "a.c 的訂閱被解除");
 		console.assert(!ac._isActive, "a.c 因此非活躍", ac._isActive);
 	}
 
 	w.vm.switch = true;
+	commit();
 	await Vue.nextTick();
 	console.assert(w.text() == "5" && d_count == 5, "重新執行計算");
+	if(!useMinify) {
+		console.assert(option.hook.sub(ac.$id), "a.c 恢復被訂閱");
+		console.assert(ac._isActive, "a.c 因此活躍", ac._isActive);
+	}
 	a.n = 4;
 	await Vue.nextTick();
 	console.assert(w.text() == "6" && d_count == 6, "即時沒有執行認可，Vue 下一次渲染也會手動呼叫 a.c 的值");
@@ -79,11 +85,12 @@ export = async function(useMinify: boolean) {
 	await Vue.nextTick(); // 先把之前一輪的自動認可執行掉
 
 	a.n = 5;
+	d_count = 0;
 	await Vue.nextTick();
-	console.assert(w.text() == "6", "關閉自動認可之後，VueHook 的行為也會改成不會立即通知更新");
+	console.assert(w.text() == "6" && d_count == 0, "關閉自動認可之後，VueHook 的行為也會改成不會立即通知更新");
 	commit();
 	await Vue.nextTick();
-	console.assert(w.text() == "7", "認可之後，Vue 才會渲染出正確的值");
+	console.assert(w.text() == "7" && d_count == 1, "認可之後，Vue 才會渲染出正確的值", w.text(), d_count);
 
 	option.hook = oldHook;
 	option.autoCommit = oldSetting;

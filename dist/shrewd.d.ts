@@ -79,7 +79,7 @@ export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDe
  * no need to call this method, except for the case where the reactive results are immediately
  * required for further non-reactive actions.
  */
-export function commit(): void;
+export function commit(): Promise<void>;
 
 /**
  * Terminates a Shrewd object. The said object will cancel all its subscriptions (to and from others),

@@ -8,6 +8,8 @@
 /// <reference path="core/ShrewdObject.ts" />
 /// <reference path="util/HiddenProperty.ts" />
 /// <reference path="helpers/CollectionProxyHandler.ts" />
+/// <reference path="controllers/InitializationController.ts" />
+/// <reference path="controllers/TerminationController.ts" />
 
 // Level 1
 /// <reference path="class/Observer.ts" />
@@ -33,8 +35,8 @@ namespace Shrewd {
 	export const shrewd = Decorators.$shrewd;
 	export const symbol = $shrewdObject;
 	export const commit = Core.$commit;
-	export const terminate = Core.$terminate;
-	export const initialize = Core.$initialize;
+	export const terminate = TerminationController.$terminate;
+	export const initialize = InitializationController.$initialize;
 	export const hook = {
 		default: DefaultHook,
 		vue: VueHook

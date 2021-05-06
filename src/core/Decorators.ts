@@ -86,7 +86,7 @@ class Decorators {
 				if(self.constructor == target) new ShrewdObject(self);
 				if(Decorators.$immediateInit.has(self)) {
 					Decorators.$immediateInit.delete(self);
-					Core.$initialize(self);
+					InitializationController.$initialize(self);
 				}
 				return self;
 			} finally {

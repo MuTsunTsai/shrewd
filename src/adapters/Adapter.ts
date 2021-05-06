@@ -29,7 +29,7 @@ abstract class Adapter<T extends DecoratedMember> implements IAdapter {
 		this._options = options;
 	}
 
-	protected get _name() {
+	protected get _name(): string {
 		return this._proto.constructor.name + "." + this._prop.toString();
 	}
 
@@ -49,5 +49,5 @@ abstract class Adapter<T extends DecoratedMember> implements IAdapter {
 
 	protected abstract get _constructor(): IDecoratedMemberConstructor<T>;
 
-	public $setup(): PropertyDescriptor | void {}
+	public $setup(): PropertyDescriptor | void { }
 }

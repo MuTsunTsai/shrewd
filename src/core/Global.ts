@@ -1,5 +1,5 @@
 
-interface IState {
+interface IContext {
 	$isCommitting: boolean;
 	$isConstructing: boolean;
 	$isRenderingProperty: boolean;
@@ -15,7 +15,7 @@ interface IState {
 
 class Global {
 
-	private static _state: IState = {
+	private static _state: IContext = {
 		$isCommitting: false,
 		$isConstructing: false,
 		$isRenderingProperty: false,
@@ -23,11 +23,11 @@ class Global {
 		$accessibles: new Set()
 	};
 
-	private static _history: IState[] = [];
+	private static _history: IContext[] = [];
 
+	public static $context: Observable | null = null;
 
-
-	public static $pushState(state: Partial<IState>) {
+	public static $pushState(state: Partial<IContext>) {
 		Global._history.push(Global._state);
 		Global._state = Object.assign({}, Global._state, state);
 	}
@@ -36,7 +36,7 @@ class Global {
 		Global._state = Global._history.pop()!;
 
 		// After all stacked scopes are cleared, start initializing reactions.
-		if(Global._history.length == 0) Core.$initializeAll();
+		if(Global._history.length == 0) InitializationController.$flush();
 	}
 
 	/** Whether currently in committing stage. */

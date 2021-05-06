@@ -104,7 +104,7 @@
     }
     class VueHook {
         constructor(vue) {
-            this._writes = new Set();
+            this._queue = new Set();
             this._created = new Set();
             this._Vue = vue || typeof window != 'undefined' && window.Vue;
             if (!this._Vue)
@@ -113,18 +113,22 @@
         }
         read(id) {
             let t = this._vue.shrewd[id];
+            if (!Global.$isCommitting && !t) {
+                this._Vue.set(this._vue.shrewd, id, {});
+                t = this._vue.shrewd[id];
+            }
             return t && t.__ob__.dep.subs.length > 0;
         }
         write(id) {
-            if (Core.$option.autoCommit)
+            if (Core.$option.autoCommit || Global.$isCommitting)
                 this._Vue.set(this._vue.shrewd, id, {});
             else
-                this._writes.add(id);
+                this._queue.add(id);
         }
         precommit() {
-            for (let id of this._writes)
+            for (let id of this._queue)
                 this._Vue.set(this._vue.shrewd, id, {});
-            this._writes.clear();
+            this._queue.clear();
         }
         gc() {
             let result = [];
@@ -149,94 +153,13 @@
         static $commit() {
             if (Core.$option.hook.precommit)
                 Core.$option.hook.precommit();
-            Global.$pushState({ $isCommitting: true });
-            try {
-                for (let observer of Core._renderQueue) {
-                    Observer.$render(observer, true);
-                }
-            } finally {
-                Observer.$clearPending();
-                Core._renderQueue.clear();
-                Global.$restore();
-                for (let shrewd of Core._terminateQueue) {
-                    shrewd.$terminate();
-                }
-                Core._terminateQueue.clear();
-                if (Core.$option.debug)
-                    Observer.$clearTrigger();
-                Core._deadCheck();
-            }
+            CommitController.$flush();
+            TerminationController.$flush();
+            if (Core.$option.debug)
+                Observer.$clearTrigger();
+            DeadController.$flush();
             if (Core.$option.hook.postcommit)
                 Core.$option.hook.postcommit();
-        }
-        static _deadCheck() {
-            for (let ob of Core._deadQueue) {
-                Observer.$checkDeadEnd(ob);
-            }
-            Core._deadQueue.clear();
-            for (let id of Core.$option.hook.gc()) {
-                let ob = Observer._map.get(id);
-                if (ob)
-                    Observer.$checkDeadEnd(ob);
-            }
-            Core.$deadChecked.clear();
-        }
-        static $queueDeadCheck(observable) {
-            if (observable instanceof Observer)
-                Core._deadQueue.add(observable);
-        }
-        static $queueInitialization(member) {
-            Core._initializeQueue.add(member);
-        }
-        static $initializeAll() {
-            if (Core._initializing)
-                return;
-            Core._initializing = true;
-            for (let member of Core._initializeQueue) {
-                Core._initializeQueue.delete(member);
-                member.$initialize();
-            }
-            Core._initializing = false;
-        }
-        static $initialize(target) {
-            if (!target[$shrewdObject]) {
-                Decorators.$immediateInit.add(target);
-                return;
-            }
-            if (Core._initializing)
-                return;
-            Core._initializing = true;
-            for (let member of target[$shrewdObject].$getMember()) {
-                Core._initializeQueue.delete(member);
-                member.$initialize();
-            }
-            Core._initializing = false;
-        }
-        static _autoCommit() {
-            Core.$commit();
-            Core._promised = false;
-        }
-        static $dequeue(observer) {
-            Core._renderQueue.delete(observer);
-        }
-        static $enqueue(observer) {
-            if (!observer.$isRendering) {
-                Core._renderQueue.add(observer);
-            }
-            if (Core.$option.autoCommit && !Core._promised) {
-                Promise.resolve().then(Core._autoCommit);
-                Core._promised = true;
-            }
-        }
-        static $terminate(target, lazy = false) {
-            if (HiddenProperty.$has(target, $shrewdObject)) {
-                let shrewd = target[$shrewdObject];
-                if (lazy) {
-                    Core._terminateQueue.add(shrewd);
-                } else {
-                    shrewd.$terminate();
-                }
-            }
         }
     }
     Core.$option = {
@@ -244,13 +167,6 @@
         autoCommit: true,
         debug: false
     };
-    Core._renderQueue = new Set();
-    Core._terminateQueue = new Set();
-    Core._initializeQueue = new Set();
-    Core._deadQueue = new Set();
-    Core.$deadChecked = new Set();
-    Core._promised = false;
-    Core._initializing = false;
     class Decorators {
         static get(proto) {
             if (HiddenProperty.$has(proto, $shrewdDecorators)) {
@@ -312,7 +228,7 @@
                     new ShrewdObject(self);
                 if (Decorators.$immediateInit.has(self)) {
                     Decorators.$immediateInit.delete(self);
-                    Core.$initialize(self);
+                    InitializationController.$initialize(self);
                 }
                 return self;
             } finally {
@@ -344,7 +260,7 @@
                 proto = Object.getPrototypeOf(proto);
             }
             for (let member of this._members.values()) {
-                Core.$queueInitialization(member);
+                InitializationController.$enqueue(member);
             }
         }
         $terminate() {
@@ -426,6 +342,56 @@
             }
         }
     }
+    class InitializationController {
+        static $enqueue(member) {
+            InitializationController._queue.add(member);
+        }
+        static $flush() {
+            if (InitializationController._running)
+                return;
+            InitializationController._running = true;
+            for (let member of InitializationController._queue) {
+                InitializationController._queue.delete(member);
+                member.$initialize();
+            }
+            InitializationController._running = false;
+        }
+        static $initialize(target) {
+            if (!target[$shrewdObject]) {
+                Decorators.$immediateInit.add(target);
+                return;
+            }
+            if (InitializationController._running)
+                return;
+            InitializationController._running = true;
+            for (let member of target[$shrewdObject].$getMember()) {
+                InitializationController._queue.delete(member);
+                member.$initialize();
+            }
+            InitializationController._running = false;
+        }
+    }
+    InitializationController._queue = new Set();
+    InitializationController._running = false;
+    class TerminationController {
+        static $flush() {
+            for (let shrewd of TerminationController._queue) {
+                shrewd.$terminate();
+            }
+            TerminationController._queue.clear();
+        }
+        static $terminate(target, lazy = false) {
+            if (HiddenProperty.$has(target, $shrewdObject)) {
+                let shrewd = target[$shrewdObject];
+                if (lazy) {
+                    TerminationController._queue.add(shrewd);
+                } else {
+                    shrewd.$terminate();
+                }
+            }
+        }
+    }
+    TerminationController._queue = new Set();
     var ObserverState;
     (function (ObserverState) {
         ObserverState[ObserverState['$outdated'] = 0] = '$outdated';
@@ -436,7 +402,7 @@
         constructor(name) {
             super();
             this._reference = new Set();
-            this._isRendering = false;
+            this._rendering = false;
             this._state = ObserverState.$outdated;
             this._isTerminated = false;
             this.trigger = new Set();
@@ -481,8 +447,7 @@
             }
         }
         static $checkDeadEnd(observer) {
-            if (!Core.$deadChecked.has(observer)) {
-                Core.$deadChecked.add(observer);
+            if (DeadController.$tryMarkChecked(observer)) {
                 if (!observer._isTerminated && !(observer._isActive = observer.$checkActive())) {
                     for (let ref of observer._reference) {
                         if (ref instanceof Observer)
@@ -492,59 +457,62 @@
             }
         }
         static $render(observer, backtrack = false) {
+            observer._render(backtrack);
+        }
+        get $isRendering() {
+            return !!this._rendering;
+        }
+        _render(backtrack) {
             if (backtrack) {
-                observer._backtrack();
-                if (observer._isTerminated)
+                this._backtrack();
+                if (this._isTerminated)
                     return;
             }
             Global.$pushState({
                 $isConstructing: false,
-                $target: observer
+                $target: this
             });
-            observer._isRendering = true;
-            Core.$dequeue(observer);
+            this._rendering = true;
+            CommitController.$dequeue(this);
             try {
-                let oldReferences = new Set(observer._reference);
-                observer._clearReference();
-                observer.$prerendering();
+                let oldReferences = new Set(this._reference);
+                this._clearReference();
+                this.$prerendering();
                 try {
-                    let result = observer.$renderer();
-                    observer.$postrendering(result);
+                    let result = this.$renderer();
+                    this.$postrendering(result);
                 } finally {
-                    observer.$cleanup();
+                    this.$cleanup();
                 }
-                observer._update();
-                if (!observer._isTerminated) {
-                    for (let observable of observer._reference) {
+                this._update();
+                if (!this._isTerminated) {
+                    for (let observable of this._reference) {
                         oldReferences.delete(observable);
-                        observable.$addSubscriber(observer);
-                        if (observer.$isActive && observable instanceof Observer) {
+                        observable.$addSubscriber(this);
+                        if (this.$isActive && observable instanceof Observer) {
                             observable._activate();
                         }
                     }
                 }
                 for (let observable of oldReferences) {
-                    Core.$queueDeadCheck(observable);
+                    DeadController.$enqueue(observable);
                 }
             } finally {
-                observer._isRendering = false;
+                this._rendering = false;
                 Global.$restore();
             }
-        }
-        get $isRendering() {
-            return this._isRendering;
         }
         $notified(by) {
             this._pend();
             this._outdate(by);
             if (this.$isActive) {
-                Core.$enqueue(this);
+                CommitController.$enqueue(this);
             }
         }
         $terminate() {
             if (this._isTerminated)
                 return;
-            Core.$dequeue(this);
+            CommitController.$dequeue(this);
             Observer._map.delete(this.$id);
             Observer._pending.delete(this);
             this._isTerminated = true;
@@ -557,7 +525,7 @@
                 this.$removeSubscriber(subscriber);
             }
             this._update();
-            this._isRendering = false;
+            this._rendering = false;
         }
         _pend() {
             if (this._state == ObserverState.$updated) {
@@ -569,7 +537,7 @@
             }
         }
         _determineStateAndRender() {
-            if (this._isRendering)
+            if (this._rendering)
                 this._onCyclicDependencyFound();
             if (this._state == ObserverState.$updated)
                 return;
@@ -589,14 +557,14 @@
         _backtrack() {
             for (let ref of this._reference) {
                 if (ref instanceof Observer) {
-                    if (ref._isRendering) {
-                        Observer.$render(this);
-                        break;
+                    if (ref._rendering) {
+                        return Observer.$render(this);
                     } else if (ref._state != ObserverState.$updated) {
-                        ref._determineStateAndRender();
+                        return ref._determineStateAndRender();
                     }
                 }
             }
+            ;
         }
         _onCyclicDependencyFound() {
             if (Core.$option.debug)
@@ -1090,8 +1058,8 @@
         Shrewd.shrewd = Decorators.$shrewd;
         Shrewd.symbol = $shrewdObject;
         Shrewd.commit = Core.$commit;
-        Shrewd.terminate = Core.$terminate;
-        Shrewd.initialize = Core.$initialize;
+        Shrewd.terminate = TerminationController.$terminate;
+        Shrewd.initialize = InitializationController.$initialize;
         Shrewd.hook = {
             default: DefaultHook,
             vue: VueHook
@@ -1189,6 +1157,67 @@
             return this._descriptor;
         }
     }
+    class AutoCommitController {
+        static async _autoCommit() {
+            await Core.$commit();
+            AutoCommitController._promised = false;
+        }
+        static $setup() {
+            if (Core.$option.autoCommit && !AutoCommitController._promised) {
+                AutoCommitController._promised = true;
+                Promise.resolve().then(AutoCommitController._autoCommit);
+            }
+        }
+    }
+    AutoCommitController._promised = false;
+    class CommitController {
+        static $flush() {
+            Global.$pushState({ $isCommitting: true });
+            while (CommitController._queue.size > 0) {
+                for (let ob of CommitController._queue)
+                    Observer.$render(ob, true);
+            }
+            Observer.$clearPending();
+            Global.$restore();
+        }
+        static $dequeue(observer) {
+            CommitController._queue.delete(observer);
+        }
+        static $enqueue(observer) {
+            if (!observer.$isRendering) {
+                CommitController._queue.add(observer);
+            }
+            AutoCommitController.$setup();
+        }
+    }
+    CommitController._queue = new Set();
+    class DeadController {
+        static $enqueue(observable) {
+            if (observable instanceof Observer)
+                DeadController._queue.add(observable);
+        }
+        static $flush() {
+            for (let ob of DeadController._queue) {
+                Observer.$checkDeadEnd(ob);
+            }
+            DeadController._queue.clear();
+            for (let id of Core.$option.hook.gc()) {
+                let ob = Observer._map.get(id);
+                if (ob)
+                    Observer.$checkDeadEnd(ob);
+            }
+            DeadController._checked.clear();
+        }
+        static $tryMarkChecked(observer) {
+            if (!DeadController._checked.has(observer)) {
+                DeadController._checked.add(observer);
+                return true;
+            }
+            return false;
+        }
+    }
+    DeadController._queue = new Set();
+    DeadController._checked = new Set();
     class Global {
         static $pushState(state) {
             Global._history.push(Global._state);
@@ -1197,7 +1226,7 @@
         static $restore() {
             Global._state = Global._history.pop();
             if (Global._history.length == 0)
-                Core.$initializeAll();
+                InitializationController.$flush();
         }
         static get $isCommitting() {
             return Global._state.$isCommitting;
@@ -1226,6 +1255,7 @@
         $accessibles: new Set()
     };
     Global._history = [];
+    Global.$context = null;
     const $shrewdDecorators = Symbol('Shrewd Decorators');
     return Shrewd;
 }));

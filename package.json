@@ -18,6 +18,7 @@
 	"author": "Mu-Tsun Tsai",
 	"license": "MIT",
 	"devDependencies": {
+		"@makeomatic/gulp-wrap-js": "^1.0.2",
 		"@types/node": "^14.14.37",
 		"@vue/test-utils": "^1.1.4",
 		"ansi-colors": "^4.1.1",
@@ -28,7 +29,6 @@
 		"gulp-sourcemaps": "^2.6.5",
 		"gulp-terser": "^1.4.1",
 		"gulp-typescript": "^5.0.1",
-		"gulp-wrap-js": "^0.4.1",
 		"jsdom": "^16.5.3",
 		"jsdom-global": "^3.0.2",
 		"require-dir": "^1.2.0",

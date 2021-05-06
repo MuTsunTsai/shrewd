@@ -20,10 +20,11 @@ abstract class Observer extends Observable {
 
 	public static readonly $trace: (Observer | string)[] = [];
 
+	/**
+	 * Treat all active, pending `Observer`s as updated.
+	 */
 	public static $clearPending() {
 		for(let pending of Observer._pending) {
-			// If a pending, active Observer does not get updated after the committing stage,
-			// then it must be in fact updated.
 			if(pending._state == ObserverState.$pending && pending.$isActive) {
 				pending._update();
 				Observer._pending.delete(pending);
@@ -63,8 +64,7 @@ abstract class Observer extends Observable {
 	 * Check reference dead-ends; inactivate Observers that has no subscription.
 	 */
 	public static $checkDeadEnd(observer: Observer) {
-		if(!Core.$deadChecked.has(observer)) {
-			Core.$deadChecked.add(observer);
+		if(DeadController.$tryMarkChecked(observer)) {
 			if(!observer._isTerminated && !(observer._isActive = observer.$checkActive())) {
 				for(let ref of observer._reference) {
 					if(ref instanceof Observer) Observer.$checkDeadEnd(ref);
@@ -74,56 +74,7 @@ abstract class Observer extends Observable {
 	}
 
 	public static $render(observer: Observer, backtrack = false): void {
-		if(backtrack) {
-			observer._backtrack();
-			if(observer._isTerminated) return;
-		}
-
-		// Push new state.
-		Global.$pushState({
-			$isConstructing: false,
-			$target: observer
-		});
-		observer._isRendering = true;
-		Core.$dequeue(observer);
-
-		try {
-
-			// Clear all references.
-			let oldReferences = new Set(observer._reference);
-			observer._clearReference();
-
-			// Execute the rendering method.
-			observer.$prerendering();
-			try {
-				let result = observer.$renderer();
-				observer.$postrendering(result);
-			} finally {
-				observer.$cleanup();
-			}
-			observer._update();
-
-			// Make subscription based on the side-recording result.
-			if(!observer._isTerminated) {
-				for(let observable of observer._reference) {
-					oldReferences.delete(observable);
-					observable.$addSubscriber(observer);
-					if(observer.$isActive && observable instanceof Observer) {
-						observable._activate();
-					}
-				}
-			}
-
-			// Queue for dead-check
-			for(let observable of oldReferences) {
-				Core.$queueDeadCheck(observable);
-			}
-
-		} finally {
-			// Restore state.
-			observer._isRendering = false;
-			Global.$restore();
-		}
+		observer._render(backtrack);
 	}
 
 	/////////////////////////////////////////////////////
@@ -134,7 +85,7 @@ abstract class Observer extends Observable {
 	private _reference: Set<Observable> = new Set();
 
 	/** Whether self is in the current rendering stack. */
-	private _isRendering: boolean = false;
+	private _rendering: boolean = false;
 
 	/** The current state of updating. */
 	private _state: ObserverState = ObserverState.$outdated;
@@ -151,23 +102,76 @@ abstract class Observer extends Observable {
 	}
 
 	/** Whether self is in the current rendering stack. */
-	public get $isRendering() {
-		return this._isRendering;
+	public get $isRendering(): boolean {
+		return !!this._rendering;
 	}
 
 	private trigger: Set<Observable> = new Set();
+
+	private _render(backtrack: boolean) {
+		if(backtrack) {
+			this._backtrack();
+			if(this._isTerminated) return;
+		}
+
+		// Push new state.
+		Global.$pushState({
+			$isConstructing: false,
+			$target: this
+		});
+		this._rendering = true;
+		CommitController.$dequeue(this);
+
+		try {
+
+			// Clear all references.
+			let oldReferences = new Set(this._reference);
+			this._clearReference();
+
+			// Execute the rendering method.
+			this.$prerendering();
+			try {
+				let result = this.$renderer();
+				this.$postrendering(result);
+			} finally {
+				this.$cleanup();
+			}
+			this._update();
+
+			// Make subscription based on the side-recording result.
+			if(!this._isTerminated) {
+				for(let observable of this._reference) {
+					oldReferences.delete(observable);
+					observable.$addSubscriber(this);
+					if(this.$isActive && observable instanceof Observer) {
+						observable._activate();
+					}
+				}
+			}
+
+			// Queue for dead-check
+			for(let observable of oldReferences) {
+				DeadController.$enqueue(observable);
+			}
+
+		} finally {
+			// Restore state.
+			this._rendering = false;
+			Global.$restore();
+		}
+	}
 
 	public $notified(by?: Observable) {
 		this._pend();
 		this._outdate(by);
 		if(this.$isActive) {
-			Core.$enqueue(this);
+			CommitController.$enqueue(this);
 		}
 	}
 
 	public $terminate() {
 		if(this._isTerminated) return;
-		Core.$dequeue(this);
+		CommitController.$dequeue(this);
 		Observer._map.delete(this.$id);
 		Observer._pending.delete(this);
 		this._isTerminated = true;
@@ -181,7 +185,7 @@ abstract class Observer extends Observable {
 			this.$removeSubscriber(subscriber);
 		}
 		this._update();
-		this._isRendering = false;
+		this._rendering = false;
 	}
 
 	/** Set the state of the current and all down-stream `Observer` to be pending. */
@@ -201,11 +205,12 @@ abstract class Observer extends Observable {
 	 * Inside the method it will determine whether the current `Observer` is outdated
 	 * by recursively determine the states of all its dependencies, and if it is outdated,
 	 * render it.
+	 *
+	 * @returns Whether the result is a Promise.
 	 */
 	protected _determineStateAndRender() {
-
 		// Cyclic dependency found.
-		if(this._isRendering) this._onCyclicDependencyFound();
+		if(this._rendering) this._onCyclicDependencyFound();
 
 		if(this._state == ObserverState.$updated) return;
 		Observer.$trace.push(this);
@@ -231,14 +236,13 @@ abstract class Observer extends Observable {
 			if(ref instanceof Observer) {
 				// Found potential cyclic dependency; but it might just be dynamic dependency.
 				// The only way to be certain is to actually execute it.
-				if(ref._isRendering) {
-					Observer.$render(this);
-					break;
+				if(ref._rendering) {
+					return Observer.$render(this);
 				} else if(ref._state != ObserverState.$updated) {
-					ref._determineStateAndRender();
+					return ref._determineStateAndRender();
 				}
 			}
-		}
+		};
 	}
 
 	private _onCyclicDependencyFound() {

@@ -10,13 +10,13 @@ interface IMethodDescriptor<T extends Collection> {
 }
 
 class CollectionProxyHandler<T extends Collection> implements ProxyHandler<T> {
-	
-	public get(target: WrappedObservable<T>, prop: keyof T, receiver: T): any {
+
+	public get(target: WrappedObservable<T>, prop: string | symbol, receiver: T): any {
 		let ob = target[$observableHelper];
 		let result = Reflect.get(target, prop);
 		if(typeof result == "function") {
 			result = this._method.bind({
-				$prop: prop,
+				$prop: prop as keyof T,
 				$target: target,
 				$method: result.bind(target),
 				$helper: ob,

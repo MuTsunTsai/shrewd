@@ -34,24 +34,28 @@ class VueHook implements IHook {
 	private _vue: any;
 
 	/** Pending writes. */
-	private _writes: Set<number> = new Set();
+	private _queue: Set<number> = new Set();
 
 	/** Newly created entries */
 	private _created: Set<number> = new Set();
 
 	public read(id: number): boolean {
 		let t = this._vue.shrewd[id];
+		if(!Global.$isCommitting && !t) {
+			this._Vue.set(this._vue.shrewd, id, {});
+			t = this._vue.shrewd[id];
+		}
 		return t && t.__ob__.dep.subs.length > 0;
 	}
 
 	public write(id: number) {
-		if(Core.$option.autoCommit) this._Vue.set(this._vue.shrewd, id, {});
-		else this._writes.add(id);
+		if(Core.$option.autoCommit || Global.$isCommitting) this._Vue.set(this._vue.shrewd, id, {});
+		else this._queue.add(id);
 	}
 
 	public precommit() {
-		for(let id of this._writes) this._Vue.set(this._vue.shrewd, id, {});
-		this._writes.clear();
+		for(let id of this._queue) this._Vue.set(this._vue.shrewd, id, {});
+		this._queue.clear();
 	}
 
 	public gc() {

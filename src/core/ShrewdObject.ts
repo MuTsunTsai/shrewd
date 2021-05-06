@@ -28,7 +28,7 @@ class ShrewdObject {
 			proto = Object.getPrototypeOf(proto);
 		}
 		for(let member of this._members.values()) {
-			Core.$queueInitialization(member);
+			InitializationController.$enqueue(member);
 		}
 	}
 
