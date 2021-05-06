@@ -3,7 +3,7 @@ class ReactiveMethodAdapter extends Adapter<ReactiveMethod> {
 
 	protected _descriptor!: PropertyDescriptor;
 
-	protected get _constructor() {
+	protected get _constructor():IDecoratedMemberConstructor<ReactiveMethod> {
 		return ReactiveMethod;
 	}
 

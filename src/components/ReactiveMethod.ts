@@ -1,7 +1,7 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * A ReactiveMethod runs automatically whenever any of its references
+ * A ReactiveMethod runs automatically whenever some of its references
  * has changed. It would only run once during the committing stage.
  */
 //////////////////////////////////////////////////////////////////
@@ -9,14 +9,14 @@
 class ReactiveMethod extends DecoratedMember {
 
 	private readonly _method: Function;
-	private _result: any;
+	private _result: unknown;
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
 		this._method = descriptor.$method!;
 	}
 
-	protected get _defaultOption(): IDecoratorOptions<any> {
+	protected get _defaultOption(): IDecoratorOptions<unknown> {
 		// ReactiveMethods are active by default
 		return { active: true };
 	}
@@ -25,18 +25,18 @@ class ReactiveMethod extends DecoratedMember {
 		return this._method.bind(this._parent);
 	}
 
-	protected $regularGet(): () => any {
+	protected $regularGet(): () => unknown {
 		return () => {
 			this._determineStateAndRender();
 			return this._result;
 		}
 	}
 
-	protected $terminateGet(): () => any {
+	protected $terminateGet(): () => unknown {
 		return () => this._result;
 	}
 
-	public $postrendering(result: any) {
+	public $postrendering(result: unknown) {
 		this._result = result;
 		// ReactiveMethods always publish themselves regardless of return value.
 		Observable.$publish(this);

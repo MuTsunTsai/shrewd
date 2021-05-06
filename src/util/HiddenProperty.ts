@@ -2,9 +2,9 @@
 //////////////////////////////////////////////////////////////////
 /**
  * The HiddenProperty static class manages hidden properties indexed
- * by symbols. Since they are named with symbols, they cannot have
- * any conflict with existing properties of the target object.
- * 
+ * by symbols. Since they are named with symbols, they will not
+ * conflict with existing properties of the target object.
+ *
  * The overloading declaration here is rather long, as TypeScript currently
  * does not support using dynamic symbol as interface signature.
  */
@@ -26,7 +26,7 @@ class HiddenProperty {
 	public static $add<T extends object>(target: T, prop: typeof $observableHelper, value: Helper<T>): WrappedObservable<T>;
 	public static $add(target: object, prop: typeof $shrewdDecorators, value: IDecoratorDescriptor[]): IShrewdPrototype;
 	public static $add(target: object, prop: typeof $shrewdObject, value: ShrewdObject): IShrewdObjectParent;
-	public static $add(target: object, prop: symbol, value: any) {
+	public static $add(target: object, prop: symbol, value: unknown) {
 		Object.defineProperty(target, prop, {
 			enumerable: false,
 			writable: false,

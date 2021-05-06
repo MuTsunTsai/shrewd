@@ -1,4 +1,4 @@
-interface IDecoratorOptions<T = any> {
+interface IDecoratorOptions<T = unknown> {
 	validator?: (value: T) => boolean;
 	renderer?: (value: T) => T;
 	active?: boolean;

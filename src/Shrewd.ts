@@ -44,13 +44,15 @@ namespace Shrewd {
 	export const option = Core.$option;
 	export const comparer = Comparer;
 	export const debug = {
-		trigger(target: any, key?: string) {
-			if(HiddenProperty.$has(target, $shrewdObject)) {
-				let member = target[$shrewdObject].$getMember(key);
-				if(!member) console.log("Member not found");
-				else Observer.$debug(member);
-			} else if(target instanceof Observer) {
-				Observer.$debug(target);
+		trigger(target: unknown, key?: string) {
+			if(target instanceof Object) {
+				if(HiddenProperty.$has(target, $shrewdObject)) {
+					let member = target[$shrewdObject].$getMember(key);
+					if(!member) console.log("Member not found");
+					else Observer.$debug(member);
+				} else if(target instanceof Observer) {
+					Observer.$debug(target);
+				}
 			}
 		}
 	}

@@ -23,7 +23,7 @@ abstract class Observer extends Observable {
 	/**
 	 * Treat all active, pending `Observer`s as updated.
 	 */
-	public static $clearPending() {
+	public static $clearPending(): void {
 		for(let pending of Observer._pending) {
 			if(pending._state == ObserverState.$pending && pending.$isActive) {
 				pending._update();
@@ -32,12 +32,12 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	public static $clearTrigger() {
+	public static $clearTrigger(): void {
 		for(let ob of Observer._trigger) ob.trigger.clear();
 		Observer._trigger.clear();
 	}
 
-	public static $debug(ob: Observer) {
+	public static $debug(ob: Observer): void {
 		let path: string[] = [ob._name];
 		while(ob.trigger.size) {
 			let next = ob.trigger.values().next().value as Observable;
@@ -51,7 +51,7 @@ abstract class Observer extends Observable {
 	}
 
 	/** Side-record dependencies. */
-	public static $refer(observable: Observable) {
+	public static $refer(observable: Observable): void {
 		if(observable instanceof Observer && observable._isTerminated) return;
 		if(Core.$option.hook.read(observable.$id) && observable instanceof Observer) observable._activate();
 		let target = Global.$target;
@@ -63,7 +63,7 @@ abstract class Observer extends Observable {
 	/**
 	 * Check reference dead-ends; inactivate Observers that has no subscription.
 	 */
-	public static $checkDeadEnd(observer: Observer) {
+	public static $checkDeadEnd(observer: Observer): void {
 		if(DeadController.$tryMarkChecked(observer)) {
 			if(!observer._isTerminated && !(observer._isActive = observer.$checkActive())) {
 				for(let ref of observer._reference) {
@@ -108,7 +108,7 @@ abstract class Observer extends Observable {
 
 	private trigger: Set<Observable> = new Set();
 
-	private _render(backtrack: boolean) {
+	private _render(backtrack: boolean): void {
 		if(backtrack) {
 			this._backtrack();
 			if(this._isTerminated) return;
@@ -161,7 +161,7 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	public $notified(by?: Observable) {
+	public $notified(by?: Observable): void {
 		this._pend();
 		this._outdate(by);
 		if(this.$isActive) {
@@ -169,7 +169,7 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	public $terminate() {
+	public $terminate(): void {
 		if(this._isTerminated) return;
 		CommitController.$dequeue(this);
 		Observer._map.delete(this.$id);
@@ -178,7 +178,7 @@ abstract class Observer extends Observable {
 		this._onTerminate();
 	}
 
-	protected _onTerminate() {
+	protected _onTerminate(): void {
 		this._clearReference();
 		for(let subscriber of this.$subscribers) {
 			subscriber._reference.delete(this);
@@ -189,7 +189,7 @@ abstract class Observer extends Observable {
 	}
 
 	/** Set the state of the current and all down-stream `Observer` to be pending. */
-	private _pend() {
+	private _pend(): void {
 		if(this._state == ObserverState.$updated) {
 			this._state = ObserverState.$pending;
 			Observer._pending.add(this);
@@ -208,7 +208,7 @@ abstract class Observer extends Observable {
 	 *
 	 * @returns Whether the result is a Promise.
 	 */
-	protected _determineStateAndRender() {
+	protected _determineStateAndRender(): void {
 		// Cyclic dependency found.
 		if(this._rendering) this._onCyclicDependencyFound();
 
@@ -230,7 +230,7 @@ abstract class Observer extends Observable {
 	}
 
 	/** Backtrack all dependencies */
-	private _backtrack() {
+	private _backtrack(): void {
 		// Gather references that are not updated.
 		for(let ref of this._reference) {
 			if(ref instanceof Observer) {
@@ -245,7 +245,7 @@ abstract class Observer extends Observable {
 		};
 	}
 
-	private _onCyclicDependencyFound() {
+	private _onCyclicDependencyFound(): void {
 		if(Core.$option.debug) debugger;
 
 		// Find the smallest cycle.
@@ -261,11 +261,11 @@ abstract class Observer extends Observable {
 		console.warn("Cyclic dependency detected: " + trace + "\nAll these reactions will be terminated.");
 	}
 
-	protected _update() {
+	protected _update(): void {
 		this._state = ObserverState.$updated;
 	}
 
-	protected _outdate(by?: Observable) {
+	protected _outdate(by?: Observable): void {
 		if(by) {
 			Observer._trigger.add(this);
 			this.trigger.add(by);
@@ -273,11 +273,11 @@ abstract class Observer extends Observable {
 		this._state = ObserverState.$outdated;
 	}
 
-	protected get $state() {
+	protected get $state(): ObserverState {
 		return this._state;
 	}
 
-	/** Whether the current `Observer` is active (i.e. has any subscriber) */
+	/** Whether the current `Observer` is active (i.e. has at least one subscriber) */
 	protected get $isActive(): boolean {
 		return this._isActive = this._isActive != undefined ? this._isActive : this.$checkActive();
 	}
@@ -285,7 +285,7 @@ abstract class Observer extends Observable {
 	/** Cached value of `$isActive`. */
 	private _isActive?: boolean;
 
-	protected $checkActive() {
+	protected $checkActive(): boolean {
 		if(Core.$option.hook.sub(this.$id)) return true;
 		for(let subscriber of this.$subscribers) {
 			if(subscriber.$isActive) return true;
@@ -293,7 +293,7 @@ abstract class Observer extends Observable {
 		return false;
 	}
 
-	private _activate() {
+	private _activate(): void {
 		if(this.$isActive) return;
 		this._isActive = true;
 		for(let observable of this._reference) {
@@ -301,13 +301,13 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	public $prerendering() { }
+	public $prerendering(): void { }
 
-	public abstract get $renderer(): () => any;
+	public abstract get $renderer(): Function;
 
-	public $postrendering(result: any) { }
+	public $postrendering(result: unknown): void { }
 
-	public $cleanup() { }
+	public $cleanup(): void { }
 
 	private _clearReference(): void {
 		for(let observable of this._reference) observable.$removeSubscriber(this);

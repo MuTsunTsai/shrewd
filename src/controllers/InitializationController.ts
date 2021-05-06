@@ -7,11 +7,11 @@ class InitializationController {
 	/** A flag for preventing nested initialization. */
 	private static _running: boolean = false;
 
-	public static $enqueue(member: DecoratedMember) {
+	public static $enqueue(member: DecoratedMember): void {
 		InitializationController._queue.add(member);
 	}
 
-	public static $flush() {
+	public static $flush(): void {
 		if(InitializationController._running) return;
 		InitializationController._running = true;
 		for(let member of InitializationController._queue) {
@@ -21,7 +21,7 @@ class InitializationController {
 		InitializationController._running = false;
 	}
 
-	public static $initialize(target: IShrewdObjectParent) {
+	public static $initialize(target: IShrewdObjectParent): void {
 		if(!target[$shrewdObject]) {
 			Decorators.$immediateInit.add(target);
 			return;

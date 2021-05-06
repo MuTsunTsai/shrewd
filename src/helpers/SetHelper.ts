@@ -1,7 +1,7 @@
 
-class SetProxyHandler extends CollectionProxyHandler<Set<any>> {
+class SetProxyHandler extends CollectionProxyHandler<Set<unknown>> {
 
-	protected _method(this: IMethodDescriptor<Set<any>>, ...args: any[]) {
+	protected _method(this: IMethodDescriptor<Set<unknown>>, ...args: unknown[]) {
 		if(this.$prop == "add") {
 			if(Observer.$isWritable(this.$helper) && !this.$target.has(args[0])) {
 				this.$target.add(Helper.$wrap(args[0]));
@@ -13,11 +13,11 @@ class SetProxyHandler extends CollectionProxyHandler<Set<any>> {
 	}
 }
 
-class SetHelper extends Helper<Set<any>> {
+class SetHelper extends Helper<Set<unknown>> {
 
 	private static _handler = new SetProxyHandler();
 
-	constructor(set: Set<any>) {
+	constructor(set: Set<unknown>) {
 		for(let value of set) {
 			set.delete(value);
 			set.add(Helper.$wrap(value));
@@ -25,7 +25,7 @@ class SetHelper extends Helper<Set<any>> {
 		super(set, SetHelper._handler);
 	}
 
-	public get $child() {
+	public get $children() {
 		let result = [];
 		for(let value of this._target) {
 			if(typeof value == "object") {

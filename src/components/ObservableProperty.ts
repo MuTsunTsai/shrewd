@@ -9,26 +9,26 @@
 class ObservableProperty extends DecoratedMember {
 
 	// Reuse interceptor by its key to save memory.
-	private static _interceptor: any = {};
+	private static _interceptor: Record<PropertyKey, PropertyDescriptor> = {};
 	public static $interceptor(key: PropertyKey): PropertyDescriptor {
-		return ObservableProperty._interceptor[key] = ObservableProperty._interceptor[key] || {
+		return ObservableProperty._interceptor[key as string] = ObservableProperty._interceptor[key as string] || {
 			get(this: IShrewdObjectParent) {
 				let member = this[$shrewdObject].$getMember(key);
 				return member.$getter();
 			},
-			set(this: IShrewdObjectParent, value: any) {
+			set(this: IShrewdObjectParent, value: unknown) {
 				let member = this[$shrewdObject].$getMember<ObservableProperty>(key);
 				member.$setter(value);
 			}
 		};
 	}
 
-	private static $setAccessible(target: any): void {
-		if(target == null || typeof target != "object") return;
+	private static $setAccessible(target: unknown): void {
+		if(!(target instanceof Object)) return;
 		if(Helper.$hasHelper(target)) {
 			if(!Global.$isAccessible(target[$observableHelper])) {
 				Global.$setAccessible(target[$observableHelper]);
-				for(let child of target[$observableHelper].$child) ObservableProperty.$setAccessible(child);
+				for(let child of target[$observableHelper].$children) ObservableProperty.$setAccessible(child);
 			}
 		} else if(HiddenProperty.$has(target, $shrewdObject)) {
 			for(let obp of target[$shrewdObject].$observables) {
@@ -40,13 +40,13 @@ class ObservableProperty extends DecoratedMember {
 		}
 	}
 
-	private _inputValue: any;
-	private _outputValue: any;
+	private _inputValue: unknown;
+	private _outputValue: unknown;
 	private _initialized: boolean = false;
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
-		this._outputValue = this._inputValue = (parent as any)[descriptor.$key];
+		this._outputValue = this._inputValue = Reflect.get(parent, descriptor.$key);
 		Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
 		if(!this._option.renderer) {
 			this._update();
@@ -100,7 +100,7 @@ class ObservableProperty extends DecoratedMember {
 		return this._outputValue;
 	}
 
-	public $setter(value: any) {
+	public $setter(value: unknown) {
 		if(this.$isTerminated) {
 			this._outputValue = value;
 			return;
@@ -141,7 +141,7 @@ class ObservableProperty extends DecoratedMember {
 		return this._option.renderer!.bind(this._parent, this._inputValue);
 	}
 
-	public $postrendering(result: any) {
+	public $postrendering(result: unknown) {
 		if(result !== this._outputValue) {
 			this.$publish(Helper.$wrap(result));
 		}
@@ -151,7 +151,7 @@ class ObservableProperty extends DecoratedMember {
 		Global.$restore();
 	}
 
-	private $publish(value: any) {
+	private $publish(value: unknown) {
 		this._outputValue = value;
 		Observable.$publish(this);
 	}

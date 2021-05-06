@@ -644,7 +644,7 @@
             Helper._proxyMap.set(target, this._proxy);
         }
         static $wrap(value) {
-            if (value == null || typeof value != 'object')
+            if (!(value instanceof Object))
                 return value;
             if (Helper._proxyMap.has(value))
                 return Helper._proxyMap.get(value);
@@ -669,11 +669,11 @@
         static $clear(value) {
             if (Helper.$hasHelper(value))
                 value = value[$observableHelper]._target;
-            if (Helper._proxyMap.has(value))
+            if (value instanceof Object && Helper._proxyMap.has(value))
                 Helper._proxyMap.delete(value);
         }
         static $hasHelper(value) {
-            return value != null && typeof value == 'object' && HiddenProperty.$has(value, $observableHelper);
+            return value instanceof Object && HiddenProperty.$has(value, $observableHelper);
         }
         get $proxy() {
             return this._proxy;
@@ -752,7 +752,7 @@
                 target[key] = Helper.$wrap(target[key]);
             super(target, ObjectHelper._handler);
         }
-        get $child() {
+        get $children() {
             let result = [];
             for (let key in this._target) {
                 let value = this._target[key];
@@ -784,7 +784,7 @@
             }
             super(set, SetHelper._handler);
         }
-        get $child() {
+        get $children() {
             let result = [];
             for (let value of this._target) {
                 if (typeof value == 'object') {
@@ -813,7 +813,7 @@
                 map.set(key, Helper.$wrap(value));
             super(map, MapHelper._handler);
         }
-        get $child() {
+        get $children() {
             let result = [];
             for (let [key, value] of this._target) {
                 if (typeof key == 'object') {
@@ -870,7 +870,7 @@
         constructor(parent, descriptor) {
             super(parent, descriptor);
             this._initialized = false;
-            this._outputValue = this._inputValue = parent[descriptor.$key];
+            this._outputValue = this._inputValue = Reflect.get(parent, descriptor.$key);
             Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
             if (!this._option.renderer) {
                 this._update();
@@ -889,12 +889,12 @@
             };
         }
         static $setAccessible(target) {
-            if (target == null || typeof target != 'object')
+            if (!(target instanceof Object))
                 return;
             if (Helper.$hasHelper(target)) {
                 if (!Global.$isAccessible(target[$observableHelper])) {
                     Global.$setAccessible(target[$observableHelper]);
-                    for (let child of target[$observableHelper].$child)
+                    for (let child of target[$observableHelper].$children)
                         ObservableProperty.$setAccessible(child);
                 }
             } else if (HiddenProperty.$has(target, $shrewdObject)) {
@@ -1042,7 +1042,7 @@
             }
             super(arr, ArrayHelper._handler);
         }
-        get $child() {
+        get $children() {
             let result = [];
             for (let value of this._target) {
                 if (typeof value == 'object') {
@@ -1068,14 +1068,16 @@
         Shrewd.comparer = Comparer;
         Shrewd.debug = {
             trigger(target, key) {
-                if (HiddenProperty.$has(target, $shrewdObject)) {
-                    let member = target[$shrewdObject].$getMember(key);
-                    if (!member)
-                        console.log('Member not found');
-                    else
-                        Observer.$debug(member);
-                } else if (target instanceof Observer) {
-                    Observer.$debug(target);
+                if (target instanceof Object) {
+                    if (HiddenProperty.$has(target, $shrewdObject)) {
+                        let member = target[$shrewdObject].$getMember(key);
+                        if (!member)
+                            console.log('Member not found');
+                        else
+                            Observer.$debug(member);
+                    } else if (target instanceof Observer) {
+                        Observer.$debug(target);
+                    }
                 }
             }
         };
@@ -1158,8 +1160,8 @@
         }
     }
     class AutoCommitController {
-        static async _autoCommit() {
-            await Core.$commit();
+        static _autoCommit() {
+            Core.$commit();
             AutoCommitController._promised = false;
         }
         static $setup() {

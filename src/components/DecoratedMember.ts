@@ -12,7 +12,7 @@ abstract class DecoratedMember extends Observer {
 		return dm._parent.constructor.name;
 	}
 
-	protected _option: IDecoratorOptions<any>;
+	protected _option: IDecoratorOptions<unknown>;
 
 	protected _descriptor: IDecoratorDescriptor;
 
@@ -31,7 +31,7 @@ abstract class DecoratedMember extends Observer {
 		this._determineStateAndRender();
 	}
 
-	protected get _defaultOption(): IDecoratorOptions<any> {
+	protected get _defaultOption(): IDecoratorOptions<unknown> {
 		return {};
 	}
 
@@ -53,7 +53,7 @@ abstract class DecoratedMember extends Observer {
 		}
 	}
 
-	protected abstract $regularGet(): any;
+	protected abstract $regularGet(): unknown;
 
-	protected abstract $terminateGet(): any;
+	protected abstract $terminateGet(): unknown;
 }

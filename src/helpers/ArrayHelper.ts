@@ -1,7 +1,9 @@
 
-class ArrayProxyHandler extends ObjectProxyHandler<any[]> {
+type UnknownArray = unknown[] & UnknownObject;
 
-	public get(target: WrappedObservable<any[]>, prop: PropertyKey, receiver: WrappedObservable<any[]>): any {
+class ArrayProxyHandler extends ObjectProxyHandler<UnknownArray> {
+
+	public get(target: WrappedObservable<UnknownArray>, prop: PropertyKey, receiver: WrappedObservable<UnknownArray>): unknown {
 		// These are the "raw reading operations" of an Array;
 		// all other reading methods will eventually use one of these
 		// in the internal code, so by intercepting these operations,
@@ -15,18 +17,18 @@ class ArrayProxyHandler extends ObjectProxyHandler<any[]> {
 	}
 }
 
-class ArrayHelper extends Helper<any[]> {
+class ArrayHelper extends Helper<UnknownArray> {
 
 	private static _handler = new ArrayProxyHandler();
 
-	constructor(arr: any[]) {
+	constructor(arr: UnknownArray) {
 		for(let i in arr) {
 			arr[i] = Helper.$wrap(arr[i]);
 		}
 		super(arr, ArrayHelper._handler);
 	}
 
-	public get $child() {
+	public get $children() {
 		let result = [];
 		for(let value of this._target) {
 			if(typeof value == "object") {

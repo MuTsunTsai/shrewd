@@ -18,33 +18,33 @@ abstract class Helper<T extends object> extends Observable {
 	 * Only strict native objects are supported here, meaning that their prototype
 	 * must be immediately the native prototype, not even derived prototypes.
 	 */
-	public static $wrap(value: any) {
-		if(value == null || typeof value != "object") return value;
+	public static $wrap(value: unknown) {
+		if(!(value instanceof Object)) return value;
 		if(Helper._proxyMap.has(value)) return Helper._proxyMap.get(value);
 		if(!Helper.$hasHelper(value)) {
 			switch(Object.getPrototypeOf(value)) {
 				case Array.prototype:
-					value = new ArrayHelper(value).$proxy; break;
+					value = new ArrayHelper(value as UnknownArray).$proxy; break;
 				case Set.prototype:
-					value = new SetHelper(value).$proxy; break;
+					value = new SetHelper(value as Set<unknown>).$proxy; break;
 				case Map.prototype:
-					value = new MapHelper(value).$proxy; break;
+					value = new MapHelper(value as Map<unknown, unknown>).$proxy; break;
 				case Object.prototype:
-					value = new ObjectHelper(value).$proxy; break;
+					value = new ObjectHelper(value as UnknownObject).$proxy; break;
 			}
 		}
 		return value;
 	}
 
 	/** Help garbage collection */
-	public static $clear(value: any): void {
+	public static $clear(value: unknown): void {
 		// Get original object
 		if(Helper.$hasHelper(value)) value = value[$observableHelper]._target;
-		if(Helper._proxyMap.has(value)) Helper._proxyMap.delete(value);
+		if(value instanceof Object && Helper._proxyMap.has(value)) Helper._proxyMap.delete(value);
 	}
 
-	public static $hasHelper(value: any): value is IHelperParent<any> {
-		return value != null && typeof value == "object" && HiddenProperty.$has(value, $observableHelper);
+	public static $hasHelper(value: unknown): value is IHelperParent<UnknownObject> {
+		return value instanceof Object && HiddenProperty.$has(value, $observableHelper);
 	}
 
 	private readonly _proxy: T;
@@ -60,5 +60,5 @@ abstract class Helper<T extends object> extends Observable {
 
 	public get $proxy() { return this._proxy; }
 
-	public abstract get $child(): any[];
+	public abstract get $children(): unknown[];
 }

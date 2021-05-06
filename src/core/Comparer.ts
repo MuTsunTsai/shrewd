@@ -1,7 +1,7 @@
 
 namespace Comparer {
 
-	export function array(oldValue: any[], newValue: any[]): boolean {
+	export function array(oldValue: unknown[], newValue: unknown[]): boolean {
 		if(!oldValue != !newValue) return false;
 		if(oldValue == newValue) return true;
 		if(oldValue.length != newValue.length) return false;
@@ -11,7 +11,7 @@ namespace Comparer {
 		return true;
 	}
 
-	export function unorderedArray(oldValue: any[], newValue: any[]): boolean {
+	export function unorderedArray(oldValue: unknown[], newValue: unknown[]): boolean {
 		if(!oldValue != !newValue) return false;
 		if(oldValue == newValue) return true;
 		if(oldValue.length != newValue.length) return false;

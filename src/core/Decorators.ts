@@ -1,4 +1,6 @@
 
+type UnknownConstructor = new (...args: unknown[]) => {};
+
 //////////////////////////////////////////////////////////////////
 /**
  * The static `Decorators` class used to contain various decorators
@@ -21,7 +23,7 @@ class Decorators {
 	}
 
 	/** `@shrewd` decorator for class */
-	public static $shrewd<T extends new (...args: any[]) => {}>(constructor: T): T;
+	public static $shrewd<T extends UnknownConstructor>(constructor: T): T;
 
 	/** `@shrewd` decorator with options. */
 	public static $shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;
@@ -33,16 +35,16 @@ class Decorators {
 	public static $shrewd(proto: object, prop: PropertyKey, descriptor: PropertyDescriptor): PropertyDescriptor;
 
 	/** This is the private overload that process target with options. */
-	public static $shrewd(a: object, b: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<any>): void;
+	public static $shrewd(a: object, b: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<unknown>): void;
 
 	/**
 	 * This is the entry of the `@shrewd` decorator, and it contains various overloads that return
 	 * proper decorators based on different use case.
 	 */
-	public static $shrewd(a: object, b?: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<any>) {
+	public static $shrewd(a: object, b?: PropertyKey, c?: PropertyDescriptor, d?: IDecoratorOptions<unknown>) {
 		if(typeof b == "undefined") {
 			if(typeof a == "function") {
-				return Decorators._shrewdClass(a as any);
+				return Decorators._shrewdClass(a as UnknownConstructor);
 			} else {
 				return ((proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor) =>
 					Decorators.$shrewd(proto, prop, descriptor, a)) as PropertyDecorator;
@@ -62,7 +64,7 @@ class Decorators {
 		if(Core.$option.debug) debugger;
 	}
 
-	private static _shrewdClass<T extends new (...args: any[]) => {}>(ctor: T): T {
+	private static _shrewdClass<T extends UnknownConstructor>(ctor: T): T {
 		var proxy = new Proxy<T>(ctor, Decorators._shrewdProxyHandler);
 		Decorators._proxies.add(proxy);
 		return proxy;
@@ -70,8 +72,8 @@ class Decorators {
 
 	private static _proxies = new WeakSet();
 
-	private static _shrewdProxyHandler: ProxyHandler<Function> = {
-		construct(target: Function, args: any[], newTarget: any): object {
+	private static _shrewdProxyHandler: ProxyHandler<UnknownConstructor> = {
+		construct(target: UnknownConstructor, args: unknown[], newTarget: UnknownConstructor): object {
 			if(!Decorators._proxies.has(newTarget)) {
 				console.warn(`Class [${newTarget.name}] is derived form @shrewd class [${target.name}], but it is not decorated with @shrewd.`);
 			}
@@ -82,7 +84,7 @@ class Decorators {
 			});
 			Observer.$trace.push(`construct ${target.name}`);
 			try {
-				let self = Reflect.construct(target, args, newTarget);
+				let self: IShrewdObjectParent = Reflect.construct(target, args, newTarget);
 				if(self.constructor == target) new ShrewdObject(self);
 				if(Decorators.$immediateInit.has(self)) {
 					Decorators.$immediateInit.delete(self);
@@ -96,11 +98,11 @@ class Decorators {
 		}
 	};
 
-	public static $immediateInit: Set<any> = new Set();
+	public static $immediateInit: Set<IShrewdObjectParent> = new Set();
 
 	private static _setup(
 		ctor: IAdapterConstructor,
-		proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, option?: IDecoratorOptions<any>
+		proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, option?: IDecoratorOptions<unknown>
 	): PropertyDescriptor | void {
 		var adapter = new ctor(proto, prop, descriptor, option);
 		Decorators.get(proto).push(adapter.$decoratorDescriptor);

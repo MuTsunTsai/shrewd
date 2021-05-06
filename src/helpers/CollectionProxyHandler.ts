@@ -1,5 +1,5 @@
 
-type Collection = Set<any> | Map<any, any>;
+type Collection = Set<unknown> | Map<unknown, unknown>;
 
 interface IMethodDescriptor<T extends Collection> {
 	$prop: keyof T;
@@ -11,7 +11,7 @@ interface IMethodDescriptor<T extends Collection> {
 
 class CollectionProxyHandler<T extends Collection> implements ProxyHandler<T> {
 
-	public get(target: WrappedObservable<T>, prop: string | symbol, receiver: T): any {
+	public get(target: WrappedObservable<T>, prop: string | symbol, receiver: T): unknown {
 		let ob = target[$observableHelper];
 		let result = Reflect.get(target, prop);
 		if(typeof result == "function") {
@@ -27,7 +27,7 @@ class CollectionProxyHandler<T extends Collection> implements ProxyHandler<T> {
 		return result;
 	}
 
-	protected _method(this: IMethodDescriptor<T>, ...args: any[]) {
+	protected _method(this: IMethodDescriptor<T>, ...args: unknown[]) {
 		switch(this.$prop) {
 			case "clear":
 				if(Observer.$isWritable(this.$helper) && this.$target.size > 0) {

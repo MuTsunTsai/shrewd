@@ -3,11 +3,11 @@ class ComputedPropertyAdapter extends Adapter<ComputedProperty> {
 
 	protected _descriptor!: PropertyDescriptor;
 
-	protected get _constructor() {
+	protected get _constructor(): IDecoratedMemberConstructor<ComputedProperty> {
 		return ComputedProperty;
 	}
 
-	protected get _method() {
+	protected get _method(): Function {
 		return this._descriptor.get!;
 	}
 

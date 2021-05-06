@@ -16,7 +16,7 @@ abstract class Observable {
 	 *
 	 * This method is intentionally made static to prevent overriding.
 	 */
-	public static $isWritable(observable: Observable) {
+	public static $isWritable(observable: Observable): boolean {
 		if(Global.$isConstructing || !observable.$hasSubscriber) return true;
 		if(Global.$isRenderingProperty && !Global.$isAccessible(observable)) {
 			console.warn("Inside a renderer function, only the objects owned by the ObservableProperty can be written.");
@@ -36,7 +36,7 @@ abstract class Observable {
 	 *
 	 * This method is intentionally made static to prevent overriding.
 	 */
-	public static $publish(observable: Observable) {
+	public static $publish(observable: Observable): void {
 		Core.$option.hook.write(observable.$id);
 		for(let observer of observable._subscribers) {
 			if(Core.$option.debug) observer.$notified(observable);
@@ -48,19 +48,19 @@ abstract class Observable {
 		this.$id = Observable._id++;
 	}
 
-	public $addSubscriber(observer: Observer) {
+	public $addSubscriber(observer: Observer): void {
 		this._subscribers.add(observer);
 	}
 
-	public $removeSubscriber(observer: Observer) {
+	public $removeSubscriber(observer: Observer): void {
 		this._subscribers.delete(observer);
 	}
 
-	protected get $hasSubscriber() {
+	protected get $hasSubscriber(): boolean {
 		return this._subscribers.size > 0;
 	}
 
-	protected get $subscribers() {
+	protected get $subscribers(): IterableIterator<Observer> {
 		return this._subscribers.values();
 	}
 

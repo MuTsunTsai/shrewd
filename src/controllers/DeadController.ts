@@ -7,11 +7,11 @@ class DeadController {
 	/** `Observer`s that have passed dead-check in the current commission. */
 	private static readonly _checked: Set<Observer> = new Set();
 
-	public static $enqueue(observable: Observable) {
+	public static $enqueue(observable: Observable): void {
 		if(observable instanceof Observer) DeadController._queue.add(observable);
 	}
 
-	public static $flush() {
+	public static $flush(): void {
 		for(let ob of DeadController._queue) {
 			Observer.$checkDeadEnd(ob);
 		}

@@ -1,7 +1,7 @@
 
-class MapProxyHandler extends CollectionProxyHandler<Map<any, any>> {
+class MapProxyHandler extends CollectionProxyHandler<Map<unknown, unknown>> {
 
-	protected _method(this: IMethodDescriptor<Map<any, any>>, ...args: any[]) {
+	protected _method(this: IMethodDescriptor<Map<unknown, unknown>>, ...args: unknown[]) {
 		if(this.$prop == "set") {
 			if(Observer.$isWritable(this.$helper) && !this.$target.has(args[0])) {
 				this.$target.set(args[0], Helper.$wrap(args[1]));
@@ -13,16 +13,16 @@ class MapProxyHandler extends CollectionProxyHandler<Map<any, any>> {
 	}
 }
 
-class MapHelper extends Helper<Map<any, any>> {
+class MapHelper extends Helper<Map<unknown, unknown>> {
 
 	private static _handler = new MapProxyHandler();
 
-	constructor(map: Map<any, any>) {
+	constructor(map: Map<unknown, unknown>) {
 		for(let [key, value] of map) map.set(key, Helper.$wrap(value));
 		super(map, MapHelper._handler);
 	}
 
-	public get $child() {
+	public get $children() {
 		let result = [];
 		for(let [key, value] of this._target) {
 			if(typeof key == "object") {

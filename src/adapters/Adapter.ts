@@ -1,6 +1,6 @@
 
 interface IAdapterConstructor {
-	new(proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, options?: IDecoratorOptions<any>): IAdapter;
+	new(proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, options?: IDecoratorOptions<unknown>): IAdapter;
 }
 
 interface IAdapter {
@@ -20,9 +20,9 @@ abstract class Adapter<T extends DecoratedMember> implements IAdapter {
 	protected _proto: object;
 	protected _prop: PropertyKey;
 	protected _descriptor?: PropertyDescriptor;
-	protected _options?: IDecoratorOptions<any>;
+	protected _options?: IDecoratorOptions<unknown>;
 
-	constructor(proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, options?: IDecoratorOptions<any>) {
+	constructor(proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, options?: IDecoratorOptions<unknown>) {
 		this._proto = proto;
 		this._prop = prop;
 		this._descriptor = descriptor;

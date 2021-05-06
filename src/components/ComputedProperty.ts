@@ -5,7 +5,7 @@
  * its value cannot be set manually.
  *
  * Once calculated, it would not repeat its calculation until
- * any of its references has changed.
+ * some of its references has changed.
  *
  * Active ComputedProperties recalculate and propagate changes
  * automatically, whereas inactive ones will recalculate only when
@@ -16,7 +16,7 @@
 class ComputedProperty extends DecoratedMember {
 
 	private _getter: Function;
-	private _value: any;
+	private _value: unknown;
 
 	constructor(parent: IShrewdObjectParent, descriptor: IDecoratorDescriptor) {
 		super(parent, descriptor);
@@ -29,7 +29,7 @@ class ComputedProperty extends DecoratedMember {
 		return this._getter.bind(this._parent);
 	}
 
-	public $postrendering(result: any) {
+	public $postrendering(result: unknown) {
 		if(!this._option.comparer!.apply(this._parent, [this._value, result, this])) {
 			this._value = result;
 			Observable.$publish(this);
