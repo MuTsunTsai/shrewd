@@ -25,8 +25,6 @@ class Global {
 
 	private static _history: IContext[] = [];
 
-	public static $context: Observable | null = null;
-
 	public static $pushState(state: Partial<IContext>) {
 		Global._history.push(Global._state);
 		Global._state = Object.assign({}, Global._state, state);

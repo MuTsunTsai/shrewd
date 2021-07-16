@@ -558,13 +558,13 @@
             for (let ref of this._reference) {
                 if (ref instanceof Observer) {
                     if (ref._rendering) {
-                        return Observer.$render(this);
+                        Observer.$render(this);
+                        break;
                     } else if (ref._state != ObserverState.$updated) {
-                        return ref._determineStateAndRender();
+                        ref._determineStateAndRender();
                     }
                 }
             }
-            ;
         }
         _onCyclicDependencyFound() {
             if (Core.$option.debug)
@@ -1257,7 +1257,6 @@
         $accessibles: new Set()
     };
     Global._history = [];
-    Global.$context = null;
     const $shrewdDecorators = Symbol('Shrewd Decorators');
     return Shrewd;
 }));

@@ -235,12 +235,13 @@ abstract class Observer extends Observable {
 				// Found potential cyclic dependency; but it might just be dynamic dependency.
 				// The only way to be certain is to actually execute it.
 				if(ref._rendering) {
-					return Observer.$render(this);
+					Observer.$render(this);
+					break;
 				} else if(ref._state != ObserverState.$updated) {
-					return ref._determineStateAndRender();
+					ref._determineStateAndRender();
 				}
 			}
-		};
+		}
 	}
 
 	private _onCyclicDependencyFound(): void {
