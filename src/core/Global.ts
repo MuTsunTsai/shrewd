@@ -9,7 +9,7 @@ interface IContext {
 
 //////////////////////////////////////////////////////////////////
 /**
- * The static Global class is the internal state container of Shrewd.
+ * The static {@link Global} class is the internal state container of Shrewd.
  */
 //////////////////////////////////////////////////////////////////
 

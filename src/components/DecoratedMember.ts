@@ -1,8 +1,8 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * DecoratedMember is the super class of ObservableProperty,
- * ComputedProperty, and ReactiveMethod.
+ * {@link DecoratedMember} is the super class of {@link ObservableProperty},
+ * {@link ComputedProperty}, and {@link ReactiveMethod}.
  */
 //////////////////////////////////////////////////////////////////
 

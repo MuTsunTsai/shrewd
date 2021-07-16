@@ -32,13 +32,13 @@ class ShrewdObject {
 		}
 	}
 
-	/** The object corresponding to this ShrewdObject. */
+	/** The object corresponding to this {@link ShrewdObject}. */
 	private _parent: IShrewdObjectParent;
 
-	/** Whether the current ShrewdObject has been terminated. */
+	/** Whether the current {@link ShrewdObject} has been terminated. */
 	private _isTerminated: boolean = false;
 
-	/** All DecoratedMembers owned by this ShrewdObject */
+	/** All {@link DecoratedMember}s owned by this {@link ShrewdObject} */
 	private _members: Map<PropertyKey, DecoratedMember> = new Map();
 
 	public $terminate() {

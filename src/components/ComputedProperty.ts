@@ -1,7 +1,7 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * A ComputedProperty is a value depending on Observables;
+ * A {@link ComputedProperty} is a value depending on {@link Observable}s;
  * its value cannot be set manually.
  *
  * Once calculated, it would not repeat its calculation until

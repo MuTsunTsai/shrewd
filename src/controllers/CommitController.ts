@@ -1,7 +1,7 @@
 
 class CommitController {
 
-	/** Notified, to-be-rendered Observers. */
+	/** Notified, to-be-rendered {@link Observer}s. */
 	private static readonly _queue: Set<Observer> = new Set();
 
 	public static $flush(): void {

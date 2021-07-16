@@ -1,10 +1,10 @@
 
 class DeadController {
 
-	/** `Observer`s that just lost a subscriber and might be dead. */
+	/** {@link Observer}s that just lost a subscriber and might be dead. */
 	private static readonly _queue: Set<Observer> = new Set();
 
-	/** `Observer`s that have passed dead-check in the current commission. */
+	/** {@link Observer}s that have passed dead-check in the current commission. */
 	private static readonly _checked: Set<Observer> = new Set();
 
 	public static $enqueue(observable: Observable): void {
@@ -23,7 +23,7 @@ class DeadController {
 		DeadController._checked.clear();
 	}
 
-	/** Mark an `Observer` as checked, if it's not done yet. */
+	/** Mark an {@link Observer} as checked, if it's not done yet. */
 	public static $tryMarkChecked(observer: Observer): boolean {
 		if(!DeadController._checked.has(observer)) {
 			DeadController._checked.add(observer);

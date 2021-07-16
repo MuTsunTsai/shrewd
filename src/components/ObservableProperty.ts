@@ -1,7 +1,7 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * A ObservableProperty is an Observable field that can be set manually.
+ * A {@link ObservableProperty} is an {@link Observable} field that can be set manually.
  * It is considered the source of the state changes.
  */
 //////////////////////////////////////////////////////////////////

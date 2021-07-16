@@ -21,7 +21,7 @@ abstract class Observer extends Observable {
 	public static readonly $trace: (Observer | string)[] = [];
 
 	/**
-	 * Treat all active, pending `Observer`s as updated.
+	 * Treat all active, pending {@link Observer}s as updated.
 	 */
 	public static $clearPending(): void {
 		for(let pending of Observer._pending) {
@@ -81,7 +81,7 @@ abstract class Observer extends Observable {
 	// Instance member
 	/////////////////////////////////////////////////////
 
-	/** The set of referred Observables. */
+	/** The set of referred {@link Observable}s. */
 	private _reference: Set<Observable> = new Set();
 
 	/** Whether self is in the current rendering stack. */
@@ -188,7 +188,7 @@ abstract class Observer extends Observable {
 		this._rendering = false;
 	}
 
-	/** Set the state of the current and all down-stream `Observer` to be pending. */
+	/** Set the state of the current and all down-stream {@link Observer}s to be pending. */
 	private _pend(): void {
 		if(this._state == ObserverState.$updated) {
 			this._state = ObserverState.$pending;
@@ -202,11 +202,9 @@ abstract class Observer extends Observable {
 	/**
 	 * This is the entry point of the reaction process.
 	 *
-	 * Inside the method it will determine whether the current `Observer` is outdated
+	 * Inside the method it will determine whether the current {@link Observer} is outdated
 	 * by recursively determine the states of all its dependencies, and if it is outdated,
 	 * render it.
-	 *
-	 * @returns Whether the result is a Promise.
 	 */
 	protected _determineStateAndRender(): void {
 		// Cyclic dependency found.
@@ -277,12 +275,12 @@ abstract class Observer extends Observable {
 		return this._state;
 	}
 
-	/** Whether the current `Observer` is active (i.e. has at least one subscriber) */
+	/** Whether the current {@link Observer} is active (i.e. has at least one subscriber) */
 	protected get $isActive(): boolean {
 		return this._isActive = this._isActive != undefined ? this._isActive : this.$checkActive();
 	}
 
-	/** Cached value of `$isActive`. */
+	/** Cached value of {@link Observer.$isActive $isActive}. */
 	private _isActive?: boolean;
 
 	protected $checkActive(): boolean {

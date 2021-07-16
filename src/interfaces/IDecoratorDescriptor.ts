@@ -11,6 +11,6 @@ interface IDecoratorDescriptor {
 	/** The original method defined on the prototype. */
 	$method?: Function;
 
-	/** Options for this DecoratedMember. */
+	/** Options for this {@link DecoratedMember}. */
 	$option?: IDecoratorOptions;
 }

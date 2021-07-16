@@ -1,6 +1,6 @@
 
 /**
- * `DefaultHook` is an `IHook` that does absolutely nothing.
+ * {@link DefaultHook} is an {@link IHook} that does absolutely nothing.
  */
 class DefaultHook implements IHook {
 	public read(id: number): boolean { return false; }

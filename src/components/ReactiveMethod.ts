@@ -1,7 +1,7 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * A ReactiveMethod runs automatically whenever some of its references
+ * A {@link ReactiveMethod} runs automatically whenever some of its references
  * has changed. It would only run once during the committing stage.
  */
 //////////////////////////////////////////////////////////////////

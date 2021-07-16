@@ -3,10 +3,10 @@ type UnknownConstructor = new (...args: unknown[]) => {};
 
 //////////////////////////////////////////////////////////////////
 /**
- * The static `Decorators` class used to contain various decorators
+ * The static {@link Decorators} class used to contain various decorators
  * for decorating class members, but now it only contains one overloaded
  * decorator (i.e. `shrewd`) for all scenarios. The adapter classes
- * now control the actual setup of `DecoratedMember`s.
+ * now control the actual setup of {@link DecoratedMember}s.
  */
 //////////////////////////////////////////////////////////////////
 

@@ -1,7 +1,7 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * Observables accept subscriptions from Observers,
+ * {@link Observable}s accept subscriptions from {@link Observer}s,
  * and they will notify those subscribers to execute when they
  * change their inner state (defined by the derived class).
  */
@@ -12,7 +12,7 @@ abstract class Observable {
 	private static _id: number = 0;
 
 	/**
-	 * Whether under the current scope, the given `Observable` can be written.
+	 * Whether under the current scope, the given {@link Observable} can be written.
 	 *
 	 * This method is intentionally made static to prevent overriding.
 	 */

@@ -13,7 +13,7 @@ abstract class Helper<T extends object> extends Observable {
 	private static readonly _proxyMap: WeakMap<object, object> = new WeakMap();
 
 	/**
-	 * Wrap native Arrays, Sets, Maps, and Objects into reactive objects.
+	 * Wrap native {@link Array}s, {@link Set}s, {@link Map}s, and {@link Object}s into reactive objects.
 	 *
 	 * Only strict native objects are supported here, meaning that their prototype
 	 * must be immediately the native prototype, not even derived prototypes.

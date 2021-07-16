@@ -5,7 +5,7 @@ interface Window {
 
 //////////////////////////////////////////////////////////////////
 /**
- * `VueHook` uses a very simple idea to establish the dependencies
+ * {@link VueHook} uses a very simple idea to establish the dependencies
  * from any Vue instance to Shrewd. Each Observable gets an dummy
  * field in an isolated Vue instance, and the reading or writing
  * to those dummy fields trigger the corresponding mechanism in Vue.

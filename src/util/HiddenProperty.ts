@@ -1,12 +1,12 @@
 
 //////////////////////////////////////////////////////////////////
 /**
- * The HiddenProperty static class manages hidden properties indexed
+ * The {@link HiddenProperty} static class manages hidden properties indexed
  * by symbols. Since they are named with symbols, they will not
  * conflict with existing properties of the target object.
  *
  * The overloading declaration here is rather long, as TypeScript currently
- * does not support using dynamic symbol as interface signature.
+ * does not support using dynamic symbol as interface signature. (Maybe in TS 4.4)
  */
 //////////////////////////////////////////////////////////////////
 

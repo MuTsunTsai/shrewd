@@ -7,7 +7,7 @@ interface IShrewdOption {
 
 //////////////////////////////////////////////////////////////////
 /**
- * The static `Core` class contains methods for controlling the
+ * The static {@link Core} class contains methods for controlling the
  * commission process, which indeed is the core of Shrewd.
  */
 //////////////////////////////////////////////////////////////////
