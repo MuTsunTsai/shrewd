@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.11
+ * shrewd v0.0.12
  * (c) 2019-2021 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -10,7 +10,7 @@
 interface IHook {
 	/**
 	 * Trigger a "read" operation to record dependency.
-	 * 
+	 *
 	 * Returns whether a dependency is established.
 	 */
 	read(id: number): boolean;
@@ -21,7 +21,7 @@ interface IHook {
 	/**
 	 * Garbage collection; clearing up unsubscribed entries.
 	 * This method is called at the end of each committing stage.
-	 * 
+	 *
 	 * Returns an array of id's that were cleaned-up.
 	 */
 	gc(): number[];
@@ -47,6 +47,9 @@ interface IDecoratorOptions<T> {
 
 	/** Renderer function for ObservableProperty. */
 	renderer?: (value: T) => T;
+
+	/** Comparer function */
+	comparer?: (oldValue: T, newValue: T, member?: any) => boolean;
 }
 
 /**
@@ -56,7 +59,7 @@ interface IDecoratorOptions<T> {
  */
 
 // For classes.
- export function shrewd<
+export function shrewd<
 	// We use `Function` here to make it compatible with abstract classes,
 	// although one doesn't have to add the @shrewd decorator on such classes.
 	T extends Function
@@ -76,7 +79,7 @@ export function shrewd(target: object, prop: PropertyKey, descriptor: PropertyDe
  * no need to call this method, except for the case where the reactive results are immediately
  * required for further non-reactive actions.
  */
-export function commit(): void;
+export function commit(): Promise<void>;
 
 /**
  * Terminates a Shrewd object. The said object will cancel all its subscriptions (to and from others),
@@ -84,6 +87,12 @@ export function commit(): void;
  * Any changes made before the termination will still propagate in the committing stage.
  */
 export function terminate(target: object): void;
+
+/**
+ * By default Shrewd will initialize each Shrewd object in the same order of their construction.
+ * If for some reason you need to initialize individual objects manually, you can call this method.
+ */
+export function initialize(target: object): void;
 
 /**
  * Built-in hooks.
@@ -127,5 +136,17 @@ export const option: IShrewdOption;
  * ShrewdObject symbol, for debug purpose.
  */
 export const symbol: Symbol;
+
+export namespace comparer {
+	/** Shallow compare two array; elements must match index-wise. */
+	export function array(oldValue: any[], newValue: any[]): boolean;
+
+	/** Shallow compare two array; element ordering is ignored. */
+	export function unorderedArray(oldValue: any[], newValue: any[]): boolean;
+}
+
+export namespace debug {
+	export function trigger(target: any, key?: string): void;
+}
 
 export as namespace Shrewd;

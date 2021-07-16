@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.11
+ * shrewd v0.0.12
  * (c) 2019-2021 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -14,6 +14,36 @@
     }
 }(this, function () {
     'use strict';
+    var Comparer;
+    (function (Comparer) {
+        function array(oldValue, newValue) {
+            if (!oldValue != !newValue)
+                return false;
+            if (oldValue == newValue)
+                return true;
+            if (oldValue.length != newValue.length)
+                return false;
+            for (let i = 0; i < oldValue.length; i++) {
+                if (oldValue[i] !== newValue[i])
+                    return false;
+            }
+            return true;
+        }
+        Comparer.array = array;
+        function unorderedArray(oldValue, newValue) {
+            if (!oldValue != !newValue)
+                return false;
+            if (oldValue == newValue)
+                return true;
+            if (oldValue.length != newValue.length)
+                return false;
+            for (let v of oldValue)
+                if (!newValue.includes(v))
+                    return false;
+            return true;
+        }
+        Comparer.unorderedArray = unorderedArray;
+    }(Comparer || (Comparer = {})));
     class Observable {
         constructor() {
             this._subscribers = new Set();
@@ -39,13 +69,16 @@
         static $publish(observable) {
             Core.$option.hook.write(observable.$id);
             for (let observer of observable._subscribers) {
-                observer.$notified();
+                if (Core.$option.debug)
+                    observer.$notified(observable);
+                else
+                    observer.$notified();
             }
         }
-        $subscribe(observer) {
+        $addSubscriber(observer) {
             this._subscribers.add(observer);
         }
-        $unsubscribe(observer) {
+        $removeSubscriber(observer) {
             this._subscribers.delete(observer);
         }
         get $hasSubscriber() {
@@ -71,7 +104,8 @@
     }
     class VueHook {
         constructor(vue) {
-            this._writes = new Set();
+            this._queue = new Set();
+            this._created = new Set();
             this._Vue = vue || typeof window != 'undefined' && window.Vue;
             if (!this._Vue)
                 throw new Error('Global Vue not found; you need to pass a Vue constructor to VueHook.');
@@ -79,23 +113,32 @@
         }
         read(id) {
             let t = this._vue.shrewd[id];
+            if (!Global.$isCommitting && !t) {
+                this._Vue.set(this._vue.shrewd, id, {});
+                t = this._vue.shrewd[id];
+            }
             return t && t.__ob__.dep.subs.length > 0;
         }
         write(id) {
-            if (Core.$option.autoCommit)
+            if (Core.$option.autoCommit || Global.$isCommitting)
                 this._Vue.set(this._vue.shrewd, id, {});
             else
-                this._writes.add(id);
+                this._queue.add(id);
         }
         precommit() {
-            for (let id of this._writes)
+            for (let id of this._queue)
                 this._Vue.set(this._vue.shrewd, id, {});
-            this._writes.clear();
+            this._queue.clear();
         }
         gc() {
             let result = [];
             for (let id in this._vue.shrewd) {
-                if (this._vue.shrewd[id].__ob__.dep.subs.length == 0) {
+                let n = Number(id);
+                if (!Core.$option.autoCommit && !this._created.has(n)) {
+                    this._created.add(n);
+                } else if (this._vue.shrewd[id].__ob__.dep.subs.length == 0) {
+                    if (!Core.$option.autoCommit)
+                        this._created.delete(n);
                     this._Vue.delete(this._vue.shrewd, id);
                     result.push(Number(id));
                 }
@@ -110,78 +153,20 @@
         static $commit() {
             if (Core.$option.hook.precommit)
                 Core.$option.hook.precommit();
-            Global.$pushState({ $isCommitting: true });
-            try {
-                for (let observer of Core._renderQueue) {
-                    Observer.$render(observer);
-                }
-            } finally {
-                Observer.$clearPending();
-                Core._renderQueue.clear();
-                Global.$restore();
-                for (let shrewd of Core._terminateQueue) {
-                    shrewd.$terminate();
-                }
-                Core._terminateQueue.clear();
-                for (let id of Core.$option.hook.gc()) {
-                    let ob = Observer._map.get(id);
-                    if (ob)
-                        Observer.$checkDeadEnd(ob);
-                }
-            }
+            CommitController.$flush();
+            TerminationController.$flush();
+            if (Core.$option.debug)
+                Observer.$clearTrigger();
+            DeadController.$flush();
             if (Core.$option.hook.postcommit)
                 Core.$option.hook.postcommit();
-        }
-        static $queueInitialization(member) {
-            Core._initializeQueue.add(member);
-        }
-        static $initialize() {
-            if (Core._initializing)
-                return;
-            Core._initializing = true;
-            for (let member of Core._initializeQueue) {
-                Core._initializeQueue.delete(member);
-                member.$initialize();
-            }
-            Core._initializing = false;
-        }
-        static _autoCommit() {
-            Core.$commit();
-            Core._promised = false;
-        }
-        static $dequeue(observer) {
-            Core._renderQueue.delete(observer);
-        }
-        static $enqueue(observer) {
-            if (!observer.$isRendering) {
-                Core._renderQueue.add(observer);
-            }
-            if (Core.$option.autoCommit && !Core._promised) {
-                Promise.resolve().then(Core._autoCommit);
-                Core._promised = true;
-            }
-        }
-        static $terminate(target, lazy = false) {
-            if (HiddenProperty.$has(target, $shrewdObject)) {
-                let shrewd = target[$shrewdObject];
-                if (lazy) {
-                    Core._terminateQueue.add(shrewd);
-                } else {
-                    shrewd.$terminate();
-                }
-            }
         }
     }
     Core.$option = {
         hook: new DefaultHook(),
         autoCommit: true,
-        debug: true
+        debug: false
     };
-    Core._renderQueue = new Set();
-    Core._terminateQueue = new Set();
-    Core._initializeQueue = new Set();
-    Core._promised = false;
-    Core._initializing = false;
     class Decorators {
         static get(proto) {
             if (HiddenProperty.$has(proto, $shrewdDecorators)) {
@@ -241,6 +226,10 @@
                 let self = Reflect.construct(target, args, newTarget);
                 if (self.constructor == target)
                     new ShrewdObject(self);
+                if (Decorators.$immediateInit.has(self)) {
+                    Decorators.$immediateInit.delete(self);
+                    InitializationController.$initialize(self);
+                }
                 return self;
             } finally {
                 Observer.$trace.pop();
@@ -248,6 +237,7 @@
             }
         }
     };
+    Decorators.$immediateInit = new Set();
     const $shrewdObject = Symbol('ShrewdObject');
     class ShrewdObject {
         constructor(parent) {
@@ -270,7 +260,7 @@
                 proto = Object.getPrototypeOf(proto);
             }
             for (let member of this._members.values()) {
-                Core.$queueInitialization(member);
+                InitializationController.$enqueue(member);
             }
         }
         $terminate() {
@@ -281,6 +271,8 @@
             this._isTerminated = true;
         }
         $getMember(key) {
+            if (!key)
+                return this._members.values();
             return this._members.get(key);
         }
         get $observables() {
@@ -350,6 +342,56 @@
             }
         }
     }
+    class InitializationController {
+        static $enqueue(member) {
+            InitializationController._queue.add(member);
+        }
+        static $flush() {
+            if (InitializationController._running)
+                return;
+            InitializationController._running = true;
+            for (let member of InitializationController._queue) {
+                InitializationController._queue.delete(member);
+                member.$initialize();
+            }
+            InitializationController._running = false;
+        }
+        static $initialize(target) {
+            if (!target[$shrewdObject]) {
+                Decorators.$immediateInit.add(target);
+                return;
+            }
+            if (InitializationController._running)
+                return;
+            InitializationController._running = true;
+            for (let member of target[$shrewdObject].$getMember()) {
+                InitializationController._queue.delete(member);
+                member.$initialize();
+            }
+            InitializationController._running = false;
+        }
+    }
+    InitializationController._queue = new Set();
+    InitializationController._running = false;
+    class TerminationController {
+        static $flush() {
+            for (let shrewd of TerminationController._queue) {
+                shrewd.$terminate();
+            }
+            TerminationController._queue.clear();
+        }
+        static $terminate(target, lazy = false) {
+            if (HiddenProperty.$has(target, $shrewdObject)) {
+                let shrewd = target[$shrewdObject];
+                if (lazy) {
+                    TerminationController._queue.add(shrewd);
+                } else {
+                    shrewd.$terminate();
+                }
+            }
+        }
+    }
+    TerminationController._queue = new Set();
     var ObserverState;
     (function (ObserverState) {
         ObserverState[ObserverState['$outdated'] = 0] = '$outdated';
@@ -360,9 +402,10 @@
         constructor(name) {
             super();
             this._reference = new Set();
-            this._isRendering = false;
+            this._rendering = false;
             this._state = ObserverState.$outdated;
             this._isTerminated = false;
+            this.trigger = new Set();
             Observer._map.set(this.$id, this);
             this._name = name;
         }
@@ -374,6 +417,25 @@
                 }
             }
         }
+        static $clearTrigger() {
+            for (let ob of Observer._trigger)
+                ob.trigger.clear();
+            Observer._trigger.clear();
+        }
+        static $debug(ob) {
+            let path = [ob._name];
+            while (ob.trigger.size) {
+                let next = ob.trigger.values().next().value;
+                if (!(next instanceof Observer))
+                    break;
+                let msg = next._name;
+                if (next instanceof DecoratedMember)
+                    msg += '(' + DecoratedMember.$getParent(next) + ')';
+                path.push(msg);
+                ob = next;
+            }
+            console.log(path);
+        }
         static $refer(observable) {
             if (observable instanceof Observer && observable._isTerminated)
                 return;
@@ -384,63 +446,73 @@
                 target._reference.add(observable);
             }
         }
-        static $checkDeadEnd(observable) {
-            if (observable instanceof Observer && !observable._isTerminated && observable._isActive && !(observable._isActive = observable.$checkActive())) {
-                Core.$dequeue(observable);
-                for (let ref of observable._reference) {
-                    Observer.$checkDeadEnd(ref);
+        static $checkDeadEnd(observer) {
+            if (DeadController.$tryMarkChecked(observer)) {
+                if (!observer._isTerminated && !(observer._isActive = observer.$checkActive())) {
+                    for (let ref of observer._reference) {
+                        if (ref instanceof Observer)
+                            Observer.$checkDeadEnd(ref);
+                    }
                 }
             }
         }
-        static $render(observer) {
+        static $render(observer, backtrack = false) {
+            observer._render(backtrack);
+        }
+        get $isRendering() {
+            return !!this._rendering;
+        }
+        _render(backtrack) {
+            if (backtrack) {
+                this._backtrack();
+                if (this._isTerminated)
+                    return;
+            }
             Global.$pushState({
                 $isConstructing: false,
-                $target: observer
+                $target: this
             });
-            observer._isRendering = true;
-            Core.$dequeue(observer);
+            this._rendering = true;
+            CommitController.$dequeue(this);
             try {
-                let oldReferences = new Set(observer._reference);
-                observer._clearReference();
-                observer.$prerendering();
+                let oldReferences = new Set(this._reference);
+                this._clearReference();
+                this.$prerendering();
                 try {
-                    let result = observer.$renderer();
-                    observer.$postrendering(result);
+                    let result = this.$renderer();
+                    this.$postrendering(result);
                 } finally {
-                    observer.$cleanup();
+                    this.$cleanup();
                 }
-                observer._update();
-                if (!observer._isTerminated) {
-                    for (let observable of observer._reference) {
+                this._update();
+                if (!this._isTerminated) {
+                    for (let observable of this._reference) {
                         oldReferences.delete(observable);
-                        observable.$subscribe(observer);
-                        if (observer.$isActive && observable instanceof Observer) {
+                        observable.$addSubscriber(this);
+                        if (this.$isActive && observable instanceof Observer) {
                             observable._activate();
                         }
                     }
                 }
                 for (let observable of oldReferences) {
-                    Observer.$checkDeadEnd(observable);
+                    DeadController.$enqueue(observable);
                 }
             } finally {
-                observer._isRendering = false;
+                this._rendering = false;
                 Global.$restore();
             }
         }
-        get $isRendering() {
-            return this._isRendering;
-        }
-        $notified() {
+        $notified(by) {
             this._pend();
-            this._outdate();
+            this._outdate(by);
             if (this.$isActive) {
-                Core.$enqueue(this);
+                CommitController.$enqueue(this);
             }
         }
         $terminate() {
             if (this._isTerminated)
                 return;
-            Core.$dequeue(this);
+            CommitController.$dequeue(this);
             Observer._map.delete(this.$id);
             Observer._pending.delete(this);
             this._isTerminated = true;
@@ -450,10 +522,10 @@
             this._clearReference();
             for (let subscriber of this.$subscribers) {
                 subscriber._reference.delete(this);
-                this.$unsubscribe(subscriber);
+                this.$removeSubscriber(subscriber);
             }
             this._update();
-            this._isRendering = false;
+            this._rendering = false;
         }
         _pend() {
             if (this._state == ObserverState.$updated) {
@@ -465,22 +537,13 @@
             }
         }
         _determineStateAndRender() {
-            if (this._isRendering)
+            if (this._rendering)
                 this._onCyclicDependencyFound();
             if (this._state == ObserverState.$updated)
                 return;
             Observer.$trace.push(this);
             try {
-                for (let ref of this._reference) {
-                    if (ref instanceof Observer) {
-                        if (ref._isRendering) {
-                            Observer.$render(this);
-                            break;
-                        } else if (ref._state != ObserverState.$updated) {
-                            ref._determineStateAndRender();
-                        }
-                    }
-                }
+                this._backtrack();
                 if (this._state == ObserverState.$outdated) {
                     Observer.$render(this);
                 } else {
@@ -490,6 +553,18 @@
             } finally {
                 Observer.$trace.pop();
             }
+        }
+        _backtrack() {
+            for (let ref of this._reference) {
+                if (ref instanceof Observer) {
+                    if (ref._rendering) {
+                        return Observer.$render(this);
+                    } else if (ref._state != ObserverState.$updated) {
+                        return ref._determineStateAndRender();
+                    }
+                }
+            }
+            ;
         }
         _onCyclicDependencyFound() {
             if (Core.$option.debug)
@@ -507,7 +582,11 @@
         _update() {
             this._state = ObserverState.$updated;
         }
-        _outdate() {
+        _outdate(by) {
+            if (by) {
+                Observer._trigger.add(this);
+                this.trigger.add(by);
+            }
             this._state = ObserverState.$outdated;
         }
         get $state() {
@@ -542,7 +621,7 @@
         }
         _clearReference() {
             for (let observable of this._reference)
-                observable.$unsubscribe(this);
+                observable.$removeSubscriber(this);
             this._reference.clear();
         }
         get $hasReferences() {
@@ -553,6 +632,7 @@
         }
     }
     Observer._pending = new Set();
+    Observer._trigger = new Set();
     Observer._map = new Map();
     Observer.$trace = [];
     const $observableHelper = Symbol('Observable Helper');
@@ -564,7 +644,7 @@
             Helper._proxyMap.set(target, this._proxy);
         }
         static $wrap(value) {
-            if (value == null || typeof value != 'object')
+            if (!(value instanceof Object))
                 return value;
             if (Helper._proxyMap.has(value))
                 return Helper._proxyMap.get(value);
@@ -589,11 +669,11 @@
         static $clear(value) {
             if (Helper.$hasHelper(value))
                 value = value[$observableHelper]._target;
-            if (Helper._proxyMap.has(value))
+            if (value instanceof Object && Helper._proxyMap.has(value))
                 Helper._proxyMap.delete(value);
         }
         static $hasHelper(value) {
-            return value != null && typeof value == 'object' && HiddenProperty.$has(value, $observableHelper);
+            return value instanceof Object && HiddenProperty.$has(value, $observableHelper);
         }
         get $proxy() {
             return this._proxy;
@@ -606,6 +686,9 @@
             this._descriptor = descriptor;
             this._option = Object.assign(this._defaultOption, descriptor.$option);
             this._parent = parent;
+        }
+        static $getParent(dm) {
+            return dm._parent.constructor.name;
         }
         get $internalKey() {
             return this._descriptor.$class + '.' + this._descriptor.$key.toString();
@@ -669,7 +752,7 @@
                 target[key] = Helper.$wrap(target[key]);
             super(target, ObjectHelper._handler);
         }
-        get $child() {
+        get $children() {
             let result = [];
             for (let key in this._target) {
                 let value = this._target[key];
@@ -701,7 +784,7 @@
             }
             super(set, SetHelper._handler);
         }
-        get $child() {
+        get $children() {
             let result = [];
             for (let value of this._target) {
                 if (typeof value == 'object') {
@@ -730,7 +813,7 @@
                 map.set(key, Helper.$wrap(value));
             super(map, MapHelper._handler);
         }
-        get $child() {
+        get $children() {
             let result = [];
             for (let [key, value] of this._target) {
                 if (typeof key == 'object') {
@@ -746,16 +829,23 @@
     MapHelper._handler = new MapProxyHandler();
     class ComputedProperty extends DecoratedMember {
         constructor(parent, descriptor) {
+            var _a;
+            var _b;
             super(parent, descriptor);
             this._getter = descriptor.$method;
             if (this._option.active)
                 this.$notified();
+            (_a = (_b = this._option).comparer) !== null && _a !== void 0 ? _a : _b.comparer = (ov, nv) => ov === nv;
         }
         get $renderer() {
             return this._getter.bind(this._parent);
         }
         $postrendering(result) {
-            if (result !== this._value) {
+            if (!this._option.comparer.apply(this._parent, [
+                    this._value,
+                    result,
+                    this
+                ])) {
                 this._value = result;
                 Observable.$publish(this);
             }
@@ -780,7 +870,7 @@
         constructor(parent, descriptor) {
             super(parent, descriptor);
             this._initialized = false;
-            this._inputValue = parent[descriptor.$key];
+            this._outputValue = this._inputValue = Reflect.get(parent, descriptor.$key);
             Object.defineProperty(parent, descriptor.$key, ObservableProperty.$interceptor(descriptor.$key));
             if (!this._option.renderer) {
                 this._update();
@@ -799,12 +889,12 @@
             };
         }
         static $setAccessible(target) {
-            if (target == null || typeof target != 'object')
+            if (!(target instanceof Object))
                 return;
             if (Helper.$hasHelper(target)) {
                 if (!Global.$isAccessible(target[$observableHelper])) {
                     Global.$setAccessible(target[$observableHelper]);
-                    for (let child of target[$observableHelper].$child)
+                    for (let child of target[$observableHelper].$children)
                         ObservableProperty.$setAccessible(child);
                 }
             } else if (HiddenProperty.$has(target, $shrewdObject)) {
@@ -830,9 +920,9 @@
             }
             this._initialized = true;
         }
-        _outdate() {
+        _outdate(by) {
             if (this._option.renderer) {
-                super._outdate();
+                super._outdate(by);
             }
         }
         _initialValidation() {
@@ -952,7 +1042,7 @@
             }
             super(arr, ArrayHelper._handler);
         }
-        get $child() {
+        get $children() {
             let result = [];
             for (let value of this._target) {
                 if (typeof value == 'object') {
@@ -968,12 +1058,29 @@
         Shrewd.shrewd = Decorators.$shrewd;
         Shrewd.symbol = $shrewdObject;
         Shrewd.commit = Core.$commit;
-        Shrewd.terminate = Core.$terminate;
+        Shrewd.terminate = TerminationController.$terminate;
+        Shrewd.initialize = InitializationController.$initialize;
         Shrewd.hook = {
             default: DefaultHook,
             vue: VueHook
         };
         Shrewd.option = Core.$option;
+        Shrewd.comparer = Comparer;
+        Shrewd.debug = {
+            trigger(target, key) {
+                if (target instanceof Object) {
+                    if (HiddenProperty.$has(target, $shrewdObject)) {
+                        let member = target[$shrewdObject].$getMember(key);
+                        if (!member)
+                            console.log('Member not found');
+                        else
+                            Observer.$debug(member);
+                    } else if (target instanceof Observer) {
+                        Observer.$debug(target);
+                    }
+                }
+            }
+        };
     }(Shrewd || (Shrewd = {})));
     if (typeof window !== 'undefined' && window.Vue) {
         Core.$option.hook = new VueHook();
@@ -1052,6 +1159,67 @@
             return this._descriptor;
         }
     }
+    class AutoCommitController {
+        static _autoCommit() {
+            Core.$commit();
+            AutoCommitController._promised = false;
+        }
+        static $setup() {
+            if (Core.$option.autoCommit && !AutoCommitController._promised) {
+                AutoCommitController._promised = true;
+                Promise.resolve().then(AutoCommitController._autoCommit);
+            }
+        }
+    }
+    AutoCommitController._promised = false;
+    class CommitController {
+        static $flush() {
+            Global.$pushState({ $isCommitting: true });
+            while (CommitController._queue.size > 0) {
+                for (let ob of CommitController._queue)
+                    Observer.$render(ob, true);
+            }
+            Observer.$clearPending();
+            Global.$restore();
+        }
+        static $dequeue(observer) {
+            CommitController._queue.delete(observer);
+        }
+        static $enqueue(observer) {
+            if (!observer.$isRendering) {
+                CommitController._queue.add(observer);
+            }
+            AutoCommitController.$setup();
+        }
+    }
+    CommitController._queue = new Set();
+    class DeadController {
+        static $enqueue(observable) {
+            if (observable instanceof Observer)
+                DeadController._queue.add(observable);
+        }
+        static $flush() {
+            for (let ob of DeadController._queue) {
+                Observer.$checkDeadEnd(ob);
+            }
+            DeadController._queue.clear();
+            for (let id of Core.$option.hook.gc()) {
+                let ob = Observer._map.get(id);
+                if (ob)
+                    Observer.$checkDeadEnd(ob);
+            }
+            DeadController._checked.clear();
+        }
+        static $tryMarkChecked(observer) {
+            if (!DeadController._checked.has(observer)) {
+                DeadController._checked.add(observer);
+                return true;
+            }
+            return false;
+        }
+    }
+    DeadController._queue = new Set();
+    DeadController._checked = new Set();
     class Global {
         static $pushState(state) {
             Global._history.push(Global._state);
@@ -1060,7 +1228,7 @@
         static $restore() {
             Global._state = Global._history.pop();
             if (Global._history.length == 0)
-                Core.$initialize();
+                InitializationController.$flush();
         }
         static get $isCommitting() {
             return Global._state.$isCommitting;
@@ -1089,6 +1257,7 @@
         $accessibles: new Set()
     };
     Global._history = [];
+    Global.$context = null;
     const $shrewdDecorators = Symbol('Shrewd Decorators');
     return Shrewd;
 }));
