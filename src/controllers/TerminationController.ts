@@ -12,7 +12,7 @@ class TerminationController {
 	}
 
 	public static $terminate(target: object, lazy: boolean = false): void {
-		if(HiddenProperty.$has(target, $shrewdObject)) {
+		if(target instanceof Object && HiddenProperty.$has(target, $shrewdObject)) {
 			let shrewd = target[$shrewdObject];
 			if(lazy) {
 				TerminationController._queue.add(shrewd);

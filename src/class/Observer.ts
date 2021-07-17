@@ -169,21 +169,36 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	public $terminate(): void {
+	public $terminate(cleanup: boolean = false): void {
 		if(this._isTerminated) return;
 		CommitController.$dequeue(this);
 		Observer._map.delete(this.$id);
 		Observer._pending.delete(this);
-		this._isTerminated = true;
 		this._onTerminate();
+		this._isTerminated = true;
+
+		// Typically it suffices to detach from up-stream observables,
+		// since down-stream observables will automatically update their references.
+		this._clearReference();
+
+		// If termination is caused by cyclic dependency,
+		// clean up everything just to be sure.
+		if(cleanup) {
+			for(let subscriber of this.$subscribers) {
+				subscriber._reference.delete(this);
+				this.$removeSubscriber(subscriber);
+			}
+		}
 	}
 
+	/**
+	 * Clean-up tasks that needs to be done during termination.
+	 *
+	 * It should be noted that in general,
+	 * references to parent objects or values should not be removed during termination,
+	 * because those could still be used afterward.
+	 */
 	protected _onTerminate(): void {
-		this._clearReference();
-		for(let subscriber of this.$subscribers) {
-			subscriber._reference.delete(this);
-			this.$removeSubscriber(subscriber);
-		}
 		this._update();
 		this._rendering = false;
 	}
@@ -203,8 +218,8 @@ abstract class Observer extends Observable {
 	 * This is the entry point of the reaction process.
 	 *
 	 * Inside the method it will determine whether the current {@link Observer} is outdated
-	 * by recursively determine the states of all its dependencies, and if it is outdated,
-	 * render it.
+	 * by recursively determine the states of all its dependencies,
+	 * and if it is outdated, render it.
 	 */
 	protected _determineStateAndRender(): void {
 		// Cyclic dependency found.
@@ -252,7 +267,7 @@ abstract class Observer extends Observable {
 		let cycle = [this, ...Observer.$trace.slice(last + 1)];
 
 		// Terminate everything inside the cycle, allowing the program to continue without throwing error.
-		cycle.forEach(o => o instanceof Observer && o.$terminate());
+		cycle.forEach(o => o instanceof Observer && o.$terminate(true));
 
 		// Generate debug message.
 		cycle.push(this);

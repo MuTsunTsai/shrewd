@@ -44,6 +44,8 @@ class ShrewdObject {
 	public $terminate() {
 		if(this._isTerminated) return;
 		for(let member of this._members.values()) member.$terminate();
+		//@ts-ignore
+		delete this._parent;
 		this._isTerminated = true;
 	}
 
