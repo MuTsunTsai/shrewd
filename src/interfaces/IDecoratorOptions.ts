@@ -3,4 +3,5 @@ interface IDecoratorOptions<T = unknown> {
 	renderer?: (value: T) => T;
 	active?: boolean;
 	comparer?: (oldValue: T, newValue: T, member: DecoratedMember) => boolean;
+	static?: boolean;
 }

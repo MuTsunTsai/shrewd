@@ -7,7 +7,11 @@ class CommitController {
 	public static $flush(): void {
 		Global.$pushState({ $isCommitting: true });
 		while(CommitController._queue.size > 0) {
-			for(let ob of CommitController._queue) Observer.$render(ob, true);
+			for(let ob of CommitController._queue) {
+				ob.$backtrack();
+				if(ob.$isTerminated) continue;
+				ob.$render();
+			}
 		}
 		Observer.$clearPending();
 		Global.$restore();

@@ -20,6 +20,7 @@ abstract class DecoratedMember extends Observer {
 		super(descriptor.$class + "." + descriptor.$key.toString());
 		this._descriptor = descriptor;
 		this._option = Object.assign(this._defaultOption, descriptor.$option);
+		this._static = descriptor.$option?.static ?? false;
 		this._parent = parent;
 	}
 

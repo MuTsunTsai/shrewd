@@ -55,8 +55,8 @@ abstract class Observer extends Observable {
 		if(observable instanceof Observer && observable._isTerminated) return;
 		if(Core.$option.hook.read(observable.$id) && observable instanceof Observer) observable._activate();
 		let target = Global.$target;
-		if(target && target != observable && !target._isTerminated) {
-			target._reference.add(observable);
+		if(target && target != observable && !target._isTerminated && (!target._static || target._firstRender)) {
+			target._reference.push(observable);
 		}
 	}
 
@@ -73,16 +73,16 @@ abstract class Observer extends Observable {
 		}
 	}
 
-	public static $render(observer: Observer, backtrack = false): void {
-		observer._render(backtrack);
-	}
-
 	/////////////////////////////////////////////////////
 	// Instance member
 	/////////////////////////////////////////////////////
 
-	/** The set of referred {@link Observable}s. */
-	private _reference: Set<Observable> = new Set();
+	/**
+	 * The array of referred {@link Observable}s.
+	 *
+	 * Iterating over arrays is faster than over sets etc.
+	 */
+	private _reference: Observable[] = [];
 
 	/** Whether self is in the current rendering stack. */
 	private _rendering: boolean = false;
@@ -106,13 +106,12 @@ abstract class Observer extends Observable {
 		return !!this._rendering;
 	}
 
+	protected _static: boolean = false;
+	private _firstRender: boolean = true;
+
 	private trigger: Set<Observable> = new Set();
 
-	private _render(backtrack: boolean): void {
-		if(backtrack) {
-			this._backtrack();
-			if(this._isTerminated) return;
-		}
+	public $render(): void {
 
 		// Push new state.
 		Global.$pushState({
@@ -124,9 +123,12 @@ abstract class Observer extends Observable {
 
 		try {
 
-			// Clear all references.
-			let oldReferences = new Set(this._reference);
-			this._clearReference();
+			let oldReferences: Observable[];
+			if(!this._static) {
+				// Clear all references.
+				oldReferences = this._reference;
+				this._clearReference();
+			}
 
 			// Execute the rendering method.
 			this.$prerendering();
@@ -138,20 +140,31 @@ abstract class Observer extends Observable {
 			}
 			this._update();
 
-			// Make subscription based on the side-recording result.
-			if(!this._isTerminated) {
+			if(!this._static) {
+				// Make subscription based on the side-recording result.
+				let newReferences: Record<number, boolean> = {};
+				if(!this._isTerminated) {
+					for(let observable of this._reference) {
+						newReferences[observable.$id] = true;
+						observable.$addSubscriber(this);
+						if(this.$isActive && observable instanceof Observer) {
+							observable._activate();
+						}
+					}
+				}
+
+				// Queue for dead-check
+				for(let observable of oldReferences!) {
+					if(!(observable.$id in newReferences)) DeadController.$enqueue(observable);
+				}
+			} else if(this._firstRender) {
 				for(let observable of this._reference) {
-					oldReferences.delete(observable);
 					observable.$addSubscriber(this);
 					if(this.$isActive && observable instanceof Observer) {
 						observable._activate();
 					}
 				}
-			}
-
-			// Queue for dead-check
-			for(let observable of oldReferences) {
-				DeadController.$enqueue(observable);
+				this._firstRender = false;
 			}
 
 		} finally {
@@ -185,7 +198,9 @@ abstract class Observer extends Observable {
 		// clean up everything just to be sure.
 		if(cleanup) {
 			for(let subscriber of this.$subscribers) {
-				subscriber._reference.delete(this);
+				let i = subscriber._reference.indexOf(this);
+				let last = subscriber._reference.pop()!;
+				if(last != this) subscriber._reference[i] = last;
 				this.$removeSubscriber(subscriber);
 			}
 		}
@@ -229,10 +244,10 @@ abstract class Observer extends Observable {
 		Observer.$trace.push(this);
 
 		try {
-			this._backtrack();
+			this.$backtrack();
 
 			if(this._state == ObserverState.$outdated) {
-				Observer.$render(this);
+				this.$render();
 			} else {
 				Observer._pending.delete(this);
 				this._update();
@@ -243,14 +258,14 @@ abstract class Observer extends Observable {
 	}
 
 	/** Backtrack all dependencies */
-	private _backtrack(): void {
+	public $backtrack(): void {
 		// Gather references that are not updated.
 		for(let ref of this._reference) {
 			if(ref instanceof Observer) {
 				// Found potential cyclic dependency; but it might just be dynamic dependency.
 				// The only way to be certain is to actually execute it.
 				if(ref._rendering) {
-					Observer.$render(this);
+					this.$render();
 					break;
 				} else if(ref._state != ObserverState.$updated) {
 					ref._determineStateAndRender();
@@ -325,12 +340,12 @@ abstract class Observer extends Observable {
 
 	private _clearReference(): void {
 		for(let observable of this._reference) observable.$removeSubscriber(this);
-		this._reference.clear();
+		this._reference = [];
 	}
 
 	protected get $hasReferences(): boolean {
-		return this._reference.size > 0;
+		return this._reference.length > 0;
 	}
 
-	protected get $isTerminated(): boolean { return this._isTerminated; }
+	public get $isTerminated(): boolean { return this._isTerminated; }
 }
