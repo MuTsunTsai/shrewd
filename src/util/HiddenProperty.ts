@@ -1,3 +1,4 @@
+import { $shrewdObject, IShrewdObjectParent, ShrewdObject ,$observableHelper, Helper, WrappedObservable , $shrewdDecorators, IDecoratorDescriptor, IShrewdPrototype } from "../Index";
 
 //////////////////////////////////////////////////////////////////
 /**
@@ -10,7 +11,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-class HiddenProperty {
+export class HiddenProperty {
 
 	/** Whether the given object has the given hidden property. */
 	public static $has<T extends object>(target: T, prop: typeof $observableHelper): target is WrappedObservable<T>;

@@ -1,7 +1,4 @@
-
-interface Window {
-	Vue?: any;
-}
+import { Core, Global, IHook } from "../Index";
 
 //////////////////////////////////////////////////////////////////
 /**
@@ -12,7 +9,7 @@ interface Window {
  */
 //////////////////////////////////////////////////////////////////
 
-class VueHook implements IHook {
+export class VueHook implements IHook {
 
 	/**
 	 * @param vue The `Vue` Constructor to use; if unspecified, it will try to use the global `Vue` variable.

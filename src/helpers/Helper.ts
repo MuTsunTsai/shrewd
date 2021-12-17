@@ -1,13 +1,14 @@
+import { Observable, HiddenProperty, ArrayHelper, UnknownArray, MapHelper, ObjectHelper, UnknownObject, SetHelper } from "../Index";
 
-const $observableHelper = Symbol("Observable Helper");
+export const $observableHelper = Symbol("Observable Helper");
 
-type WrappedObservable<T extends object> = T & IHelperParent<T>;
+export type WrappedObservable<T extends object> = T & IHelperParent<T>;
 
-interface IHelperParent<T extends object> {
+export interface IHelperParent<T extends object> {
 	[$observableHelper]: Helper<T>;
 }
 
-abstract class Helper<T extends object> extends Observable {
+export abstract class Helper<T extends object> extends Observable {
 
 	/** Cache for wrapped objects. */
 	private static readonly _proxyMap: WeakMap<object, object> = new WeakMap();

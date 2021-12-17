@@ -1,5 +1,6 @@
+import { ComputedProperty, $shrewdObject, IShrewdObjectParent, IDecoratedMemberConstructor, HiddenProperty, Adapter } from "../Index";
 
-class ComputedPropertyAdapter extends Adapter<ComputedProperty> {
+export class ComputedPropertyAdapter extends Adapter<ComputedProperty> {
 
 	protected _descriptor!: PropertyDescriptor;
 

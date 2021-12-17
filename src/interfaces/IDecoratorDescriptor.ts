@@ -1,4 +1,6 @@
-interface IDecoratorDescriptor {
+import { IDecoratedMemberConstructor, IDecoratorOptions } from "../Index";
+
+export interface IDecoratorDescriptor {
 	/** The constructor used for this member. */
 	$constructor: IDecoratedMemberConstructor;
 

@@ -1,3 +1,4 @@
+let esb = require('gulp-esbuild');
 let gulp = require('gulp');
 let ts = require('gulp-typescript');
 let rename = require('gulp-rename');
@@ -22,25 +23,11 @@ let terserOption = {
 		}
 	},
 	"output": {
-		"comments": true
+		"comments": /^\*/,
 	}
 };
 
-let project = ts.createProject('src/tsconfig.json');
 let projectDest = 'dist';
-
-gulp.task('buildMain', () =>
-	project.src()
-		//.pipe(ifAnyNewer(projectDest, { filter: 'shrewd.js' }))
-		.pipe(sourcemaps.init())
-		.pipe(project())
-		.pipe(wrapJS(`${header};(function(root,factory){if(typeof define==='function'&&define.amd)
-			{define([],factory);}else if(typeof exports==='object'){module.exports=factory();}
-			else{root.Shrewd=factory();}}(this,function(){ %= body % ;return Shrewd;}));`
-		))
-		.pipe(sourcemaps.write('.', { includeContent: false, sourceRoot: '../src' }))
-		.pipe(gulp.dest(projectDest))
-);
 
 gulp.task('buildMin', () =>
 	gulp.src(projectDest + '/shrewd.js')
@@ -82,6 +69,30 @@ gulp.task('buildExample', () =>
 		.pipe(exampleProject())
 		.pipe(gulp.dest('example/dist'))
 );
+
+gulp.task('esbuild', () =>
+	gulp.src('src/Shrewd.ts')
+		.pipe(esb({
+			outfile: 'shrewd.js',
+			bundle: true,
+			sourcemap: 'external',
+			globalName: 'Shrewd'
+		}))
+		.pipe(gulp.dest(projectDest))
+);
+
+gulp.task('eswrap', () =>
+	gulp.src(projectDest + '/shrewd.js')
+		.pipe(sourcemaps.init({ loadMaps: true }))
+		.pipe(wrapJS(`${header};(function(root,factory){if(typeof define==='function'&&define.amd)
+			{define([],factory);}else if(typeof exports==='object'){module.exports=factory();}
+			else{root.Shrewd=factory();}}(this,function(){ %= body % ;return Shrewd;}));`
+		))
+		.pipe(sourcemaps.write('.', { includeContent: false, sourceRoot: '../' }))
+		.pipe(gulp.dest(projectDest))
+)
+
+gulp.task('buildMain', gulp.series('esbuild', 'eswrap'));
 
 gulp.task('build', gulp.series('buildMain', 'buildMin'));
 

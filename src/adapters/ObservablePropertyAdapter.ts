@@ -1,5 +1,6 @@
+import { ObservableProperty, IDecoratedMemberConstructor, Adapter } from "../Index";
 
-class ObservablePropertyAdapter extends Adapter<ObservableProperty> {
+export class ObservablePropertyAdapter extends Adapter<ObservableProperty> {
 
 	protected get _constructor(): IDecoratedMemberConstructor<ObservableProperty> {
 		return ObservableProperty;

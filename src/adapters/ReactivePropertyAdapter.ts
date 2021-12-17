@@ -1,9 +1,10 @@
+import { ReactiveMethod, $shrewdObject, IShrewdObjectParent, IDecoratedMemberConstructor, HiddenProperty, Adapter } from "../Index";
 
-class ReactiveMethodAdapter extends Adapter<ReactiveMethod> {
+export class ReactiveMethodAdapter extends Adapter<ReactiveMethod> {
 
 	protected _descriptor!: PropertyDescriptor;
 
-	protected get _constructor():IDecoratedMemberConstructor<ReactiveMethod> {
+	protected get _constructor(): IDecoratedMemberConstructor<ReactiveMethod> {
 		return ReactiveMethod;
 	}
 

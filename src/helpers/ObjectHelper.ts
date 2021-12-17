@@ -1,5 +1,6 @@
+import { Observable, Observer, $observableHelper, Helper, WrappedObservable } from "../Index";
 
-class ObjectProxyHandler<T extends UnknownObject = UnknownObject> implements ProxyHandler<T> {
+export class ObjectProxyHandler<T extends UnknownObject = UnknownObject> implements ProxyHandler<T> {
 
 	public has(target: WrappedObservable<T>, prop: PropertyKey): boolean {
 		Observer.$refer(target[$observableHelper]);
@@ -34,9 +35,9 @@ class ObjectProxyHandler<T extends UnknownObject = UnknownObject> implements Pro
 	}
 }
 
-type UnknownObject = Record<string, unknown>;
+export type UnknownObject = Record<string, unknown>;
 
-class ObjectHelper extends Helper<UnknownObject> {
+export class ObjectHelper extends Helper<UnknownObject> {
 
 	private static _handler = new ObjectProxyHandler();
 

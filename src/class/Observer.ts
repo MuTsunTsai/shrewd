@@ -1,3 +1,4 @@
+import { DecoratedMember, CommitController, DeadController, Core, Global, Observable } from "../Index";
 
 enum ObserverState {
 	$outdated,
@@ -5,7 +6,7 @@ enum ObserverState {
 	$pending
 }
 
-abstract class Observer extends Observable {
+export abstract class Observer extends Observable {
 
 	/////////////////////////////////////////////////////
 	// Static member

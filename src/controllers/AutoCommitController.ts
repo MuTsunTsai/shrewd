@@ -1,5 +1,6 @@
+import { Core } from "../Index";
 
-class AutoCommitController {
+export class AutoCommitController {
 
 	/** Whether there is auto-commit in the current stack. */
 	private static _promised: boolean = false;

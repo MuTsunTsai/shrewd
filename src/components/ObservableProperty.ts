@@ -1,3 +1,4 @@
+import { Observable, $shrewdObject, Core, Global, IShrewdObjectParent, $observableHelper, Helper, IDecoratorDescriptor, HiddenProperty, DecoratedMember } from "../Index";
 
 //////////////////////////////////////////////////////////////////
 /**
@@ -6,7 +7,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-class ObservableProperty extends DecoratedMember {
+export class ObservableProperty extends DecoratedMember {
 
 	// Reuse interceptor by its key to save memory.
 	private static _interceptor: Record<PropertyKey, PropertyDescriptor> = {};

@@ -1,3 +1,4 @@
+import { Observer , CommitController, DeadController, TerminationController , DefaultHook, IHook } from "../Index";
 
 interface IShrewdOption {
 	hook: IHook;
@@ -12,7 +13,7 @@ interface IShrewdOption {
  */
 //////////////////////////////////////////////////////////////////
 
-class Core {
+export class Core {
 
 	/** Shrewd global options. */
 	public static readonly $option: IShrewdOption = {

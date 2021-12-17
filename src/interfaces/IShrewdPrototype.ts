@@ -1,6 +1,7 @@
+import { IDecoratorDescriptor } from "../Index";
 
-const $shrewdDecorators = Symbol("Shrewd Decorators");
+export const $shrewdDecorators = Symbol("Shrewd Decorators");
 
-interface IShrewdPrototype {
+export interface IShrewdPrototype {
 	[$shrewdDecorators]: IDecoratorDescriptor[];
 }

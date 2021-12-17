@@ -1,5 +1,6 @@
+import { DecoratedMember , $shrewdObject, Decorators, IShrewdObjectParent } from "../Index";
 
-class InitializationController {
+export class InitializationController {
 
 	/** Reactions to be initialized. */
 	private static readonly _queue: Set<DecoratedMember> = new Set();

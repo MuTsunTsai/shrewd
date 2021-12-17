@@ -1,3 +1,4 @@
+import { Observable, IShrewdObjectParent, Helper, IDecoratorDescriptor, IDecoratorOptions, DecoratedMember } from "../Index";
 
 //////////////////////////////////////////////////////////////////
 /**
@@ -6,7 +7,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-class ReactiveMethod extends DecoratedMember {
+export class ReactiveMethod extends DecoratedMember {
 
 	private readonly _method: Function;
 	private _result: unknown;

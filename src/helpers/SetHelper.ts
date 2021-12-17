@@ -1,3 +1,4 @@
+import { Observable, Observer, CollectionProxyHandler, IMethodDescriptor, Helper } from "../Index";
 
 class SetProxyHandler extends CollectionProxyHandler<Set<unknown>> {
 
@@ -13,7 +14,7 @@ class SetProxyHandler extends CollectionProxyHandler<Set<unknown>> {
 	}
 }
 
-class SetHelper extends Helper<Set<unknown>> {
+export class SetHelper extends Helper<Set<unknown>> {
 
 	private static _handler = new SetProxyHandler();
 

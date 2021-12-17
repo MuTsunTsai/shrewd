@@ -1,5 +1,5 @@
 
-namespace Comparer {
+export namespace Comparer {
 
 	export function array(oldValue: unknown[], newValue: unknown[]): boolean {
 		if(!oldValue != !newValue) return false;

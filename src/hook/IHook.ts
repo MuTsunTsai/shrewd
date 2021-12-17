@@ -7,7 +7,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-interface IHook {
+export interface IHook {
 
 	/** Callback before committing. */
 	precommit?(): void;

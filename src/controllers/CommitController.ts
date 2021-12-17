@@ -1,5 +1,6 @@
+import { Observer , Global , AutoCommitController } from "../Index";
 
-class CommitController {
+export class CommitController {
 
 	/** Notified, to-be-rendered {@link Observer}s. */
 	private static readonly _queue: Set<Observer> = new Set();

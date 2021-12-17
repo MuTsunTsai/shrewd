@@ -1,3 +1,4 @@
+import { Core, Global, Observer } from "../Index";
 
 //////////////////////////////////////////////////////////////////
 /**
@@ -7,7 +8,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-abstract class Observable {
+export abstract class Observable {
 
 	private static _id: number = 0;
 

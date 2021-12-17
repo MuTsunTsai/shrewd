@@ -1,5 +1,6 @@
+import { Observable, Observer , Core } from "../Index";
 
-class DeadController {
+export class DeadController {
 
 	/** {@link Observer}s that just lost a subscriber and might be dead. */
 	private static readonly _queue: Set<Observer> = new Set();

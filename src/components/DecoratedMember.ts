@@ -1,3 +1,4 @@
+import { Observer , IShrewdObjectParent, IDecoratorDescriptor, IDecoratorOptions } from "../Index";
 
 //////////////////////////////////////////////////////////////////
 /**
@@ -6,7 +7,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-abstract class DecoratedMember extends Observer {
+export abstract class DecoratedMember extends Observer {
 
 	public static $getParent(dm: DecoratedMember) {
 		return dm._parent.constructor.name;

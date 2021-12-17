@@ -2,12 +2,10 @@
 	"compileOnSave": true,
 	"compilerOptions": {
 		"target": "es2018",
-		"module": "none",
 		"removeComments": true,
 		"strict": true,
 		"preserveConstEnums": true,
 		"experimentalDecorators": true,
-		"outFile": "shrewd.js"
 	},
 	"include": [
 		"./**/*.ts"

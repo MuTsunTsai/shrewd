@@ -1,5 +1,6 @@
+import { DecoratedMember, IDecoratedMemberConstructor, IDecoratorDescriptor, IDecoratorOptions } from "../Index";
 
-interface IAdapterConstructor {
+export interface IAdapterConstructor {
 	new(proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, options?: IDecoratorOptions<unknown>): IAdapter;
 }
 
@@ -15,7 +16,7 @@ interface IAdapter {
  */
 //////////////////////////////////////////////////////////////////
 
-abstract class Adapter<T extends DecoratedMember> implements IAdapter {
+export abstract class Adapter<T extends DecoratedMember> implements IAdapter {
 
 	protected _proto: object;
 	protected _prop: PropertyKey;

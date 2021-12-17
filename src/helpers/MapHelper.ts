@@ -1,3 +1,4 @@
+import { Observable, Observer, CollectionProxyHandler, IMethodDescriptor, Helper } from "../Index";
 
 class MapProxyHandler extends CollectionProxyHandler<Map<unknown, unknown>> {
 
@@ -13,7 +14,7 @@ class MapProxyHandler extends CollectionProxyHandler<Map<unknown, unknown>> {
 	}
 }
 
-class MapHelper extends Helper<Map<unknown, unknown>> {
+export class MapHelper extends Helper<Map<unknown, unknown>> {
 
 	private static _handler = new MapProxyHandler();
 

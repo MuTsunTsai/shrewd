@@ -1,3 +1,4 @@
+import { Observable, Observer ,InitializationController } from "../Index";
 
 interface IContext {
 	$isCommitting: boolean;
@@ -13,7 +14,7 @@ interface IContext {
  */
 //////////////////////////////////////////////////////////////////
 
-class Global {
+export class Global {
 
 	private static _state: IContext = {
 		$isCommitting: false,

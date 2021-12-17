@@ -1,5 +1,6 @@
+import { $shrewdObject, ShrewdObject, HiddenProperty } from "../Index";
 
-class TerminationController {
+export class TerminationController {
 
 	/** Objects to be terminated. */
 	private static readonly _queue: Set<ShrewdObject> = new Set();

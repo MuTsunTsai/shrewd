@@ -1,5 +1,7 @@
+import { Observer , $observableHelper, Helper, ObjectProxyHandler, UnknownObject, WrappedObservable } from "../Index";
 
-type UnknownArray = unknown[] & UnknownObject;
+
+export type UnknownArray = unknown[] & UnknownObject;
 
 class ArrayProxyHandler extends ObjectProxyHandler<UnknownArray> {
 
@@ -17,7 +19,7 @@ class ArrayProxyHandler extends ObjectProxyHandler<UnknownArray> {
 	}
 }
 
-class ArrayHelper extends Helper<UnknownArray> {
+export class ArrayHelper extends Helper<UnknownArray> {
 
 	private static _handler = new ArrayProxyHandler();
 

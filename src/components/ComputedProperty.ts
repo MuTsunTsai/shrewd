@@ -1,3 +1,4 @@
+import { Observable, IShrewdObjectParent, Helper, IDecoratorDescriptor, DecoratedMember } from "../Index";
 
 //////////////////////////////////////////////////////////////////
 /**
@@ -13,7 +14,7 @@
  */
 //////////////////////////////////////////////////////////////////
 
-class ComputedProperty extends DecoratedMember {
+export class ComputedProperty extends DecoratedMember {
 
 	private _getter: Function;
 	private _value: unknown;

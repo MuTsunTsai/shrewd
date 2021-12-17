@@ -1,7 +1,8 @@
+import { Observable, Observer , $observableHelper, Helper, WrappedObservable } from "../Index";
 
 type Collection = Set<unknown> | Map<unknown, unknown>;
 
-interface IMethodDescriptor<T extends Collection> {
+export interface IMethodDescriptor<T extends Collection> {
 	$prop: keyof T;
 	$method: Function;
 	$target: T;
@@ -9,7 +10,7 @@ interface IMethodDescriptor<T extends Collection> {
 	$receiver: T;
 }
 
-class CollectionProxyHandler<T extends Collection> implements ProxyHandler<T> {
+export class CollectionProxyHandler<T extends Collection> implements ProxyHandler<T> {
 
 	public get(target: WrappedObservable<T>, prop: string | symbol, receiver: T): unknown {
 		let ob = target[$observableHelper];

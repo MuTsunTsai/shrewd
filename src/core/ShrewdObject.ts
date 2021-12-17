@@ -1,11 +1,12 @@
+import { DecoratedMember, ObservableProperty, InitializationController, $shrewdDecorators, HiddenProperty } from "../Index";
 
-const $shrewdObject = Symbol("ShrewdObject");
+export const $shrewdObject = Symbol("ShrewdObject");
 
-interface IShrewdObjectParent {
+export interface IShrewdObjectParent {
 	[$shrewdObject]: ShrewdObject;
 }
 
-class ShrewdObject {
+export class ShrewdObject {
 
 	constructor(parent: object) {
 		this._parent = HiddenProperty.$add(parent, $shrewdObject, this);

@@ -1,3 +1,4 @@
+import { ComputedPropertyAdapter, IAdapterConstructor, ObservablePropertyAdapter, ReactiveMethodAdapter, Observer , InitializationController , $shrewdDecorators, IDecoratorDescriptor, IDecoratorOptions , HiddenProperty ,Core , Global , IShrewdObjectParent, ShrewdObject } from "../Index";
 
 type UnknownConstructor = new (...args: unknown[]) => {};
 
@@ -10,7 +11,7 @@ type UnknownConstructor = new (...args: unknown[]) => {};
  */
 //////////////////////////////////////////////////////////////////
 
-class Decorators {
+export class Decorators {
 
 	public static get(proto: object) {
 		if(HiddenProperty.$has(proto, $shrewdDecorators)) {
