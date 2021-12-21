@@ -24,7 +24,7 @@ export class Decorators {
 	}
 
 	/** `@shrewd` decorator for class */
-	public static $shrewd<T extends UnknownConstructor>(constructor: T): T;
+	public static $shrewd<T extends Function>(constructor: T): T;
 
 	/** `@shrewd` decorator with options. */
 	public static $shrewd<T>(option: IDecoratorOptions<T>): PropertyDecorator;

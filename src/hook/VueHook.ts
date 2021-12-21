@@ -9,6 +9,12 @@ import { Core, Global, IHook } from "../Index";
  */
 //////////////////////////////////////////////////////////////////
 
+declare global {
+	interface Window {
+		Vue?: unknown;
+	}
+}
+
 export class VueHook implements IHook {
 
 	/**

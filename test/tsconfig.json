@@ -2,16 +2,12 @@
 	"compileOnSave": true,
 	"compilerOptions": {
 		"target": "es2019",
-		"module": "commonjs",
 		"removeComments": true,
 		"strict": true,
 		"preserveConstEnums": true,
 		"experimentalDecorators": true,
 		"esModuleInterop": true, // We need this to import Vue
-		"baseUrl": ".",
-		"paths": {
-			"shrewd": ["../dist/shrewd.d.ts"],
-		}
+		"types": ["mocha"],
 	},
 	"include": [
 		"./src/**/*.ts"

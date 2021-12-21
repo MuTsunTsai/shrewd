@@ -1,0 +1,11 @@
+{
+	"extension": [
+		"ts"
+	],
+	"spec": "test/specs/*.ts",
+	"timeout": "0",
+	"require": [
+		"test/mocha.env",
+		"ts-node/register"
+	]
+}
