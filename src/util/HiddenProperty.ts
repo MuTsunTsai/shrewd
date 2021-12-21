@@ -1,4 +1,4 @@
-import { $shrewdObject, IShrewdObjectParent, ShrewdObject ,$observableHelper, Helper, WrappedObservable , $shrewdDecorators, IDecoratorDescriptor, IShrewdPrototype } from "../Index";
+import { $shrewdObject, IShrewdObjectParent, ShrewdObject ,$observableHelper, Helper, WrappedObservable , $shrewdDecorators, IDecoratorDescriptor, IShrewdPrototype } from "Index";
 
 //////////////////////////////////////////////////////////////////
 /**

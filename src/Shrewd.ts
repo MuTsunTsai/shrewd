@@ -1,4 +1,4 @@
-import { Observer ,InitializationController, TerminationController , $shrewdObject, Comparer, Core, Decorators , DefaultHook, VueHook , HiddenProperty } from "./Index";
+import { Observer ,InitializationController, TerminationController , $shrewdObject, Comparer, Core, Decorators , DefaultHook, VueHook , HiddenProperty } from "Index";
 
 if(typeof window !== 'undefined' && window.Vue) {
 	Core.$option.hook = new VueHook();

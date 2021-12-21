@@ -1,4 +1,4 @@
-import { Observable, Observer , Core } from "../Index";
+import { Observable, Observer , Core } from "Index";
 
 export class DeadController {
 

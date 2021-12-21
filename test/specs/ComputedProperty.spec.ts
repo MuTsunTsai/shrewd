@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { shrewd, commit, symbol } from '../../dist/shrewd';
+import { shrewd, commit, symbol } from 'shrewd';
 
 describe('ComputedProperty', () => {
 

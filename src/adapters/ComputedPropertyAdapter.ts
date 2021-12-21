@@ -1,4 +1,4 @@
-import { ComputedProperty, $shrewdObject, IShrewdObjectParent, IDecoratedMemberConstructor, HiddenProperty, Adapter } from "../Index";
+import { ComputedProperty, $shrewdObject, IShrewdObjectParent, IDecoratedMemberConstructor, HiddenProperty, Adapter } from "Index";
 
 export class ComputedPropertyAdapter extends Adapter<ComputedProperty> {
 

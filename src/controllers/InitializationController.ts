@@ -1,4 +1,4 @@
-import { DecoratedMember , $shrewdObject, Decorators, IShrewdObjectParent } from "../Index";
+import { DecoratedMember , $shrewdObject, Decorators, IShrewdObjectParent } from "Index";
 
 export class InitializationController {
 

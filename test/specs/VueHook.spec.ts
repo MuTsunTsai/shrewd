@@ -1,5 +1,5 @@
-import { assert, expect } from 'chai';
-import { shrewd, commit, symbol, option, hook, IHook } from '../../dist/shrewd';
+import { expect } from 'chai';
+import { shrewd, commit, symbol, option, hook, IHook } from 'shrewd';
 
 // Setup jsdom for Vue testing.
 import "jsdom-global/register";

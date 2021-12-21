@@ -1,4 +1,4 @@
-import { IDecoratedMemberConstructor, IDecoratorOptions } from "../Index";
+import { IDecoratedMemberConstructor, IDecoratorOptions } from "Index";
 
 export interface IDecoratorDescriptor {
 	/** The constructor used for this member. */

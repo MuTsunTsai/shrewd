@@ -1,4 +1,4 @@
-import { Observer , Global , AutoCommitController } from "../Index";
+import { Observer , Global , AutoCommitController } from "Index";
 
 export class CommitController {
 

@@ -1,4 +1,4 @@
-import { Observable, Observer ,InitializationController } from "../Index";
+import { Observable, Observer ,InitializationController } from "Index";
 
 interface IContext {
 	$isCommitting: boolean;

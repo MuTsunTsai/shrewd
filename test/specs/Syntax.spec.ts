@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { shrewd, option } from '../../dist/shrewd';
+import { shrewd, option } from 'shrewd';
 
 describe('Syntax error handling', () => {
 	let err = "", warn = console.warn;

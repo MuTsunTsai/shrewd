@@ -1,4 +1,4 @@
-import { Observer , CommitController, DeadController, TerminationController , DefaultHook, IHook } from "../Index";
+import { Observer , CommitController, DeadController, TerminationController , DefaultHook, IHook } from "Index";
 
 interface IShrewdOption {
 	hook: IHook;

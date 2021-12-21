@@ -1,4 +1,4 @@
-import { DecoratedMember, IDecoratedMemberConstructor, IDecoratorDescriptor, IDecoratorOptions } from "../Index";
+import { DecoratedMember, IDecoratedMemberConstructor, IDecoratorDescriptor, IDecoratorOptions } from "Index";
 
 export interface IAdapterConstructor {
 	new(proto: object, prop: PropertyKey, descriptor?: PropertyDescriptor, options?: IDecoratorOptions<unknown>): IAdapter;

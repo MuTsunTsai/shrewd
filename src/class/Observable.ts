@@ -1,4 +1,4 @@
-import { Core, Global, Observer } from "../Index";
+import { Core, Global, Observer } from "Index";
 
 //////////////////////////////////////////////////////////////////
 /**

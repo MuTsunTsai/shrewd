@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { shrewd, commit } from '../../dist/shrewd';
+import { shrewd, commit } from 'shrewd';
 
 @shrewd class A {
 	@shrewd public a: number;

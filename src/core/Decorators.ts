@@ -1,4 +1,4 @@
-import { ComputedPropertyAdapter, IAdapterConstructor, ObservablePropertyAdapter, ReactiveMethodAdapter, Observer , InitializationController , $shrewdDecorators, IDecoratorDescriptor, IDecoratorOptions , HiddenProperty ,Core , Global , IShrewdObjectParent, ShrewdObject } from "../Index";
+import { ComputedPropertyAdapter, IAdapterConstructor, ObservablePropertyAdapter, ReactiveMethodAdapter, Observer , InitializationController , $shrewdDecorators, IDecoratorDescriptor, IDecoratorOptions , HiddenProperty ,Core , Global , IShrewdObjectParent, ShrewdObject } from "Index";
 
 type UnknownConstructor = new (...args: unknown[]) => {};
 

@@ -1,4 +1,4 @@
-import { Observer , $observableHelper, Helper, ObjectProxyHandler, UnknownObject, WrappedObservable } from "../Index";
+import { Observer , $observableHelper, Helper, ObjectProxyHandler, UnknownObject, WrappedObservable } from "Index";
 
 
 export type UnknownArray = unknown[] & UnknownObject;

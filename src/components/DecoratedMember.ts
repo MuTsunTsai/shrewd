@@ -1,4 +1,4 @@
-import { Observer , IShrewdObjectParent, IDecoratorDescriptor, IDecoratorOptions } from "../Index";
+import { Observer , IShrewdObjectParent, IDecoratorDescriptor, IDecoratorOptions } from "Index";
 
 //////////////////////////////////////////////////////////////////
 /**

@@ -1,4 +1,4 @@
-import { Observable, IShrewdObjectParent, Helper, IDecoratorDescriptor, IDecoratorOptions, DecoratedMember } from "../Index";
+import { Observable, IShrewdObjectParent, Helper, IDecoratorDescriptor, IDecoratorOptions, DecoratedMember } from "Index";
 
 //////////////////////////////////////////////////////////////////
 /**

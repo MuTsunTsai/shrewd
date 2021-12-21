@@ -7,9 +7,16 @@
 		"preserveConstEnums": true,
 		"experimentalDecorators": true,
 		"esModuleInterop": true, // We need this to import Vue
+		"moduleResolution": "node",
 		"types": ["mocha"],
+		"baseUrl": ".",
+		"paths": {
+			"shrewd": [
+				"../dist/shrewd"
+			]
+		}
 	},
 	"include": [
-		"./src/**/*.ts"
+		"./specs/**/*.ts"
 	]
 }

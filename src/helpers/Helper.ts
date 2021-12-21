@@ -1,4 +1,4 @@
-import { Observable, HiddenProperty, ArrayHelper, UnknownArray, MapHelper, ObjectHelper, UnknownObject, SetHelper } from "../Index";
+import { Observable, HiddenProperty, ArrayHelper, UnknownArray, MapHelper, ObjectHelper, UnknownObject, SetHelper } from "Index";
 
 export const $observableHelper = Symbol("Observable Helper");
 

@@ -1,4 +1,4 @@
-import { Observable, Observer , $observableHelper, Helper, WrappedObservable } from "../Index";
+import { Observable, Observer , $observableHelper, Helper, WrappedObservable } from "Index";
 
 type Collection = Set<unknown> | Map<unknown, unknown>;
 

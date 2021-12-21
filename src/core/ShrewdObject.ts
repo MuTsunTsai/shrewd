@@ -1,4 +1,4 @@
-import { DecoratedMember, ObservableProperty, InitializationController, $shrewdDecorators, HiddenProperty } from "../Index";
+import { DecoratedMember, ObservableProperty, InitializationController, $shrewdDecorators, HiddenProperty } from "Index";
 
 export const $shrewdObject = Symbol("ShrewdObject");
 

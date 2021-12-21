@@ -1,4 +1,4 @@
-import { Observable, Observer, $observableHelper, Helper, WrappedObservable } from "../Index";
+import { Observable, Observer, $observableHelper, Helper, WrappedObservable } from "Index";
 
 export class ObjectProxyHandler<T extends UnknownObject = UnknownObject> implements ProxyHandler<T> {
 

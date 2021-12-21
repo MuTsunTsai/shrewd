@@ -1,4 +1,4 @@
-import { Core } from "../Index";
+import { Core } from "Index";
 
 export class AutoCommitController {
 

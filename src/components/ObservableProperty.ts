@@ -1,4 +1,4 @@
-import { Observable, $shrewdObject, Core, Global, IShrewdObjectParent, $observableHelper, Helper, IDecoratorDescriptor, HiddenProperty, DecoratedMember } from "../Index";
+import { Observable, $shrewdObject, Core, Global, IShrewdObjectParent, $observableHelper, Helper, IDecoratorDescriptor, HiddenProperty, DecoratedMember } from "Index";
 
 //////////////////////////////////////////////////////////////////
 /**

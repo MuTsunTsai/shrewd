@@ -1,4 +1,4 @@
-import { Core, Global, IHook } from "../Index";
+import { Core, Global, IHook } from "Index";
 
 //////////////////////////////////////////////////////////////////
 /**

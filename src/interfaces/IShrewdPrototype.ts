@@ -1,4 +1,4 @@
-import { IDecoratorDescriptor } from "../Index";
+import { IDecoratorDescriptor } from "Index";
 
 export const $shrewdDecorators = Symbol("Shrewd Decorators");
 

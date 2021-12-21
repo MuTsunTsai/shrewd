@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { shrewd, commit } from '../../dist/shrewd';
+import { shrewd, commit } from 'shrewd';
 
 describe('ReactiveMethod', () => {
 

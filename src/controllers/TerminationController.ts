@@ -1,4 +1,4 @@
-import { $shrewdObject, ShrewdObject, HiddenProperty } from "../Index";
+import { $shrewdObject, ShrewdObject, HiddenProperty } from "Index";
 
 export class TerminationController {
 

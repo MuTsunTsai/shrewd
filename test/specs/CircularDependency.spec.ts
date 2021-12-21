@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { shrewd, commit, option } from '../../dist/shrewd';
+import { shrewd, commit, option } from 'shrewd';
 
 describe('Circular dependency detection', () => {
 	let err: string, warn = console.warn;

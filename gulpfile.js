@@ -38,18 +38,6 @@ gulp.task('buildMin', () =>
 		.pipe(gulp.dest(projectDest))
 );
 
-let testProject = ts.createProject('test/tsconfig.json');
-let testDest = "test/tests";
-
-gulp.task('buildTest', () =>
-	testProject.src()
-		.pipe(ifAnyNewer(testDest))
-		.pipe(sourcemaps.init())
-		.pipe(testProject())
-		.pipe(sourcemaps.write({ includeContent: false, sourceRoot: '../src' }))
-		.pipe(gulp.dest(testDest))
-);
-
 gulp.task('updateVer', () =>
 	gulp.src(['dist/shrewd.d.ts', 'dist/shrewd.js', 'dist/shrewd.min.js'])
 		.pipe(replace(/\/\*\*\s[\s\S]+?\s\*\//, header))
@@ -96,6 +84,4 @@ gulp.task('buildMain', gulp.series('esbuild', 'eswrap'));
 
 gulp.task('build', gulp.series('buildMain', 'buildMin'));
 
-gulp.task('preTest', gulp.series('build', 'buildTest'));
-
-gulp.task('default', gulp.series('build', 'buildTest', 'updateVer', 'updateExample', 'buildExample'));
+gulp.task('default', gulp.series('build', 'updateVer', 'updateExample', 'buildExample'));

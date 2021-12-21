@@ -1,4 +1,4 @@
-import { ReactiveMethod, $shrewdObject, IShrewdObjectParent, IDecoratedMemberConstructor, HiddenProperty, Adapter } from "../Index";
+import { ReactiveMethod, $shrewdObject, IShrewdObjectParent, IDecoratedMemberConstructor, HiddenProperty, Adapter } from "Index";
 
 export class ReactiveMethodAdapter extends Adapter<ReactiveMethod> {
 

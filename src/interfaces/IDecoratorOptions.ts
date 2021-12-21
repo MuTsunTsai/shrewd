@@ -1,4 +1,4 @@
-import { DecoratedMember } from "../Index";
+import { DecoratedMember } from "Index";
 
 export interface IDecoratorOptions<T = unknown> {
 	validator?: (value: T) => boolean;

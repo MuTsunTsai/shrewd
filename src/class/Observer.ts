@@ -1,4 +1,4 @@
-import { DecoratedMember, CommitController, DeadController, Core, Global, Observable } from "../Index";
+import { DecoratedMember, CommitController, DeadController, Core, Global, Observable } from "Index";
 
 enum ObserverState {
 	$outdated,

@@ -1,4 +1,4 @@
-import { Observable, Observer, CollectionProxyHandler, IMethodDescriptor, Helper } from "../Index";
+import { Observable, Observer, CollectionProxyHandler, IMethodDescriptor, Helper } from "Index";
 
 class SetProxyHandler extends CollectionProxyHandler<Set<unknown>> {
 
