@@ -3,6 +3,7 @@
 	"version": "0.0.14",
 	"description": "A reactive framework designed for building front-end applications that involves complex dependencies among states.",
 	"main": "dist/shrewd.js",
+	"types": "dist/shrewd.d.ts",
 	"scripts": {
 		"version": "gulp default && git add -A",
 		"test": "mocha"
