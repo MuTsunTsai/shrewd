@@ -7,6 +7,7 @@
 		"strict": true,
 		"preserveConstEnums": true,
 		"experimentalDecorators": true,
+		"skipLibCheck": true,
 		"outDir": "../dist/"
 	}
 }
