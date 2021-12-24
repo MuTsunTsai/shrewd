@@ -1,5 +1,5 @@
 /**
- * shrewd v0.0.13
+ * shrewd v0.0.14
  * (c) 2019-2021 Mu-Tsun Tsai
  * Released under the MIT License.
  */
@@ -50,6 +50,9 @@ interface IDecoratorOptions<T> {
 
 	/** Comparer function */
 	comparer?: (oldValue: T, newValue: T, member?: any) => boolean;
+
+	/** Indicating the references are static. */
+	static?: boolean;
 }
 
 /**
