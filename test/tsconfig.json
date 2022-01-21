@@ -9,7 +9,9 @@
 		"esModuleInterop": true, // We need this to import Vue
 		"moduleResolution": "node",
 		"skipLibCheck": true,
-		"types": ["mocha"],
+		"types": [
+			"mocha"
+		],
 		"baseUrl": ".",
 		"paths": {
 			"shrewd": [

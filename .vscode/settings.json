@@ -1,13 +1,13 @@
 {
-        "cSpell.words": [
-                "accessibles",
-                "postcommit",
-                "postrendering",
-                "precommit",
-                "prerendering"
-        ],
-        "files.exclude": {
-                "**/node_modules": true
-        },
-        "typescript.tsdk": "node_modules\\typescript\\lib"
+	"cSpell.words": [
+		"accessibles",
+		"postcommit",
+		"postrendering",
+		"precommit",
+		"prerendering"
+	],
+	"files.exclude": {
+		"**/node_modules": true
+	},
+	"typescript.tsdk": "node_modules\\typescript\\lib"
 }

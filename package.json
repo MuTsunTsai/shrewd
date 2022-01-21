@@ -6,7 +6,7 @@
 	"types": "dist/shrewd.d.ts",
 	"scripts": {
 		"version": "gulp default && git add -A",
-		"test": "mocha",
+		"test": "nyc mocha",
 		"install:vue2": "cd test/specs/vue2 && npm install",
 		"install:vue3": "cd test/specs/vue3 && npm install",
 		"postinstall": "npm run install:vue2 && npm run install:vue3"
@@ -35,12 +35,13 @@
 		"gulp-replace": "^1.0.0",
 		"gulp-sourcemaps": "^2.6.5",
 		"gulp-terser": "^1.4.1",
-		"gulp-typescript": "^5.0.1",
+		"gulp-typescript": "^6.0.0-alpha.1",
 		"jsdom": "^19.0.0",
 		"mocha": "^9.1.3",
+		"nyc": "^15.1.0",
 		"ts-node": "^9.1.1",
 		"tsconfig-paths": "^3.12.0",
-		"typescript": "^4.2.4"
+		"typescript": "^4.5.5"
 	},
 	"files": [
 		"dist"
