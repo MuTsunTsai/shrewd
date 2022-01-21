@@ -1,6 +1,6 @@
 /**
  * shrewd v0.0.14
- * (c) 2019-2021 Mu-Tsun Tsai
+ * (c) 2019-2022 Mu-Tsun Tsai
  * Released under the MIT License.
  */
 
@@ -103,10 +103,13 @@ export function initialize(target: object): void;
 export const hook: {
 
 	/** The default hook that does nothing. */
-	default: IHookConstructor,
+	default: IHookConstructor;
 
-	/** Hook for Vue.js. */
-	vue: IHookConstructor
+	/** Hook for Vue 2. */
+	vue: IHookConstructor;
+
+	/** Hook for Vue 3. */
+	vue3: IHookConstructor;
 };
 
 interface IShrewdOption {

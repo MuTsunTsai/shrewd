@@ -2,7 +2,7 @@
 	"extension": [
 		"ts"
 	],
-	"spec": "test/specs/*.ts",
+	"spec": "test/specs/**/*.spec.ts",
 	"timeout": "0",
 	"require": [
 		"test/mocha.env",

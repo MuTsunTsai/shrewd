@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { shrewd, commit, symbol, option, hook, IHook } from 'shrewd';
 
 // Setup jsdom for Vue testing.
-import "jsdom-global/register";
+import "global-jsdom/register";
 
 import Vue from "vue";
 import { mount } from "@vue/test-utils";

@@ -8,6 +8,7 @@
 		"experimentalDecorators": true,
 		"esModuleInterop": true, // We need this to import Vue
 		"moduleResolution": "node",
+		"skipLibCheck": true,
 		"types": ["mocha"],
 		"baseUrl": ".",
 		"paths": {

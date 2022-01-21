@@ -1,6 +1,6 @@
 /**
  * shrewd v0.0.14
- * (c) 2019-2021 Mu-Tsun Tsai
+ * (c) 2019-2022 Mu-Tsun Tsai
  * Released under the MIT License.
  */
 ;
@@ -326,6 +326,9 @@
                 this._Vue = vue || typeof window != 'undefined' && window.Vue;
                 if (!this._Vue)
                     throw new Error('Global Vue not found; you need to pass a Vue constructor to VueHook.');
+                let version = this._Vue.version;
+                if (typeof version != 'string' || !version.startsWith('2.'))
+                    throw new Error('Vue version 2.x is required.');
                 this._vue = new this._Vue({ data: { shrewd: {} } });
             }
             read(id) {
@@ -1315,6 +1318,68 @@
         };
         var ArrayHelper = _ArrayHelper;
         ArrayHelper._handler = new ArrayProxyHandler();
+        // src/hook/Vue3Hook.ts
+        var Vue3Hook = class {
+            constructor(vue) {
+                this._store = {};
+                this._queue = new Set();
+                this._created = new Set();
+                this._vue = vue || typeof window != 'undefined' && window.Vue;
+                if (!this._vue)
+                    throw new Error('Global Vue not found; you need to pass a Vue module to VueHook.');
+                let version = this._vue.version;
+                if (typeof version != 'string' || !version.startsWith('3.'))
+                    throw new Error('Vue version 3.x is required.');
+            }
+            read(id) {
+                let t = this._store[id];
+                t == null ? void 0 : t.value;
+                if (!Global.$isCommitting && !t)
+                    t = this._update(id);
+                return t && this._hasDep(id);
+            }
+            write(id) {
+                if (Core.$option.autoCommit || Global.$isCommitting)
+                    this._update(id);
+                else
+                    this._queue.add(id);
+            }
+            precommit() {
+                for (let id of this._queue)
+                    this._update(id);
+                this._queue.clear();
+            }
+            _update(id) {
+                if (id in this._store)
+                    this._store[id].value = {};
+                else
+                    this._store[id] = this._vue.ref({});
+                this._store[id].value;
+                return this._store[id];
+            }
+            gc() {
+                let result = [];
+                for (let id in this._store) {
+                    let n = Number(id);
+                    if (!Core.$option.autoCommit && !this._created.has(n)) {
+                        this._created.add(n);
+                    } else if (!this._hasDep(n)) {
+                        if (!Core.$option.autoCommit)
+                            this._created.delete(n);
+                        delete this._store[id];
+                        result.push(Number(id));
+                    }
+                }
+                return result;
+            }
+            _hasDep(id) {
+                var _a, _b;
+                return ((_b = (_a = this._store[id].dep) == null ? void 0 : _a.size) != null ? _b : 0) > 0;
+            }
+            sub(id) {
+                return id in this._store && this._hasDep(id);
+            }
+        };
         // src/Shrewd.ts
         if (typeof window !== 'undefined' && window.Vue) {
             Core.$option.hook = new VueHook();
@@ -1326,7 +1391,8 @@
         var initialize = InitializationController.$initialize;
         var hook = {
             default: DefaultHook,
-            vue: VueHook
+            vue: VueHook,
+            vue3: Vue3Hook
         };
         var option = Core.$option;
         var comparer = Comparer;

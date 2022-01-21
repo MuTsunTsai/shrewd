@@ -1,4 +1,5 @@
 import { Observer ,InitializationController, TerminationController , $shrewdObject, Comparer, Core, Decorators , DefaultHook, VueHook , HiddenProperty } from "Index";
+import { Vue3Hook } from "./hook/Vue3Hook";
 
 if(typeof window !== 'undefined' && window.Vue) {
 	Core.$option.hook = new VueHook();
@@ -11,7 +12,8 @@ export const terminate = TerminationController.$terminate;
 export const initialize = InitializationController.$initialize;
 export const hook = {
 	default: DefaultHook,
-	vue: VueHook
+	vue: VueHook,
+	vue3: Vue3Hook,
 };
 export const option = Core.$option;
 export const comparer = Comparer;

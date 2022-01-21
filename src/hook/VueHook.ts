@@ -23,6 +23,8 @@ export class VueHook implements IHook {
 	constructor(vue?: any) {
 		this._Vue = vue || typeof window != "undefined" && window.Vue;
 		if(!this._Vue) throw new Error("Global Vue not found; you need to pass a Vue constructor to VueHook.");
+		let version = this._Vue.version;
+		if(typeof version != 'string' || !version.startsWith('2.')) throw new Error("Vue version 2.x is required.");
 		this._vue = new this._Vue({
 			data: {
 				shrewd: {}
