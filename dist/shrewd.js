@@ -1382,7 +1382,10 @@
         };
         // src/Shrewd.ts
         if (typeof window !== 'undefined' && window.Vue) {
-            Core.$option.hook = new VueHook();
+            if (window.Vue.version.startsWith('2'))
+                Core.$option.hook = new VueHook();
+            else
+                Core.$option.hook = new Vue3Hook();
         }
         var shrewd = Decorators.$shrewd;
         var symbol = $shrewdObject;

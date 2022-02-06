@@ -1,5 +1,13 @@
 import { Core, Global, IHook } from "Index";
 
+declare global {
+	interface Window {
+		Vue?: {
+			version: string;
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////
 /**
  * {@link VueHook} uses a very simple idea to establish the dependencies
@@ -8,12 +16,6 @@ import { Core, Global, IHook } from "Index";
  * to those dummy fields trigger the corresponding mechanism in Vue.
  */
 //////////////////////////////////////////////////////////////////
-
-declare global {
-	interface Window {
-		Vue?: unknown;
-	}
-}
 
 export class VueHook implements IHook {
 

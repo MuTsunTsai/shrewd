@@ -2,7 +2,8 @@ import { Observer ,InitializationController, TerminationController , $shrewdObje
 import { Vue3Hook } from "./hook/Vue3Hook";
 
 if(typeof window !== 'undefined' && window.Vue) {
-	Core.$option.hook = new VueHook();
+	if(window.Vue.version.startsWith('2')) Core.$option.hook = new VueHook();
+	else Core.$option.hook = new Vue3Hook();
 }
 
 export const shrewd = Decorators.$shrewd;
