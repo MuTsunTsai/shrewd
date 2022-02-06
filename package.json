@@ -7,8 +7,8 @@
 	"scripts": {
 		"version": "gulp default && git add -A",
 		"test": "nyc mocha",
-		"install:vue2": "cd test/specs/vue2 && npm install",
-		"install:vue3": "cd test/specs/vue3 && npm install",
+		"install:vue2": "cd test/specs/vue2 && npm install || exit 0",
+		"install:vue3": "cd test/specs/vue3 && npm install || exit 0",
 		"postinstall": "npm run install:vue2 && npm run install:vue3"
 	},
 	"keywords": [
