@@ -1,6 +1,6 @@
 {
 	"name": "shrewd",
-	"version": "0.0.15",
+	"version": "0.0.16",
 	"description": "A reactive framework designed for building front-end applications that involves complex dependencies among states.",
 	"main": "dist/shrewd.js",
 	"types": "dist/shrewd.d.ts",
